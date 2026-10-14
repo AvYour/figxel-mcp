@@ -1,0 +1,119 @@
+{
+  "spike": "live-review",
+  "startedAt": "2026-10-13T07:36:13.665Z",
+  "finishedAt": "2026-10-13T07:47:35.842Z",
+  "session": {
+    "file": "Untitled",
+    "editorType": "figma",
+    "role": "proxy"
+  },
+  "records": [
+    {
+      "probe": "keyframes: 30 grey steps on fill:0",
+      "ok": true,
+      "value": {
+        "keys": 59,
+        "timeline": {
+          "id": "82:1383",
+          "duration": 1,
+          "topLevelFrameId": "82:1383"
+        }
+      }
+    },
+    {
+      "probe": "steps render collected",
+      "ok": false,
+      "value": {
+        "first": {
+          "ms": 40009,
+          "ok": true,
+          "status": "rendering"
+        },
+        "polls": 6,
+        "totalMs": 240404
+      }
+    },
+    {
+      "probe": "[C-194] 1 s at 30 fps exports 31 frames",
+      "ok": false,
+      "value": {}
+    },
+    {
+      "probe": "[C-195] export stills carry their own frame's level",
+      "ok": null,
+      "value": "no frames returned"
+    },
+    {
+      "probe": "review_video on the steps render",
+      "ok": null,
+      "value": "no file to review"
+    },
+    {
+      "probe": "keyframes: a 15 s move",
+      "ok": true,
+      "value": {
+        "id": "82:1447",
+        "duration": 15,
+        "topLevelFrameId": "82:1447"
+      }
+    },
+    {
+      "probe": "first call answers before the 60 s client gives up",
+      "ok": true,
+      "value": {
+        "ms": 40022,
+        "ok": true,
+        "status": "rendering"
+      }
+    },
+    {
+      "probe": "15 s 1080 × 1920 render collected by jobId",
+      "ok": false,
+      "value": {
+        "polls": 6,
+        "totalMs": 241044
+      }
+    },
+    {
+      "probe": "[C-194] 15 s at 30 fps exports 451 frames",
+      "ok": false,
+      "value": {}
+    },
+    {
+      "probe": "a call the client cut at 10 s does not lose the render",
+      "ok": true,
+      "value": {
+        "first": {
+          "ms": 10003,
+          "ok": false,
+          "status": "error",
+          "text": "MCP error -32001: Request timed out"
+        },
+        "polls": 5,
+        "totalMs": 198840,
+        "path": "~\\.figma-mcp\\exports\\live-review-cut.mp4"
+      }
+    },
+    {
+      "probe": "[C-194] 15 s at 24 fps exports 361 frames",
+      "ok": true,
+      "value": {
+        "frameCount": 361,
+        "expectedFrames": 361
+      }
+    },
+    {
+      "probe": "review_video on the long render",
+      "ok": null,
+      "value": "no file to review"
+    },
+    {
+      "probe": "delete the sandbox frames",
+      "ok": true,
+      "value": [
+        "82:1383",
+        "82:1447"
+      ]
+    }
+  ]
+}

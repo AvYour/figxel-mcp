@@ -1,0 +1,99 @@
+{
+ "path": "<tmp>/claude/<session>/scratchpad/motion/final-spec.md",
+ "title": "Moku — IG Story Ad v2 (motion): \"Slow down.\" One circle of clay",
+ "durationS": 14.4,
+ "spine": "spec-type.md (\"Slow down.\", type-led): the highest combined judge score (craft 8.5 + ad 8 + build 8 = 24.5). Taken from it: the frame-0 hook (\"S l o w\" collapsing its tracking at 400 px, \"down.\" dropping in per letter with blur), the dot popping into the counter of the \"o\", \"Ash Vase\" at 230 px and \"$48\" at 220 px, the full-frame terracotta \"10%\" field that contracts into the CTA pill, and the build method (single-source keyframes JSON with frame-exact cut pairs). The keyframes are also published as final-spec.keyframes.json next to the spec, generated and validated by final/gen-final.mjs: 93 animated layers, 182 tracks, 681 keys, every key on the 1/30 s grid except cut pairs, at most 10 keys per track.",
+ "grafts": [
+  "Graphic: one terracotta circle carries every scene. It is born as the dot in the 'o', swells into the wheel disc, collapses onto the vase belly as a 96 px dot, and bursts into the image band as a circle-to-rectangle morph. Later the bowl wall blooms into the offer field, which collapses into the CTA pill.",
+  "Graphic: a concentric stacked iris (clay at 2.4, cream at 2.467, hands photo at 2.533) inside the disc, closing in reverse order as the disc collapses.",
+  "Graphic: the disc anticipates +5 %, then collapses on IN to Ø 96 at (384, 1180). A terracotta plate and then a clay plate wipe off inside the band, 2 frames apart, with 14 px blur.",
+  "Graphic: exactly three hand-keyed overshoots: the dot (1.25 → 0.95 → 1), '$48' (−18 → +5 → 0 px) and the CTA pulse at 13.2 (1.08 → 0.985 → 1).",
+  "Graphic: the brand never leaves the screen. It flips colour once (frame 283) and flies and scales 3x into the end-card logo, swapped to a real S4/Logo on frame 346 by default.",
+  "Graphic: trim-path accents: the wheel ring, the dimension line with ticks, the hand-drawn loop around '10%', the bowl arc drawn centre-out, and the arrow drawn shaft first.",
+  "Graphic: CTA numbers: a 640 × 120 pill with a 40 px label readable for 2.8 s, an 8 % punch with settle, a 50 px ripple, and arrow nudges at 13.267 and 13.8.",
+  "Graphic: name + price for every collection item, built as a list that persists so each entry is readable for at least 1.06 s.",
+  "Camera: the velocity-matched push-through, the ad's only camera move. S2 dives 1 → 2.6 into the vase belly (5.6–6.0) with blur up to 18. S3 arrives at 0.82 → 1 on expo-out while the blur clears.",
+  "Camera: lag-and-settle follow-through on secondaries: the wheel ring, the collection pointer dot that trails each cut by 3 frames, and '32 cm'.",
+  "Camera: 8 px blur on the first frames of big type rises; the soft 'slow' curve (cubic:0.25,0.6,0.15,1) on the 'Slow' tracking collapse.",
+  "Camera: a centred 'Moku' wordmark on frame 0 whose tracking locks on beat 1.8 (the centre brand moment).",
+  "Camera: the breath (10.4–10.9) placed directly before the end card; the offer restated on the end card above the CTA; plain clip frames for every mask.",
+  "Fixes from the judges: no whip, no panel burst and no grain. Exactly two devices between 6 and 9 s. No Inter text below 28 px. All text between y 304 and y 1500. The image slit starts at 240 px.",
+  "Fixes from the judges (build): no reliance on corner-radius clamping (radius keyed as W/2 or H/2); round caps guarded; no TRANSLATION on any auto-layout child; every animated row has a FIXED width; bloom circles Ø 3000; blur on every edge faster than 150 px/frame, peak ≤ 18; and a TRANSLATION_X fallback for every STACK_SPACING track."
+ ],
+ "packages": [
+  {
+   "key": "RIG",
+   "title": "Frame, containers, brand overlay (wordmark tracking lock, colour flip, flight into the logo)",
+   "container": "Moku — IG Story Ad v2 (motion) (top-level frame; creates the 5 empty containers) + global overlay 'Brand bug'",
+   "timeRange": "0–14.4",
+   "layerCount": 11
+  },
+  {
+   "key": "S1",
+   "title": "Hook and wheel: 'Slow down.', dot in the 'o', disc with hands on the wheel, 'By hand.', collapse onto the vase belly",
+   "container": "S1 · Hook",
+   "timeRange": "0–3.633",
+   "layerCount": 31
+  },
+  {
+   "key": "S2",
+   "title": "Ash Vase: band bursts from the dot, 'Ash Vase', '$48', specs, dimension line, push-through dive",
+   "container": "S2 · Ash Vase",
+   "timeRange": "3.6–6.033",
+   "layerCount": 39
+  },
+  {
+   "key": "S3",
+   "title": "Collection: arch window with stop-motion mug, plates and bowl, Autumn 2026 kicker, list with prices, bloom from the bowl wall",
+   "container": "S3 · Collection",
+   "timeRange": "6.0–9.633",
+   "layerCount": 42
+  },
+  {
+   "key": "S4",
+   "title": "End card (sits under S5): ink ground, Moku logo (swap target), bowl arc, tagline, offer restated, URL, footer",
+   "container": "S4 · End card",
+   "timeRange": "9.633–14.4 (revealed 11.0–11.4)",
+   "layerCount": 26
+  },
+  {
+   "key": "S5",
+   "title": "Offer and CTA: full terracotta field, '10% off your first order.', loop, breath, field collapses into the CTA pill, label, arrow, final pulse, ripple",
+   "container": "S5 · Offer + CTA",
+   "timeRange": "9.6–14.4",
+   "layerCount": 26
+  }
+ ],
+ "checkTimes": [
+  0,
+  0.5,
+  0.733,
+  1.267,
+  1.6,
+  1.8,
+  2.167,
+  2.4,
+  2.633,
+  3.033,
+  3.433,
+  3.6,
+  3.9,
+  4.333,
+  5.5,
+  5.9,
+  6.033,
+  6.9,
+  7.267,
+  8.667,
+  9.367,
+  9.433,
+  9.7,
+  10.267,
+  10.6,
+  11.2,
+  11.533,
+  12.6,
+  13.3,
+  14.367
+ ]
+}

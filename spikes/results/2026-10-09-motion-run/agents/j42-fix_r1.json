@@ -1,0 +1,178 @@
+{
+ "applied": [
+  "BLOCKER (dot shows for 1 frame): S1/Wheel now slams into the Ø96 dot at 3.5 on IN, squeezes over 2 frames to 0.0955 (SOFT) and holds. Translation lands on 3.5. Blur runs 0 → 8 at 3.4667 → 0 at 3.5. Every other S1 exit moved 0.1 s earlier. S2 is unchanged. Render confirms the dot on f105-f108 (Ø 96/90/84, then S2's 96) at (384,1180) before the burst on f109.",
+  "MAJOR (QA, iris strobe), merged with the blocker timing: Iris, Cream band and Clay band now close on SOFT over 6-7 frames (Iris 3.1333→3.3667, Cream 3.2→3.4, Clay 3.2333→3.4333). Guards cut at f101, f102 and f103, when each layer is at 4-5 % size. Iris/Hands counter-translation, radius and blur were moved with them. The render shows three concentric discs shrinking into the centre.",
+  "MAJOR (disc swell is a one-frame pop): the S1/Wheel ease into 2.4 is now cubic:0.7,0,0.3,1 (diameter steps +80/+134/+177/+134/+80). Wheel blur goes 0 → 10 at 2.1667 → 0. I added LAYER_BLUR 0 to S1/Clay band and S1/Cream band, with burst blurs of 8 px (2.4/2.4667/2.6 and 2.4667/2.5333/2.6667).",
+  "MAJOR (push-through not velocity-matched): S3/Content SCALE now runs 0.5 → 1 OUT over 6.0-6.7. New TRANSLATION_XY goes -78,110 → 0,0, so the zoom pivots on (384,1180) for the whole move. One deviation from the brief: S3 blur decays on cubic:0.2,0.5,0.35,1 to 6.3 (18→13→8.7→5.6→3.4→2→1). The prescribed OUT curve would have repeated the 18→7.6 one-frame drop. The S2 dive blur is now keyed per frame to its speed (2.7/5.3/10/18). Measured per-frame zoom: S2 ×1.318 into the cut, then S3 ×1.269, ×1.164, ×1.102…",
+  "MAJOR (S3 dead between cuts): S3/Content drifts 1 → 1.045 by 9.6. S3/Type TRANSLATION_Y now ends at -40. New S3/List TRANSLATION_Y goes 0 → -24 over 6.9-9.6. Mean frame diff over f222-276 is now 0.38-0.42 (was 0.08-0.12), above the breath's 0.22.",
+  "MAJOR (CTA ripple barely reads): used the motion-craft version. The ripple is born at the punched pill's edge on f398 at 692×130 and grows to 880×300 by 13.9. Translation goes -26,-5 → -120,-90, radius 65 → 150, stroke 8 → 1.5, fading out by 13.9 (FADE). It clears the pill from f399.",
+  "MAJOR ($48 collides with the dimension line): S2/Price x 600→703, S2/Price/4-mask x 120→92, S2/Price/8-mask x 240→192. The '$' ink is about 96 px clear of the line, the '8' ends on x 1016, and there is about 57 px clearance above '32 cm'.",
+  "MAJOR (offer reads 'IO%'): S5/Ten/1, /0 and /% are now Inter Semi Bold 300, LH 480, LS -4 %. Masks were resized to w+52 (197/253/306). The '1' moved +6 px inside its mask so the optical gaps match, and S5/Ten STACK_SPACING tightened to -60 → -44 (was -52 → -36). The baseline was re-registered from the measured render bounds (+18 px). S4/10% off is now Inter Semi Bold 50, with masks recomputed (x1 = 202, w = 197; your-first-order mask x = 387, w = 375).",
+  "MAJOR (loop cuts the '%'): I widened S5/Loop path 1.14× by resizing the vector, so the stroke stays 6 px, and recentred it at x -36.5. ROTATION is reversed to -2 (clockwise) over 9.7333-11.1667. The loop clears the '%' and 'off' at f308 and f318.",
+  "MINOR (dot pre-roll): Wheel guard moved to 1.4417/1.4617, pop runs 1.4667 → 1.5667 on cubic:0.3,0.8,0.3,1 (dot is 70 px on f45). Every S2/Price/$,/4,/8 key moved 0.0333 s earlier ('$' shows on f144). The S5 container switches on at 9.5083/9.5283. The S5 rise keys (Ten/*, off, your, first, order.) and the Loop draw/guard keys moved 0.0667 s earlier ('1' shows on f287).",
+  "MINOR: S3/Terracotta and S3/Cream circles now overshoot to 1.35 (IRIS). The bug flips on f283 as before, and the frame is fully covered from f284.",
+  "MINOR: S2/Band window CORNER_RADIUS is now 48 → 520 OUT at 3.9 → 0 at 4.2 on cubic:0.4,0,0.2,1, landing square on the 4.2 beat.",
+  "MINOR: S1/Slow STACK_SPACING now reaches -8 at 0.9 on cubic:0.2,0.45,0.25,1. Kept the measured s0 of 56; the brief assumed 54.",
+  "MINOR: S2/Content dive anticipation pulls back to 0.965 over 5.5333-5.7 on QOUT, then dives on IN. Translation stays pivot-locked on (384,1180).",
+  "MINOR: S2 drifts now carry through to 6.0: S2/Push 1.04 → 1.05 and S2/Type -12 → -15. Frames f166-171 move at a mean diff of 1.73 (was 0.04).",
+  "MINOR (headline collides with the bug): new S2/Headline OPACITY 1 → 0 over 5.6333-5.8333 SOFT. It is gone by f175; '$48' and the specs fly through with the camera.",
+  "MINOR: S4 · End card SCALE_XY 1 → 1.035 over 11.5333-14.4 (starts at the logo-swap frame).",
+  "MINOR: S5/Arrow nudges now use QOUT out and SOFT back: 14 px over 13.2667-13.6, 10 px over 13.8-14.1333.",
+  "MINOR: S5/Arrow shaft draws on DRAW over 11.6333-11.8667 (2 % long when it appears on f350). S5/Arrow head draws on DRAW over 11.8-11.9667, with its guard moved to f355.",
+  "MINOR: the S1/Iris open guard is now 2.5417/2.5617, which removes the 2 px speck on f76.",
+  "MINOR: S1/Ring path PATH_TRIM_START eases on DRAW (and moved 0.1 s earlier per the blocker). S5/Loop path PATH_TRIM_START eases on DRAW: 0.98 on f334, then guarded off on f335.",
+  "MINOR: S1/Window HEIGHT now closes on SOFT (12 px on f65).",
+  "MINOR (window tangency): S1/Window rest x 300→270 with WIDTH 240→540 and TRANSLATION_X 150→0. S1/Photo rest x -110→-80 with TRANSLATION_X -150→0, so the photo stays screen-locked. The 'S' now overlaps the plinth by about 45 px.",
+  "MINOR: Brand bug flight SCALE_XY and TRANSLATION_Y now ease on cubic:0.7,0,0.3,1. The largest step is 0.49× and 66 px (was 0.74× and 102 px).",
+  "MINOR: new RECT S3/Warm (47:558), 520×720, #e9e1d6, MULTIPLY, top of S3/Window. OPACITY 1 → 0 over 9.0-9.1667, so the bloom still seeds on bare terracotta.",
+  "MINOR: S2/Spec 2-mask x 800→831; both specs are now flush right on 1016.",
+  "MINOR (offer composition): S5/Ten y 380→468 (+18 baseline, +70), S5/off-mask y 800→870, S5/Line y 1040→1110, S5/Loop y 391→461. The offer block now centres at about y 850-900.",
+  "MINOR: S4/your first order text is now 'your first order.' and the S4 offer row was recentred.",
+  "MINOR (export is 433 frames): no keyframe change. Wrote a re-encoded 432-frame copy, ~/.figma-mcp/exports/moku-ig-story-ad-v2-r1-432f.mp4 (14.400 s, 432 frames).",
+  "VERIFICATION: a full motion-context readback matches the intended state on 189/189 tracks across 96 animated layers, timeline 14.4. Re-rendered to ~/.figma-mcp/exports/moku-ig-story-ad-v2-r1.mp4. Contact sheet, 21 close-ups and 30 check stills are in the scratchpad's motion/r1/. I reviewed them myself: dot hold, push-through, offer, ripple and end card all read as intended."
+ ],
+ "skipped": [
+  "QA 'dot handoff' major (decelerate into the dot and shift S2 keys +0.0667): superseded by the motion-craft blocker fix, which keeps S2 untouched. The dot now holds 4 frames, so both aims are met without retiming S2.",
+  "QA push-through minor (S3 from 0.66 to 6.5, blur to 6.3): superseded by the motion-craft push-through (0.5 with the matched pivot). I kept QA's slower blur intent through the re-curved decay.",
+  "QA ripple minor and design ripple minor (6 px stroke, optional clay colour): superseded by the motion-craft ripple. I kept terracotta, because the 8 px ring reads at f399.",
+  "Design minor 'duck the Brand bug' at 5.77-6.3: not applied, because the concept says the brand never leaves the screen. The collision is solved by the S2/Headline fade (QA). I also used that headline fade in place of the motion-craft whole-S2/Type fade, so the price and specs fly through with the camera.",
+  "'By hand.' conflict (motion craft: exit 0.1 s earlier; design: hold 0.1 s longer): compromise of +1 frame. S1/By exits 3.2333→3.4333 and S1/hand. 3.2667→3.4667. That keeps at least 0.6 s of read and clears both words before the dot lands on f105.",
+  "Design 'IO%' alternative (hand-drawn lining-figure vectors in Cormorant): not needed, because the Inter figures were adopted.",
+  "Design loop fix: did not add SCALE_XY keys on the S5/Loop wrapper. I resized the vector 1.14× instead, which avoids stretching the stroke unevenly.",
+  "OPEN: the end card is still near-static. Mean frame diff over f373-396 is 0.096 (was 0.03), from the prescribed 3.5 % sub-pixel drift. I did not push it harder, for restraint.",
+  "OPEN, spec issue: section E.1's seek formula (k+0.5)/30 lands on frame k+1. All r1 check stills were re-cut by exact frame index (select=eq(n,k)). The r0 stills that the critics read are one frame late.",
+  "OPEN, figma-mcp defects: (1) the 45:xxx twin ids are readable but every write to them fails with 'not found'; all writes used the 42:xxxx ids. (2) The first figma_set_keyframes call (with timelineDuration 14.4) returned a foreign timeline id (47:559) and silently dropped 2 of its 3 tracks (S1/Window WIDTH and TRANSLATION_X). A retry without timelineDuration applied them, and the full readback is clean. One later call (S4 · End card) also returned a foreign timeline id but did apply."
+ ],
+ "mp4": "~/.figma-mcp/exports/moku-ig-story-ad-v2-r1.mp4",
+ "durationS": 14.433,
+ "images": [
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/sheet-full.png",
+   "what": "Contact sheet of the whole r1 render at 6 fps, 9x10 tiles"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-0.000-hook-slit-slow.png",
+   "what": "0.0-0.8 s: slit opening and 'Slow' tracking collapse"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-0.600-down-drop.png",
+   "what": "0.6-1.4 s: 'down.' per-letter drop"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-1.400-dot-pop.png",
+   "what": "1.4-2.0 s: dot pre-roll and pop on the 1.5 beat"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-1.900-disc-swell.png",
+   "what": "1.9-2.5 s: disc swell spread over 5 frames with blur, window shutting on SOFT"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-2.400-downbeat-burst-byhand.png",
+   "what": "2.4-3.2 s: stacked concentric burst with blur, 'By hand.'"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-3.000-ring-chase-iris-close.png",
+   "what": "3.0-3.6 s: ring chase, concentric reverse iris close, slam into the dot"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-3.367-dot-hold-band-burst.png",
+   "what": "3.37-3.97 s: 4-frame dot hold (f105-f108), then the band burst"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-3.833-band-snap-specs.png",
+   "what": "3.83-4.63 s: circle-to-rectangle morph landing on 4.2, specs and dimension line"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-4.733-price-48.png",
+   "what": "4.73-5.53 s: '$48' rise with overshoot at its new position"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-5.467-dive-anticipation.png",
+   "what": "5.47-6.07 s: headline fade, anticipation pull-back, dive with speed-matched blur"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-5.900-push-through-cut.png",
+   "what": "5.9-6.5 s: push-through cut, S3 arrives at 0.5x and decelerates"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-7.133-cut-mug-plates.png",
+   "what": "7.13-7.73 s: stop-motion cut mug to plates"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-7.967-cut-plates-bowl.png",
+   "what": "7.97-8.57 s: stop-motion cut plates to bowl"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-9.200-bloom-bugflip.png",
+   "what": "9.2-9.8 s: warmed arch, bloom overshoot, bug flip on f283, '1' rising on f287"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-9.500-offer-rise.png",
+   "what": "9.5-10.3 s: Inter '10%' rise, loop draw, 'off' and line rise"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-10.133-ten-punch.png",
+   "what": "10.13-10.73 s: scale punch on '10%' and the breath"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-10.867-field-collapse.png",
+   "what": "10.87-11.67 s: offer exit and field collapse into the pill"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-11.233-bug-flight-logo-swap.png",
+   "what": "11.23-11.83 s: softened bug flight, logo swap, arrow drawing shaft first"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-11.600-arrow-draw-endcard.png",
+   "what": "11.6-12.2 s: arrow draw and end card build"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-13.133-cta-pulse-ripple.png",
+   "what": "13.13-13.93 s: CTA pulse, the new 8 px ripple born at the pill edge, arrow nudge"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/closeup-13.733-echo-nudge-end.png",
+   "what": "13.73-14.43 s: echo nudge and settled end"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-0.000.png",
+   "what": "E.2 still f0: clean first frame"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-3.600.png",
+   "what": "E.2 still f108: one crisp Ø96 dot at (384,1180) on cream"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-5.500.png",
+   "what": "E.2 still f165: product frame, '$48' clear of the dimension line, right edge on 1016"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-6.033.png",
+   "what": "E.2 still f181: S3 arriving about 0.64x, blurred, no border"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-10.267.png",
+   "what": "E.2 still f308: Inter '10%' punch peak, loop clear of the '%'"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-10.600.png",
+   "what": "E.2 still f318: breath, offer block lowered 70 px"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-11.533.png",
+   "what": "E.2 still f346: logo swap frame"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-12.600.png",
+   "what": "E.2 still f378: complete end card with '10% off your first order.'"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-13.300.png",
+   "what": "E.2 still f399: pulse peak with the thick ripple ring outside the pill"
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r1/check-14.367.png",
+   "what": "E.2 still f431: clean last frame"
+  }
+ ]
+}

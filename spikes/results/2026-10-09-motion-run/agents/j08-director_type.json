@@ -1,0 +1,31 @@
+{
+ "path": "<tmp>/claude/<session>/scratchpad/motion/spec-type.md",
+ "title": "Moku: \"Slow down.\" (type-led IG Story ad)",
+ "concept": "The ad tells the scrolling thumb to \"Slow down.\" and then the typography does exactly that: oversized Cormorant letters decelerate, drop and settle on a 100 BPM grid, while Moku's hand-made pieces appear in windows that open out of the type itself. Every cut is carried by a shape already on screen: the counter of an \"o\" becomes an iris, the vase is sliced into a terracotta line that reopens on the next product, the terracotta bowl floods the frame, and the whole offer contracts into the \"Shop the collection\" button.",
+ "durationS": 14.4,
+ "bpm": 100,
+ "scenes": 6,
+ "animatedLayers": 92,
+ "techniques": [
+  "Speed graphs as cubic easings with fixed roles: expo-out arrivals, ease-in exits, aggressive in-out whip and morph, an accelerating iris curve",
+  "Frame-exact hard cuts as OPACITY / fill:0 value pairs placed between frames (no HOLD ambiguity)",
+  "Per-letter, per-character and per-word mask reveals: one TEXT per letter or word inside its own clipsContent frame, 1-2 frame staggers",
+  "Animated tracking via STACK_SPACING on letter rows (S1 'Slow' collapse 56 to -8, S5 '10%' breathing, S6 logo opening)",
+  "Scale punches on beats: row SCALE_XY 1 to 1.06 in 2 frames, then an expo-out settle",
+  "Match-cut circle iris from the counter of the 'o': clip frame WIDTH/HEIGHT/TRANSLATION_XY with an exactly counter-translated plate",
+  "Glued whip pan: two containers 1920 px apart on identical keys, +24 px anticipation dip, LAYER_BLUR 28 at peak speed",
+  "Shutter / rectangle morph: the window closes to an 8 px slit with terracotta edge bars and reopens as the next scene's window",
+  "Stop-motion hard cuts between products inside one window, with a slot-machine word roll in a single mask",
+  "Bowl-band match cut into stacked brand-colour wipes (sand, ink, terracotta, 1 frame apart, blurred at peak)",
+  "Full-frame field morphing into the CTA pill (WIDTH, HEIGHT, TRANSLATION_XY, CORNER_RADIUS 0 to 56)",
+  "Trim paths: an upward-drawing dimension line, a comet orbit (START chasing END), centre-out ticks, divider and rule",
+  "Faked motion blur: LAYER_BLUR effect:0:RADIUS ramps placed on each curve's computed peak-speed frames",
+  "Continuous LINEAR camera pushes and parallax drifts on containers, shots and type rows; nothing eases to a stop",
+  "Three overshoot accents only (spring dot, '$48', CTA label), a ring ping and repeated-key arrow nudges"
+ ],
+ "riskiest": [
+  "T1, the iris through the 'o' (S2/Iris + S2/Plate): it depends on the measured centre of the 'o', on a 3000 px clip frame whose corner radius must clamp to a circle at every size, and on exact counter-translation under LAYER_BLUR. Fallback A: also keyframe CORNER_RADIUS = WIDTH/2. Fallback B: replace it with a plain ink ellipse scaling 0.03 to 42 from the 'o' centre (the SCALE pivot is the centre, so no counter-translation) and cut the shot in at frame 72.",
+  "Mask reveals inside auto-layout rows: TRANSLATION on hug-sized clip masks that are auto-layout children, negative itemSpacing, italic overhang, and STACK_SPACING moving clipped masks. Build and test S1 first. Fallback: read the mask positions, switch auto-layout off on the rows (positions freeze), and replace STACK_SPACING with per-mask TRANSLATION_X keys of (i - (n-1)/2) x the spacing change.",
+  "T2, the whip with faked blur, plus the global top-bar colour flips: a 28 px blur on two full-frame containers (one holding the 3000 px iris) may render slowly or read as a dissolve, and the flips at frames 68, 122 and 248 assume the measured iris centre. Fallback: shorten the whip to 9 frames with peak blur 20, or remove the blur from S3. Move a flip by +/-1 frame using the radius formula given in section 6."
+ ]
+}

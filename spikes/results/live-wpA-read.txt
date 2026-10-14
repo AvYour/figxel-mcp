@@ -1,0 +1,83 @@
+role proxy, file "Untitled", build {"plugin":"1cf1e6aca699","dist":"1cf1e6aca699","server":"1cf1e6aca699","matches":true}
+
+-- sandbox
+  ok    create sandbox frame                                 {"id":"30:12693","name":"figma-mcp WP-A probe (delete me)","type":"FRAME","width":80,"height":80,"idempotencyKey":"k-c19e7ca7-cb84-4969-be74-265018249…
+
+-- addressing
+  ok    get_node with '12-34' form                           {"node":{"id":"30:12693","name":"figma-mcp WP-A probe (delete me)","type":"FRAME","layoutMode":"VERTICAL","width":80,"height":80,"x":24000,"y":24000,"…
+  ok    get_node with a pasted design link                   resolved 30:12693
+  ok    a link with no node-id is refused                    refused: INVALID_PARAM: `nodeId` is a Figma link with no node-id, so it names no layer.
+  ok    get_nodes_info with links, includeGeometry           width=80
+  ok    get_node format rest                                 chars=1000 truncated=false
+
+-- gradients [C-100]
+  ok    official top-to-bottom matrix reads as 180deg        linear-gradient(180deg, #000000 0%, #ffffff 100%)
+  ok    identity radial reads as centred                     radial-gradient(at 50% 50%, #000000 0%, #ffffff 100%)
+
+-- mixed text [C-103]
+  ok    set_text_range bold 'Pro'                            {"id":"30:12695","ranges":[{"start":4,"end":7,"text":"Pro"}],"idempotencyKey":"k-d75255df-03b0-4d3c-be59-6a540964c249"}
+  ok    set_text_range link 'docs'                           {"id":"30:12695","ranges":[{"start":8,"end":12,"text":"docs"}],"link":{"type":"URL","value":"https://example.com/docs"},"idempotencyKey":"k-a4b28a5f-f…
+  ok    runs carry the bold weight and the link              weight=mixed runs=4
+  ok    maxTextChars cuts and names scan_text_nodes          1 text node(s) were cut at maxTextChars=5 (text.length is the full count). Raise maxTextChars, or read the full text with figma_scan_text_nodes.
+  ok    the link is real in the document                     [["Get ",400,null],["Pro",700,null],[" ",400,null],["docs",400,"https://example.com/docs"]]
+
+-- structure
+  ok    wrap row gap, alignContent, maxWidth                 rowGap=12 maxWidth=640
+  ok    GRID tracks are read                                 {"rows":2,"columns":3,"rowGap":8,"columnGap":16,"rowSizes":["1fr","1fr"],"columnSizes":["1fr","1fr","1fr"]}
+  ok    set_mask on the lowest shape                         {"id":"30:12703","name":"Mask","isMask":true,"maskType":"VECTOR","note":"A mask clips the layers ABOVE it in the same parent; put it below what it sho…
+  ok    set_constraints right / top-bottom                   {"updated":1,"items":[{"id":"30:12705","ok":true}],"idempotencyKey":"k-4553a41b-7cbf-4299-b9dc-2760870eeecf"}
+  ok    mask, constraints and scrolling appear               mask={"type":"vector"} constraints={"horizontal":"right","vertical":"top-bottom"} overflow=vertical
+  ok    get_node DTO reports overflow                        overflow=vertical
+
+-- export cap [C-092]
+  ok    no params: longest side held to 1024                 369x1024 bounds={"x":40,"y":750,"width":1440,"height":4000}
+  ok    explicit scale 2 bypasses the cap                    2880x8000
+  ok    explicit maxSize 256                                 93x256
+  ok    scale with maxSize is refused                        refused: INVALID_PARAM: Pass `scale` or `maxSize`, not both: a scale is an exact size, maxSize a limit.
+  ok    select the gradient frame                            {"selected":["30:12694"],"page":{"id":"0:1","name":"Page 1"},"items":[{"id":"30:12694","ok":true}]}
+  ok    export_node with no nodeId uses the selection        exported 30:12694
+  ok    get_selection reads the page's selection             count=1
+  ok    select two layers                                    {"selected":["30:12694","30:12696"],"page":{"id":"0:1","name":"Page 1"},"items":[{"id":"30:12694","ok":true},{"id":"30:12696","ok":true}]}
+  ok    design context with two selected: roots, scope selection roots=2
+  ok    scan with two selected falls back to the page and says so 2 layers are selected, so this read covers the whole page. Pass nodeId to read one of them.
+
+-- assets [C-093]
+  ok    design context names the image by hash               image FILL a95e24383b7c4a53a9b15066099bbf9ab7df4f59 asset=image
+  ok    download_assets: render + original image             raw a95e24383b7c4a53a9b15066099bbf9ab7df4f59.png identical to the upload
+  ok    export presets are honoured with their suffix        Hero-30-12707@2x.png, Hero-30-12707.svg
+  ok    a re-run overwrites the same paths                   {"dir":"~\\.figma-mcp\\exports\\wpA-probe-assets","items":[{"nodeId":"30:12707","name":"Hero","ok":true,"files":[{"kind":"r…
+  ok    useExportSettings false + format SVG                 one SVG
+
+-- getCSSAsync probe [C-091]
+  ok    includeCss on 500 nodes                              nodes=500 withCss=500 cssMs=386
+
+-- pages [C-090]
+  ok    design context of another page                       skipped: single-page file
+
+-- annotations [C-094]
+  ok    annotation category resolves                         category=Development devResources=ok (0)
+  ok    design context carries the annotation                {"label":"WP-A probe note","category":"Development"}
+
+-- instances
+  ok    search_nodes componentId lists its instances         2 instances of 30:13211
+  ok    componentsUsed lists the component with its key      {"id":"30:13211","name":"Probe button","key":"0ec2cc11a7f5a47618e1053ec0490dc8aa6bb4aa"}
+
+-- reactions and scans
+  ok    set a URL reaction                                   {"nodeId":"30:13212","count":1,"idempotencyKey":"k-d6959d20-2a27-4d22-a321-5b7f6ff69b66"}
+  ok    get_reactions subtree: nodes and scrolling frames    nodes=1 frames=1
+  ok    get_reactions page: flows and prototype start        flows=0 start=null bg=#000000 0%
+  ok    scan_text_nodes reports its scope                    texts=5
+  ok    get_fonts reports missingFonts                       fonts=11 missingFonts=false
+
+-- look
+  saved spikes\results\live-wpA-read.png (417x1024)
+  ok    check_layout on the sandbox                          ok=false errors=0
+
+-- cleanup
+  ok    delete sandbox                                       {"deleted":1,"items":[{"id":"30:12693","ok":true}],"note":"This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z …
+
+================================================================================================
+  steps: 47   failed: 0
+  measured (for claims): {"rawBytesIdentical":true,"css":{"nodes":500,"withCss":500,"cssMs":386,"cssNote":null},"devResources":"ok (0)"}
+  WP-A tools registered but not exercised: []
+================================================================================================

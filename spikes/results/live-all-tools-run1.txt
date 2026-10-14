@@ -1,0 +1,127 @@
+Run 1 — 2026-10-07 ~06:27 UTC, Figma desktop, plugin bundle advertising 65 ops (commit after Phase 3).
+Command: PYTHONIOENCODING=utf-8 <python> spikes/live-all-tools.py   (exit 1: 3 failures, 1 tool not reached)
+
+================================================================================================
+ALL TOOLS, LIVE — 66 registered
+================================================================================================
+  ok  status                             {"bridge": {"version": "0.1.0", "role": "proxy", "listening": false, "reason": null, "host": "127.0.0.1", "por
+      plugin advertises 65 ops; file 'Untitled'
+
+-- read
+  ok  get_metadata                       {"name": "Untitled", "apiVersion": "1.0.0", "editorType": "figma", "pageCount": 1, "pages": [{"id": "0:1", "na
+  ok  get_pages                          {"pages": [{"id": "0:1", "name": "Page 1", "current": true}]}
+  ok  get_selection                      {"count": 0, "nodes": []}
+  ok  get_fonts                          {"scope": "page", "count": 1, "fonts": [{"family": "Inter", "style": "Regular", "nodeCount": 1}]}
+  ok  get_styles                         {"filter": null, "styles": {"PAINT": [], "TEXT": [], "EFFECT": [], "GRID": []}, "count": 0}
+  ok  get_variable_defs                  {"collections": [], "variables": []}
+  ok  get_local_components               {"pageId": null, "componentCount": 0, "componentSetCount": 0, "components": [], "componentSets": []}
+  ok  get_annotations                    {"count": 0, "nodes": []}
+
+-- create
+  ok  create_from_spec                   {"rootId": "9:10046", "created": [{"id": "9:10046", "name": "figma-mcp all-tools probe (delete me)", "path": "
+  ok  get_node                           {"node": {"id": "9:10054", "name": "Probe Chip", "type": "COMPONENT", "childCount": 1, "children": [{"id": "9:
+  ok  spec 'component' became COMPONENT  COMPONENT
+  ok  get_nodes_info                     {"count": 1, "found": 1}
+  ok  get_design_context                 {"root": {"id": "9:10046", "name": "figma-mcp all-tools probe (delete me)", "type": "FRAME"}, "depth": 3, "max
+  ok  search_nodes                       {"query": "Probe Chip", "type": null, "scope": "subtree", "count": 1, "nodes": [{"id": "9:10054", "name": "Pro
+  ok  scan_nodes_by_types                {"types": ["TEXT", "RECTANGLE"], "count": 4, "nodes": [{"id": "9:10047", "name": "Title", "type": "TEXT"}, {"i
+  ok  scan_text_nodes                    {"count": 3, "nodes": [{"id": "9:10047", "name": "Title", "characters": "All tools probe", "characterCount": 1
+  ok  create_frame                       {"id": "9:10055", "name": "Free frame", "type": "FRAME"}
+  ok  create_text                        {"id": "9:10056", "name": "hello probe", "type": "TEXT", "font": {"family": "Inter", "style": "Bold", "fellBac
+  ok  create_text weight 'Bold' honoured {"family": "Inter", "style": "Bold", "fellBack": false}
+  ok  create_rectangle                   {"id": "9:10057", "name": "Rectangle", "type": "RECTANGLE"}
+  ok  create_ellipse                     {"id": "9:10058", "name": "Ellipse", "type": "ELLIPSE"}
+  ok  create_rectangle bad parent        refused as expected: NODE_NOT_FOUND: No node with id `404:404` to use as a parent.
+  ok  create_section                     {"id": "9:10059", "name": "zz probe section", "type": "SECTION"}
+  ok  create_page                        {"id": "9:10060", "name": "zz figma-mcp probe page 1791354410"}
+
+-- components
+  ok  create_frame                       {"id": "9:10061", "name": "Probe Badge", "type": "FRAME"}
+  ok  convert_to_component               {"id": "9:10062", "name": "Probe Badge", "type": "COMPONENT", "sourceId": "9:10061"}
+  ok  create_instance                    {"id": "9:10063", "name": "Probe Chip", "type": "INSTANCE", "componentId": "9:10054"}
+  ok  swap_component                     {"id": "9:10063", "name": "Probe Badge", "componentId": "9:10062"}
+  ok  detach_instance                    {"detached": 1}
+  ok  detach reports the new frameId     
+
+-- styles & variables
+  ok  create_paint_style                 {"id": "S:3010a24efc419ec1056d52c8930fc80db8e84040,", "name": "zz figma-mcp probe/1791354410/paint", "kind": "
+  ok  create_text_style                  {"id": "S:7e9a22747b57a522e61192441b3ea60973d5a045,", "name": "zz figma-mcp probe/1791354410/text", "kind": "T
+  ok  create_effect_style                {"id": "S:34e5e636a5fe8cec589d9acd7ba70ca9f3a661cb,", "name": "zz figma-mcp probe/1791354410/effect", "kind": 
+  ok  apply_style_to_node                {"updated": 1, "style": {"id": "S:3010a24efc419ec1056d52c8930fc80db8e84040,", "name": "zz figma-mcp probe/1791
+  ok  apply_style_to_node                {"updated": 1, "style": {"id": "S:7e9a22747b57a522e61192441b3ea60973d5a045,", "name": "zz figma-mcp probe/1791
+  ok  apply_style_to_node                {"updated": 1, "style": {"id": "S:34e5e636a5fe8cec589d9acd7ba70ca9f3a661cb,", "name": "zz figma-mcp probe/1791
+  ok  create_variable_collection         {"id": "VariableCollectionId:9:10069", "name": "zz figma-mcp probe 1791354410", "modes": [{"modeId": "9:0", "n
+  ok  create_variable                    {"id": "VariableID:9:10070", "name": "probe/color", "resolvedType": "COLOR", "collectionId": "VariableCollecti
+  ok  create_variable                    {"id": "VariableID:9:10071", "name": "probe/gap", "resolvedType": "FLOAT", "collectionId": "VariableCollection
+  ok  create_variable                    {"id": "VariableID:9:10072", "name": "probe/flag", "resolvedType": "BOOLEAN", "collectionId": "VariableCollect
+  ok  add_variable_mode                  {"collectionId": "VariableCollectionId:9:10069", "modeId": "9:1", "name": "Dark", "modes": [{"modeId": "9:0", 
+  ok  set_variable_value                 {"variableId": "VariableID:9:10071", "name": "probe/gap", "modeId": "9:0", "mode": "Mode 1", "type": "FLOAT"}
+  ok  set_variable_value                 {"variableId": "VariableID:9:10070", "name": "probe/color", "modeId": "9:0", "mode": "Mode 1", "type": "COLOR"
+  ok  bind_variable_to_node              {"updated": 1, "variable": {"id": "VariableID:9:10070", "name": "probe/color", "type": "COLOR"}, "field": "fil
+  ok  bind_variable_to_node              {"updated": 1, "variable": {"id": "VariableID:9:10071", "name": "probe/gap", "type": "FLOAT"}, "field": "gap"}
+
+-- fills, strokes, effects, blend, reactions
+  ok  set_fills                          {"updated": 1}
+  ok  set_strokes                        {"updated": 1}
+  ok  set_corner_radius                  {"updated": 1}
+  ok  set_effects                        {"updated": 1}
+  ok  set_blend_mode                     {"updated": 1}
+  BAD set_reactions                      INVALID_PARAM: Figma refused the reactions: Reaction at index 0 was invalid (destination 9:10046 was rejected — the destination node may not exist, the source may not be a valid prototype source, or t
+  ok  get_reactions                      {"nodeId": "9:10057", "name": "Rectangle", "count": 0, "reactions": []}
+  BAD reaction transition stored         {}
+  ok  remove_reactions                   {"nodeId": "9:10057", "count": 0}
+
+-- modify
+  ok  set_text                           {"id": "9:10047", "name": "Title", "characters": 17}
+  ok  find_replace_text                  {"replacedIn": 1}
+  ok  rename_node                        {"id": "9:10055", "name": "Free frame (renamed)", "previousName": "Free frame"}
+  ok  batch_rename_nodes                 {"renamed": 1}
+  ok  move_nodes                         {"moved": 1}
+  ok  resize_nodes                       {"resized": 1}
+  ok  rotate_nodes                       {"rotated": 1}
+  ok  reorder_nodes                      {"reordered": 1}
+  ok  set_visible                        {"updated": 1}
+  ok  set_visible (back)                 {"updated": 1}
+  ok  set_locked                         {"updated": 1}
+  ok  set_locked (back)                  {"updated": 1}
+  ok  set_opacity                        {"updated": 1}
+  BAD group_nodes                        INVALID_PARAM: These nodes have no shared parent that can group them.
+Grouping requires nodes on the same page or in the same frame.
+  ok  clone_node                         {"id": "9:10074", "name": "Rectangle", "type": "RECTANGLE", "sourceId": "9:10057"}
+  ok  set_constraints                    {"updated": 1}
+  ok  reparent_nodes                     {"reparented": 1, "parentId": "9:10055"}
+  ok  delete_nodes                       {"deleted": 1}
+  ok  set_auto_layout                    {"id": "9:10048", "layoutMode": "HORIZONTAL", "itemSpacing": 20, "padding": [4, 4, 4, 4], "primaryAxisAlignIte
+  ok  auto-layout alignX end → primary MAX {"id": "9:10048", "layoutMode": "HORIZONTAL", "itemSpacing": 20, "padding": [4, 4, 4, 4], "primaryAxisAlignItems": "MAX"
+  ok  set_auto_layout wrap on vertical   refused as expected: INVALID_PARAM: `wrap` works on a horizontal auto-layout only.
+
+-- select, navigate, zoom
+  ok  navigate_page                      {"id": "0:1", "name": "Page 1"}
+  ok  select                             {"selected": ["9:10046"], "page": {"id": "0:1", "name": "Page 1"}}
+  ok  zoom_to                            {"zoom": 1, "page": {"id": "0:1", "name": "Page 1"}}
+  ok  select (toggle off)                {"selected": [], "page": {"id": "0:1", "name": "Page 1"}}
+
+-- export
+  ok  export PNG is an image block       
+      saved spikes\results\live-all-tools.png for a human look
+
+-- undo (measured)
+  ok  undo_step without confirm          refused as expected: MCP error -32602: Input validation error: Invalid arguments for tool figma_undo_step: Inva
+  ok  create_rectangle                   {"id": "9:10075", "name": "undo victim", "type": "RECTANGLE"}
+  ok  undo_step                          {"undone": 1, "warning": "figma.triggerUndo() returns to the last commitUndo checkpoint: anything the user cha
+      after undo_step, the rectangle created by the previous call is GONE  <- measures what triggerUndo reverts (spec §14.8)
+
+-- cleanup
+  ok  delete_nodes (cleanup)             {"deleted": 3}
+  ok  search_nodes                       {"query": "all-tools probe", "type": null, "scope": "page", "count": 0, "nodes": [], "truncated": false}
+  ok  sandbox gone                       0 left
+
+================================================================================================
+  tools registered: 66   exercised: 65   not exercised: ['figma_ungroup_nodes']
+  failures: 3 ['set_reactions', 'reaction transition stored', 'group_nodes']
+  left in the file (figma-mcp has no delete tool for these yet):
+    - style zz figma-mcp probe/1791354410/paint
+    - style zz figma-mcp probe/1791354410/text
+    - style zz figma-mcp probe/1791354410/effect
+    - variable collection zz figma-mcp probe 1791354410 (and its variables)
+================================================================================================

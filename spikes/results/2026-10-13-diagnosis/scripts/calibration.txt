@@ -1,0 +1,200 @@
+# r1-work/mc-live.json  nodes 93  frames 0-432
+
+## vanish (8)
+  f72 2.400s  S1/Slow: visible extent 1.00 on f71, gone on f72
+  f101 3.367s  S1/Ring path: visible extent 0.63 on f100, gone on f101
+  f106 3.533s  S1/Clay band: visible extent 0.75 on f105, gone on f106
+  f105 3.500s  S1/Cream band: visible extent 0.75 on f104, gone on f105
+  f216 7.200s  S3/Mug: visible extent 1.00 on f215, gone on f216
+  f243 8.100s  S3/Plates: visible extent 1.00 on f242, gone on f243
+  f335 11.167s  S5/Loop path: visible extent 0.63 on f334, gone on f335
+  f346 11.533s  Brand bug: visible extent 1.00 on f345, gone on f346
+
+## pop_in (8)
+  f138 4.600s  S2/Tick top path: visible extent 0 on f137, 0.69 on f138
+  f125 4.167s  S2/Tick bottom path: visible extent 0 on f124, 0.69 on f125
+  f216 7.200s  S3/Plates: visible extent 0 on f215, 0.97 on f216
+  f243 8.100s  S3/Bowl: visible extent 0 on f242, 0.95 on f243
+  f199 6.633s  S3/Pointer: visible extent 0 on f198, 0.69 on f199
+  f346 11.533s  S4/Logo: visible extent 0 on f345, 0.97 on f346
+  f350 11.667s  S5/Arrow shaft: visible extent 0 on f349, 0.75 on f350
+  f353 11.767s  S5/Arrow head: visible extent 0 on f352, 0.83 on f353
+
+## concentrated_step (20)
+  f108 3.600s  S1/Wheel: TRANSLATION_XY cubic:0.7,0,0.84,0: 49 % of 9-frame move in one frame (94 px)
+  f108 3.600s  S1/Wheel: SCALE_XY cubic:0.7,0,0.84,0: 49 % of 9-frame move in one frame
+  f104 3.467s  S1/Hands: TRANSLATION_XY cubic:0.7,0,0.84,0: 75 % of 5-frame move in one frame (424 px)
+  f102 3.400s  S1/By: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 6-frame move in one frame (108 px)
+  f125 4.167s  S2/Tick bottom path: PATH_TRIM_START cubic:0.16,1,0.3,1: 69 % of 5-frame move in one frame
+  f125 4.167s  S2/Tick bottom path: PATH_TRIM_END cubic:0.16,1,0.3,1: 69 % of 5-frame move in one frame
+  f191 6.367s  S3/Kiln: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (62 px)
+  f193 6.433s  S3/collection: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (62 px)
+  f220 7.333s  S3/Pointer: TRANSLATION_Y cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame (132 px)
+  f247 8.233s  S3/Pointer: TRANSLATION_Y cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame (132 px)
+  f199 6.633s  S3/Pointer: SCALE_XY cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame
+  f352 11.733s  S4/Objects: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (29 px)
+  f356 11.867s  S4/slow: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (29 px)
+  f358 11.933s  S4/living.: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (29 px)
+  f362 12.067s  S4/your first order: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (33 px)
+  f296 9.867s  S5/your: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (50 px)
+  f336 11.200s  S5/your: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 6-frame move in one frame (80 px)
+  f298 9.933s  S5/first: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (50 px)
+  f338 11.267s  S5/first: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 5-frame move in one frame (80 px)
+  f344 11.467s  S5/CTA label: TRANSLATION_Y cubic:0.16,1,0.3,1: 49 % of 10-frame move in one frame (59 px)
+
+## dead_span (1)
+  f373 12.433s  (frame): nothing changes f373-f396 (0.80 s)
+
+## template_move (4)
+  f0 0.000s  S1/Down/d, S1/Down/o, S1/Down/w, S1/Down/n, S1/Down/.: 5 layers enter with "TRANSLATION_Y:430:12f:cubic:0.16,1,0.3,1 + effect:0:RADIUS:-10:3f:cubic:0.45,0,0.55,1"
+  f0 0.000s  S2/Ash, S2/Vase/V, S2/Vase/a, S2/Vase/s, S2/Vase/e: 5 layers enter with "TRANSLATION_Y:-280:12f:cubic:0.16,1,0.3,1 + effect:0:RADIUS:-10:3f:cubic:0.45,0,0.55,1"
+  f0 0.000s  S2/Spec 1, S2/Spec 2, S3/Price 3, S4/URL: 4 layers enter with "TRANSLATION_Y:-40:10f:cubic:0.16,1,0.3,1"
+  f0 0.000s  S4/Objects, S4/for, S4/slow, S4/living.: 4 layers enter with "TRANSLATION_Y:-70:12f:cubic:0.16,1,0.3,1"
+
+## off_grid_total (1)
+  f0 0.000s  (all): 0 keys off the 1/30 s grid outside cut pairs, 0 of them extremes
+
+## blur_off_speed (1)
+  f108 3.600s  S1/Wheel: fastest frame f108 (94 px/f) has blur 0.0; blur peaks 7.999999473392336 on f107
+
+## one_frame_extreme (2)
+  f38 1.267s  S1/Down: SCALE 1.030 -> 1.060 -> 1.030
+  f308 10.267s  S5/Ten: SCALE 1.030 -> 1.060 -> 1.030
+
+## arrival_not_held
+  f108 S1/Wheel TRANSLATION_XY cubic:0.7,0,0.84,0: arrives with 49 % of its travel in the last frame, state on screen 1 frame(s)
+  f108 S1/Wheel SCALE_XY cubic:0.7,0,0.84,0: arrives with 49 % of its travel in the last frame, state on screen 1 frame(s)
+  f180 S2/Content TRANSLATION_XY cubic:0.7,0,0.84,0: arrives with 43 % of its travel in the last frame, state on screen 1 frame(s)
+  f180 S2/Content SCALE_XY cubic:0.7,0,0.84,0: arrives with 43 % of its travel in the last frame, state on screen 1 frame(s)
+
+# r1-work/mc-after.json  nodes 96  frames 0-432
+
+## vanish (4)
+  f72 2.400s  S1/Slow: visible extent 1.00 on f71, gone on f72
+  f216 7.200s  S3/Mug: visible extent 1.00 on f215, gone on f216
+  f243 8.100s  S3/Plates: visible extent 1.00 on f242, gone on f243
+  f346 11.533s  Brand bug: visible extent 1.00 on f345, gone on f346
+
+## pop_in (6)
+  f138 4.600s  S2/Tick top path: visible extent 0 on f137, 0.69 on f138
+  f125 4.167s  S2/Tick bottom path: visible extent 0 on f124, 0.69 on f125
+  f216 7.200s  S3/Plates: visible extent 0 on f215, 0.97 on f216
+  f243 8.100s  S3/Bowl: visible extent 0 on f242, 0.95 on f243
+  f199 6.633s  S3/Pointer: visible extent 0 on f198, 0.69 on f199
+  f346 11.533s  S4/Logo: visible extent 0 on f345, 0.97 on f346
+
+## concentrated_step (21)
+  f105 3.500s  S1/Wheel: TRANSLATION_XY cubic:0.7,0,0.84,0: 49 % of 9-frame move in one frame (94 px)
+  f105 3.500s  S1/Wheel: SCALE_XY cubic:0.7,0,0.84,0: 49 % of 9-frame move in one frame
+  f104 3.467s  S1/hand.: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 5-frame move in one frame (108 px)
+  f168 5.600s  S2/Content: SCALE_XY cubic:0.3,0,0.2,1: 44 % of 5-frame move in one frame
+  f125 4.167s  S2/Tick bottom path: PATH_TRIM_START cubic:0.16,1,0.3,1: 69 % of 5-frame move in one frame
+  f125 4.167s  S2/Tick bottom path: PATH_TRIM_END cubic:0.16,1,0.3,1: 69 % of 5-frame move in one frame
+  f191 6.367s  S3/Kiln: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (62 px)
+  f193 6.433s  S3/collection: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (62 px)
+  f220 7.333s  S3/Pointer: TRANSLATION_Y cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame (132 px)
+  f247 8.233s  S3/Pointer: TRANSLATION_Y cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame (132 px)
+  f199 6.633s  S3/Pointer: SCALE_XY cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame
+  f352 11.733s  S4/Objects: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (29 px)
+  f356 11.867s  S4/slow: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (29 px)
+  f358 11.933s  S4/living.: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (29 px)
+  f362 12.067s  S4/your first order: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (33 px)
+  f336 11.200s  S5/your: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 6-frame move in one frame (80 px)
+  f296 9.867s  S5/first: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (50 px)
+  f338 11.267s  S5/first: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 5-frame move in one frame (80 px)
+  f298 9.933s  S5/order.: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (50 px)
+  f344 11.467s  S5/CTA label: TRANSLATION_Y cubic:0.16,1,0.3,1: 49 % of 10-frame move in one frame (59 px)
+  f357 11.900s  S5/Arrow head: PATH_TRIM_END cubic:0.65,0,0.35,1: 50 % of 5-frame move in one frame
+
+## template_move (4)
+  f0 0.000s  S1/Down/d, S1/Down/o, S1/Down/w, S1/Down/n, S1/Down/.: 5 layers enter with "TRANSLATION_Y:430:12f:cubic:0.16,1,0.3,1 + effect:0:RADIUS:-10:3f:cubic:0.45,0,0.55,1"
+  f0 0.000s  S2/Ash, S2/Vase/V, S2/Vase/a, S2/Vase/s, S2/Vase/e: 5 layers enter with "TRANSLATION_Y:-280:12f:cubic:0.16,1,0.3,1 + effect:0:RADIUS:-10:3f:cubic:0.45,0,0.55,1"
+  f0 0.000s  S2/Spec 1, S2/Spec 2, S3/Price 3, S4/URL: 4 layers enter with "TRANSLATION_Y:-40:10f:cubic:0.16,1,0.3,1"
+  f0 0.000s  S4/Objects, S4/for, S4/slow, S4/living.: 4 layers enter with "TRANSLATION_Y:-70:12f:cubic:0.16,1,0.3,1"
+
+## off_grid_total (1)
+  f0 0.000s  (all): 0 keys off the 1/30 s grid outside cut pairs, 0 of them extremes
+
+## blur_off_speed (2)
+  f105 3.500s  S1/Wheel: fastest frame f105 (94 px/f) has blur 0.0; blur peaks 7.999999473392336 on f104
+  f181 6.033s  S3/Content: fastest frame f181 (36 px/f) has blur 13.0; blur peaks 18 on f175
+
+## one_frame_extreme (2)
+  f38 1.267s  S1/Down: SCALE 1.030 -> 1.060 -> 1.030
+  f308 10.267s  S5/Ten: SCALE 1.030 -> 1.060 -> 1.030
+
+## arrival_not_held
+  f180 S2/Content TRANSLATION_XY cubic:0.7,0,0.84,0: arrives with 53 % of its travel in the last frame, state on screen 1 frame(s)
+  f180 S2/Content SCALE_XY cubic:0.7,0,0.84,0: arrives with 53 % of its travel in the last frame, state on screen 1 frame(s)
+
+# r2-work/mc-final.json  nodes 98  frames 0-432
+
+## vanish (6)
+  f72 2.400s  S1/Slow: visible extent 1.00 on f71, gone on f72
+  f103 3.433s  S1/By: visible extent 1.00 on f102, gone on f103
+  f104 3.467s  S1/hand.: visible extent 1.00 on f103, gone on f104
+  f216 7.200s  S3/Mug: visible extent 1.00 on f215, gone on f216
+  f243 8.100s  S3/Plates: visible extent 1.00 on f242, gone on f243
+  f346 11.533s  Brand bug: visible extent 1.00 on f345, gone on f346
+
+## pop_in (7)
+  f138 4.600s  S2/Tick top path: visible extent 0 on f137, 0.69 on f138
+  f125 4.167s  S2/Tick bottom path: visible extent 0 on f124, 0.69 on f125
+  f216 7.200s  S3/Plates: visible extent 0 on f215, 0.97 on f216
+  f243 8.100s  S3/Bowl: visible extent 0 on f242, 0.95 on f243
+  f199 6.633s  S3/Pointer: visible extent 0 on f198, 0.69 on f199
+  f346 11.533s  S4/Logo: visible extent 0 on f345, 0.97 on f346
+  f396 13.200s  S5/Ripple: visible extent 0 on f395, 0.65 on f396
+
+## concentrated_step (24)
+  f37 1.233s  S1/Down: SCALE_XY cubic:0.16,1,0.3,1: 49 % of 9-frame move in one frame
+  f105 3.500s  S1/Wheel: TRANSLATION_XY cubic:0.7,0,0.84,0: 49 % of 9-frame move in one frame (94 px)
+  f105 3.500s  S1/Wheel: SCALE_XY cubic:0.7,0,0.84,0: 49 % of 9-frame move in one frame
+  f168 5.600s  S2/Content: SCALE_XY cubic:0.3,0,0.2,1: 44 % of 5-frame move in one frame
+  f125 4.167s  S2/Tick bottom path: PATH_TRIM_START cubic:0.16,1,0.3,1: 69 % of 5-frame move in one frame
+  f125 4.167s  S2/Tick bottom path: PATH_TRIM_END cubic:0.16,1,0.3,1: 69 % of 5-frame move in one frame
+  f173 5.767s  S2/Vase/V: TRANSLATION_Y cubic:0.7,0,0.84,0: 82 % of 4-frame move in one frame (227 px)
+  f176 5.867s  S2/Vase/e: TRANSLATION_Y cubic:0.7,0,0.84,0: 82 % of 4-frame move in one frame (227 px)
+  f191 6.367s  S3/Kiln: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (62 px)
+  f193 6.433s  S3/collection: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (62 px)
+  f220 7.333s  S3/Pointer: TRANSLATION_Y cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame (132 px)
+  f247 8.233s  S3/Pointer: TRANSLATION_Y cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame (132 px)
+  f199 6.633s  S3/Pointer: SCALE_XY cubic:0.16,1,0.3,1: 69 % of 6-frame move in one frame
+  f352 11.733s  S4/Objects: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (29 px)
+  f356 11.867s  S4/slow: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (29 px)
+  f358 11.933s  S4/living.: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (29 px)
+  f362 12.067s  S4/your first order: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (33 px)
+  f307 10.233s  S5/Ten: SCALE_XY cubic:0.16,1,0.3,1: 49 % of 9-frame move in one frame
+  f296 9.867s  S5/first: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 11-frame move in one frame (50 px)
+  f335 11.167s  S5/first: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 5-frame move in one frame (80 px)
+  f298 9.933s  S5/order.: TRANSLATION_Y cubic:0.16,1,0.3,1: 43 % of 12-frame move in one frame (50 px)
+  f336 11.200s  S5/order.: TRANSLATION_Y cubic:0.7,0,0.84,0: 69 % of 6-frame move in one frame (80 px)
+  f344 11.467s  S5/CTA label: TRANSLATION_Y cubic:0.16,1,0.3,1: 49 % of 10-frame move in one frame (59 px)
+  f357 11.900s  S5/Arrow head: PATH_TRIM_END cubic:0.65,0,0.35,1: 50 % of 5-frame move in one frame
+
+## template_move (4)
+  f0 0.000s  S1/Down/d, S1/Down/o, S1/Down/w, S1/Down/n, S1/Down/.: 5 layers enter with "TRANSLATION_Y:430:12f:cubic:0.16,1,0.3,1 + effect:0:RADIUS:-10:3f:cubic:0.45,0,0.55,1"
+  f0 0.000s  S2/Ash, S2/Vase/V, S2/Vase/a, S2/Vase/s, S2/Vase/e: 5 layers enter with "TRANSLATION_Y:-280:12f:cubic:0.16,1,0.3,1 + effect:0:RADIUS:-10:3f:cubic:0.45,0,0.55,1"
+  f0 0.000s  S2/Spec 1, S2/Spec 2, S3/Price 3, S4/URL: 4 layers enter with "TRANSLATION_Y:-40:10f:cubic:0.16,1,0.3,1"
+  f0 0.000s  S4/Objects, S4/for, S4/slow, S4/living.: 4 layers enter with "TRANSLATION_Y:-70:12f:cubic:0.16,1,0.3,1"
+
+## off_grid_total (1)
+  f0 0.000s  (all): 0 keys off the 1/30 s grid outside cut pairs, 0 of them extremes
+
+## blur_off_speed (7)
+  f105 3.500s  S1/Wheel: fastest frame f105 (94 px/f) has blur 0.0; blur peaks 7.999999473392336 on f104
+  f172 5.733s  S2/Ash: fastest frame f172 (228 px/f) has blur 0.0; blur peaks 7.9999967100262275 on f170
+  f173 5.767s  S2/Vase/V: fastest frame f173 (227 px/f) has blur 0.0; blur peaks 8 on f171
+  f174 5.800s  S2/Vase/a: fastest frame f174 (228 px/f) has blur 0.0; blur peaks 7.996001999000473 on f172
+  f175 5.833s  S2/Vase/s: fastest frame f175 (228 px/f) has blur 0.0; blur peaks 7.9999967100262275 on f173
+  f176 5.867s  S2/Vase/e: fastest frame f176 (227 px/f) has blur 0.0; blur peaks 8 on f174
+  f181 6.033s  S3/Content: fastest frame f181 (36 px/f) has blur 13.0; blur peaks 18 on f175
+
+## one_frame_extreme (2)
+  f36 1.200s  S1/Down: SCALE 1.030 -> 1.060 -> 1.030
+  f306 10.200s  S5/Ten: SCALE 1.030 -> 1.060 -> 1.030
+
+## arrival_not_held
+  f180 S2/Content TRANSLATION_XY cubic:0.7,0,0.84,0: arrives with 53 % of its travel in the last frame, state on screen 1 frame(s)
+  f180 S2/Content SCALE_XY cubic:0.7,0,0.84,0: arrives with 53 % of its travel in the last frame, state on screen 1 frame(s)
+

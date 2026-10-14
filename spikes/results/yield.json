@@ -1,0 +1,33 @@
+{
+  "receivedAt": "2026-10-07T03:43:50Z",
+  "via": "pasted by the operator from the spike's text box (the collector was not running after the Claude Desktop restart)",
+  "figma": "Figma desktop 126.9.11",
+  "spike": "yield",
+  "report": {
+    "env": {
+      "apiVersion": "1.0.0",
+      "editorType": "figma",
+      "typeofSetTimeout": "function",
+      "typeofSetInterval": "function",
+      "typeofQueueMicrotask": "undefined",
+      "typeofFetch": "function",
+      "setTimeoutFires": true,
+      "setTimeoutDelayMs": 17,
+      "setTimeoutError": null
+    },
+    "runs": [
+      { "option": "A", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 2926, "perModificationUs": 117, "yields": 108, "maxSliceMs": 15, "probesHandledDuringRun": 100, "blockedEntireRun": false, "probeLatencyMaxMs": 69, "probeLatencyP95Ms": 55, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:07.084Z" },
+      { "option": "B", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 2229, "perModificationUs": 89.2, "yields": 81, "maxSliceMs": 12, "probesHandledDuringRun": 96, "blockedEntireRun": false, "probeLatencyMaxMs": 67, "probeLatencyP95Ms": 34, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:11.485Z" },
+      { "option": "C", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 842, "perModificationUs": 33.7, "yields": 69, "maxSliceMs": 19, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:13.526Z" },
+      { "option": "C", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 865, "perModificationUs": 34.6, "yields": 70, "maxSliceMs": 27, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:19.903Z" },
+      { "option": "none", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 797, "perModificationUs": 31.9, "yields": 0, "maxSliceMs": 797, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:22.529Z" },
+      { "option": "B", "available": true, "nodes": 5000, "passes": 5, "modifications": 10332, "totalMs": 762, "perModificationUs": 73.8, "yields": 27, "maxSliceMs": 12, "probesHandledDuringRun": 28, "blockedEntireRun": false, "probeLatencyMaxMs": 45, "probeLatencyP95Ms": 42, "cancelled": true, "cancelLatencyMs": 8, "at": "2026-10-07T03:43:29.356Z" },
+      { "option": "B", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 2962, "perModificationUs": 118.5, "yields": 97, "maxSliceMs": 12, "probesHandledDuringRun": 120, "blockedEntireRun": false, "probeLatencyMaxMs": 101, "probeLatencyP95Ms": 57, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:33.576Z", "human": { "cancelResponded": false, "drawingWorked": false, "menuOpened": false } },
+      { "option": "C", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 772, "perModificationUs": 30.9, "yields": 64, "maxSliceMs": 12, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:38.110Z" },
+      { "option": "C", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 812, "perModificationUs": 32.5, "yields": 67, "maxSliceMs": 12, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:42.341Z" },
+      { "option": "C", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 806, "perModificationUs": 32.2, "yields": 66, "maxSliceMs": 17, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:45.291Z" },
+      { "option": "C", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 716, "perModificationUs": 28.6, "yields": 59, "maxSliceMs": 15, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:46.127Z" },
+      { "option": "C", "available": true, "nodes": 5000, "passes": 5, "modifications": 25000, "totalMs": 816, "perModificationUs": 32.6, "yields": 67, "maxSliceMs": 13, "probesHandledDuringRun": 0, "blockedEntireRun": true, "probeLatencyMaxMs": null, "probeLatencyP95Ms": null, "cancelled": false, "cancelLatencyMs": null, "at": "2026-10-07T03:43:50.565Z" }
+    ]
+  }
+}

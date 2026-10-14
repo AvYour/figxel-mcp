@@ -1,0 +1,63 @@
+{
+ "lens": "DESIGN & TYPE (art director)",
+ "verdict": "fix",
+ "score": 7,
+ "findings": [
+  {
+   "severity": "major",
+   "time": "8.4–9.3 s (worst f274 = 9.133 s)",
+   "layer": "S3/Content (42:15263), S3/Type (42:15321), S3/Cream circle (42:15421), S3/Terracotta circle (42:15423)",
+   "problem": "The r1 'not dead' drift breaks the S3 grid. S3/Content scales 1 → 1.045 about the frame centre and S3/Type adds −40. The type column drifts from x 62–66 (f210) to x 47–51 (f274), about 17 px outside the 64 margin, and the arch goes to x 46. 'AUTUMN 2026' climbs from 59 px to 12 px below the 'Moku' bug (measured at f274: kicker y 360–382, bug 301–348). At the end of the scene's 2.8 s hold the kicker reads as part of the logo line, and the header hierarchy collapses.",
+   "fix": "Pivot the drift on the column's top-left (64,416) instead of the frame centre. S3/Content TRANSLATION_XY: add a last key, giving @0 -78,110 · @6 -78,110 L · @6.7 0,0 OUT · @9.6 21.4,24.5 L. The value is 0.045 × (476,544); SCALE_XY stays as it is, so both are LINEAR over 6.7–9.6. S3/Type TRANSLATION_Y: change the last key from @9.6 -40 to @9.6 -10. Move the rest positions of S3/Cream circle and S3/Terracotta circle by +18,+21 (x -1176 → -1158, y -262 → -241), so the bloom still seeds on the same spot of the bowl wall. Result: the left edge stays on x 64, the kicker stays at least 57 px below the bug, the arch bottom ends at about 1544 (inside 1580), and the right edge of 'Dinner Plates' ends at about 1000."
+  },
+  {
+   "severity": "major",
+   "time": "4.17–5.83 s (f125–f175)",
+   "layer": "S2/Band window (42:15364), S2/Push (42:15365), S2/Plate clay (42:15376), S2/Plate terracotta (42:15377)",
+   "problem": "The band's top edge at y 540 cuts the 230 px 'Ash Vase' 31 px below its x-height (measured lowercase 509–601, baseline 600). Every lowercase letter carries a thin cream sliver on top. The lower two-thirds of 'ase' sit on the band grey (189,184,179), where terracotta measures 2.8:1, below the 3:1 floor for large text. On the product hero, held 1.5 s, the overlap reads as misregistration, not as a deliberate overlap.",
+   "fix": "Sit the baseline on the band edge: move the band top to y 600 (+60) and keep the photo screen-locked. S2/Band window: rest y 540 → 600; HEIGHT key @4.1 1040 → 980; TRANSLATION_XY @0 and @3.6 336,592 → 336,532 (the dot stays centred on 384,1180). S2/Push: rest y 0 → -60; TRANSLATION_XY @0 and @3.6 -336,-592 → -336,-532, so the vase, dimension line, ticks and '32 cm' do not move on screen. S2/Plate clay and S2/Plate terracotta: height 1040 → 980, rest y -1040 → -980; TRANSLATION_Y start value 1040 → 980 on both keys (@0 and @3.8 for clay, @0 and @3.7333 for terracotta). The whole headline then sits on cream (terracotta 5.2:1), and the vase rim keeps about 185 px of wall above it."
+  },
+  {
+   "severity": "major",
+   "time": "7.2–9.3 s",
+   "layer": "S3/Name 1 (42:15395), S3/Price 1 (42:15397), S3/Name 2 (42:15399), S3/Price 2 (42:15401)",
+   "problem": "Past list items dim to opacity 0.35. Measured at f260 on linen: the names are 2.16:1 and the prices 1.83:1, which is illegible for 28–32 px Inter on a phone. 'Dinner Plates / $110 · set of 4' is readable at full contrast for only about 0.5 s (7.6–8.13): five words, about 0.1 s per word against the brief's 0.3 s floor. 'Kiln Mug / $32' gets 0.6 s. Two of the three collection prices never get a fair read.",
+   "fix": "Keep the timing and change the dim value from 0.35 to 0.6. S3/Name 1 OPACITY last key → @7.4 0.6 SOFT. S3/Price 1 → @7.4333 0.6 SOFT. S3/Name 2 → @8.3 0.6 SOFT. S3/Price 2 → @8.3333 0.6 SOFT. Names land at about 4:1 and prices at about 3.1:1. The active item (15:1) and the terracotta pointer still clearly lead, and the whole list stays readable until the bloom at 9.2."
+  },
+  {
+   "severity": "minor",
+   "time": "11.17–11.33 s (f335–f340)",
+   "layer": "S5/your (42:15285), S5/first (42:15287), S5/order. (42:15289)",
+   "problem": "'first order.', and then 'order.' alone, are still inside S5/Field while it shrinks to pill proportions (about 300 px tall at f339). For 3–4 frames, just before 'Shop the collection' lands, the field reads as a terracotta button labelled 'order.'.",
+   "fix": "Start the exits earlier, staggered one frame behind 'off' (10.9333). S5/your TRANSLATION_Y: @10.9333 0 L · @11.1333 116 IN (was 11.0 / 11.2). S5/first: @10.9667 0 L · @11.1667 116 IN (was 11.0667 / 11.2667). S5/order.: @11.0 0 L · @11.2 116 IN (was 11.1333 / 11.3333). Every word is gone by f336, while the field is still about 1000 px tall. The offer line is restated on the end card from 12.4."
+  },
+  {
+   "severity": "minor",
+   "time": "13.4–13.9 s (worst f405–f410)",
+   "layer": "S5/Ripple (42:15090)",
+   "problem": "At full growth the ripple ring spans y 1011–1308 (measured at f408, opacity about 0.35). It cuts straight through 'moku.store' (1277–1304) and comes within 7 px of the offer row's descenders (1004). A terracotta line through the URL muddies the one line a viewer may need to type.",
+   "fix": "Contain the ripple between the offer row and the URL. Change these S5/Ripple keys @13.9: WIDTH 880 → 800, HEIGHT 300 → 200, TRANSLATION_XY -120,-90 → -80,-40, CORNER_RADIUS 150 → 100. Keep the birth at 692×130, STROKE_WEIGHT 8 → 1.5 and the FADE opacity. The ring ends at x 140–940, y 1060–1260: 56 px below the offer row and about 19 px above the drifting URL (top at about 1279 by 13.9)."
+  },
+  {
+   "severity": "minor",
+   "time": "2.8–3.43 s",
+   "layer": "S1/By hand (frame, rest 64,404); interacts with S1/Ring (42:15863)",
+   "problem": "The descender of 'By' (bottom y 561) hangs 23 px above the wheel ring (ring top y 584 at f91). At the ring's 1.02 overshoot (2.8 s) the gap is 9 px, right where the ring's trim starts at 12 o'clock. Meanwhile 'By hand.' has 81 px of air above it to the bug, so the line looks pressed onto the ring.",
+   "fix": "Move S1/By hand rest y 404 → 384 (−20). The glyphs land at y 409–541: 61 px below the bug baseline, 39 px above the ring at rest and 29 px at the overshoot. No keyframe change is needed; S1/By and S1/hand. translate inside their masks."
+  },
+  {
+   "severity": "minor",
+   "time": "11.6–14.4 s (end card)",
+   "layer": "S4/Bowl arc (frame at 358,690, 364×48) / S4/Bowl arc path (42:15109)",
+   "problem": "The shallow upturned terracotta arc centred under the 'Moku' wordmark (y 687–733) reads as a smile, close to the Amazon swoosh, not as a bowl. It sits in the logo lockup on the frame held longest (2.4 s).",
+   "fix": "Make it a rule. Re-import SVG E1 as <svg width='200' height='4' viewBox='0 0 200 4'><path d='M2 2H198' stroke='#a4532f' stroke-width='3' stroke-linecap='round' fill='none'/></svg>. Place the wrapper as S4/Bowl arc at (440,708) and name the vector S4/Bowl arc path. Re-apply the same tracks unchanged: OPACITY @0 0 · @11.6083 0 L · @11.6283 1 L; PATH_TRIM_START @0 0.5 · @11.6 0.5 L · @12 0 DRAW; PATH_TRIM_END @0 0.5 · @11.6 0.5 L · @12 1 DRAW. It still draws centre-out on the beat, with 48 px clear above and 53 px clear below. If the ceramic reference must stay, use a true bowl section with a flat foot (about 220 × 70) instead, and move S4/Tagline down 24."
+  },
+  {
+   "severity": "minor",
+   "time": "5.53–5.87 s (f166–f176)",
+   "layer": "S2/Band window (42:15364), S2/Push (42:15365), S2/Plate clay (42:15376), S2/Plate terracotta (42:15377)",
+   "problem": "The anticipation pull-back (S2/Content 0.965 about 384,1180) shows the band's side edges. Cream slivers of 13 px and 24 px open on the left and right of a band that snapped to full bleed at 4.2. For about 8 frames it reads as a card shrinking, not as the camera pulling back.",
+   "fix": "Overscan the band by 40 px each side. S2/Band window: WIDTH key @4.1 1080 → 1160; TRANSLATION_XY key @4.1 0,0 → -40,0. S2/Push: TRANSLATION_XY key @4.1 0,0 → 40,0, which keeps the photo screen-locked. S2/Plate clay and S2/Plate terracotta: width 1080 → 1160. The dot start, the burst centre (540) and the 384,1180 pivot do not change. At 0.965 the edges sit at x −25 and 1094, outside the frame."
+  }
+ ]
+}

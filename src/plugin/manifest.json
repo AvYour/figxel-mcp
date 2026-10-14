@@ -1,0 +1,23 @@
+{
+  "name": "Figxel",
+  "id": "figma-mcp-bridge",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma",
+    "figjam",
+    "slides"
+  ],
+  "documentAccess": "dynamic-page",
+  "permissions": [
+    "currentuser",
+    "teamlibrary"
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "*"
+    ],
+    "reasoning": "Connects to the local Figxel server at ws://127.0.0.1:38452 (loopback only). Figma rejects IP-literal entries in allowedDomains, so \"*\" is required; the bridge accepts only connections presenting its 32-byte token."
+  }
+}

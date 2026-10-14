@@ -1,0 +1,49 @@
+{
+ "lens": "TECHNICAL QA (finishing editor), round 3 on moku-ig-story-ad-v2-r2-432f.mp4",
+ "verdict": "fix",
+ "score": 7.5,
+ "findings": [
+  {
+   "severity": "major",
+   "time": "4.000-4.500 s (f120-f135) entry, f122-f150 landing, 5.633-5.833 s (f169-f175) exit",
+   "layer": "S2/Headline (42:15426) and its five masks S2/Ash-mask, S2/Vase/V-mask, a-mask, s-mask, e-mask (read as 52:792/794/796/798/800); texts S2/Ash 42:15428, S2/Vase/V..e 42:15430-42:15436",
+   "problem": "The headline masks span y 400-676, but the band (photo) top is y 600. The clip line therefore sits 76 px inside the photo, and the letters are visibly sliced by an invisible line across the photo. Measured at full res: (1) Entry: rising 'Vase' glyph pixels below the band top on f121-f135 (742-2541 terracotta px per frame). The 'V' foot reaches y 675, and on f123 an 'a' fragment emerges mid-photo at y ~660-675. During the burst (f114-f117), 'Ash' ink also sits over the terracotta dome. (2) Landing: the glyph bottoms rest at y 612-613 (f122-f130), 13 px over the photo edge. Only S2/Type's drift brings this down to 1 px, and not until f165, so r2's 'headline fully on cream' (F9) is not true for about 1.4 s. (3) Exit: on f171 'Ash' has slid 53 px into the photo (3803 ink px over gray, ink bottom y 665) and is drawn sharp. The Vase letters reach y 660-664 over the photo on f172-f175, then vanish at the invisible line.",
+   "fix": "Put the clip line on the band edge. Set S2/Headline y 400 -> 384, so the resting glyph bottom sits at about y 597, clear of the band top at 600. Set HEIGHT 276 -> 216 on all five masks, so each mask bottom is y 600 = the band's top edge. Keep every TRANSLATION_Y key as is: the +276 start and end values still lie fully below the new clip. Keep S2/Type's drift (@4.1 0 -> @5.6 -12 -> @6 -15). By the exit it lifts the clip line to y 585-588, so the letters vanish on cream 12-15 px above the photo and never overlap it. Verify: 0 ink or terracotta glyph px below y 600 on f114-f175."
+  },
+  {
+   "severity": "minor",
+   "time": "5.600-5.867 s (f168-f176)",
+   "layer": "S2/Ash (42:15428), S2/Vase/V, a, s, e: effect:0:RADIUS",
+   "problem": "The fake motion blur runs against the speed graph. The exit is IN over 4 frames, with per-frame travel of 1, 7, 40 and then 228 px (the last frame is clipped). The blur keys @5.6 0 · @5.6667 8 SOFT · @5.7333 0 L put the 8 px peak on f170, when the letter has moved only 8 px. On f171, its fastest visible frame (40 px/frame), the blur has fallen to 4. 'Ash' therefore reads sharp exactly when it should smear.",
+   "fix": "S2/Ash effect:0:RADIUS: @0 0 · @5.6 0 L · @5.6667 2 L · @5.7 10 SOFT · @5.7333 0 L, so the peak lands on the last visible frame. The Vase letters get the same shape, offset +0.0333 s each: V @5.6333 0 · @5.7 2 L · @5.7333 10 SOFT · @5.7667 0 L. Then a +0.0667, s +0.1, e +0.1333."
+  },
+  {
+   "severity": "minor",
+   "time": "3.667-3.933 s (f110-f118)",
+   "layer": "S2/Band window (42:15364): WIDTH, HEIGHT, TRANSLATION_XY",
+   "problem": "The burst is meant to read as a circle (spec E.2 #13: near-circle, radius ~514 at 3.9), but from f111 it renders as a horizontal stadium or rounded rectangle. WIDTH (96->1080 OUT over 15 frames) outruns HEIGHT (96->980 OUT over 13 frames), so w > h and the radius clamps at h/2. Measured w x h: f111 843x811, f112 930x879, f113 986x922. The chord 3 px above the bottom edge is 149/162/182 px against 98/103/105 for a true circle. On f116-f118 the bottom chord is 198-215 px against 111 (fitted r ~477, flat run ~90 px). The closeup tiles show visible flat tops and bottoms, which then square off again.",
+   "fix": "Give WIDTH the same timing and curve as HEIGHT for the circle phase, then widen during the radius snap. WIDTH: @0 96 · @3.6 96 L · @4.0333 980 OUT · @4.2 1080 cubic:0.4,0,0.2,1 · @5.5 1080 L · @5.5333 1160 L. TRANSLATION_XY: @0 336,532 · @3.6 336,532 L · @4.0333 50,0 OUT · @4.2 0,0 cubic:0.4,0,0.2,1 · @5.5 0,0 L · @5.5333 -40,0 L (the centre path stays 384,1180 -> 540,1090). Leave HEIGHT and CORNER_RADIUS unchanged. Mirror the X change on S2/Push TRANSLATION_XY (@4.0333 -50,0 OUT · @4.2 0,0 cubic:0.4,0,0.2,1) so the photo stays screen-locked. Verify: chord@3 within +10 % of 2*sqrt(3h) on f110-f117."
+  },
+  {
+   "severity": "minor",
+   "time": "3.867-3.967 s (f116-f119)",
+   "layer": "S2/Plate terracotta (42:15377), S2/Plate clay (42:15376): TRANSLATION_Y, effect:0:RADIUS",
+   "problem": "The stacked plate wipes read as single-frame cuts, not wipes. WHIP over 9 frames puts 468 of the 980 px in one frame. Measured plate bottom edge at x 540: terracotta 1577 -> 1501 -> 1329 -> 855 -> 691 -> 631 (a 474 px jump f116->f117); clay 1558 -> 1491 -> 1333 -> 861 -> 700 (a 472 px jump f118->f119). The 14 px blur is about 3 % of the step, so the edge strobes. This frame is the largest frame diff in the piece outside a cut (mean 26.1 on f117).",
+   "fix": "On both plates, change the easing of the last TRANSLATION_Y key (@4.0333 0 terracotta, @4.1 0 clay) from WHIP to cubic:0.65,0,0.35,1 (per-frame steps 11, 41, 94, 196, 296, 196, 94, 41, 11 px). Raise the blur peaks from 14 to 24 at the same keys (@3.9 terracotta, @3.9667 clay); they already sit on the fastest frames. The end times are unchanged, so the plates still clear by f120/f122."
+  },
+  {
+   "severity": "minor",
+   "time": "9.333-9.467 s (f280-f284)",
+   "layer": "S3/Cream circle (42:15421), S3/Terracotta circle (42:15423): effect:0:RADIUS",
+   "problem": "The bloom edges strobe. The terracotta radius grows 65 -> 236 -> 638 -> 1096 -> full on f280-f284 (steps of 171, 402 and 458 px per frame), and the cream circle steps similarly a frame ahead. Each edge carries only a 12 px blur, so the full-frame bloom reads as two pops rather than a spreading iris (frame diffs 17.5, 66.7 and 53.2 on f281-f283).",
+   "fix": "Raise the blur peaks to track the speed. S3/Cream circle effect:0:RADIUS: @0 0 · @9.2 0 L · @9.3333 10 SOFT · @9.3667 32 L · @9.4333 12 SOFT · @9.5333 0 SOFT. S3/Terracotta circle: @0 0 · @9.2667 0 L · @9.4 10 SOFT · @9.4333 32 L · @9.5 12 SOFT · @9.6 0 SOFT. The bug flip on f283 stays safe: the edge is 118 px past the far glyph, more than the 32 px blur."
+  },
+  {
+   "severity": "minor",
+   "time": "1.167-1.267 s (f35-f37); 10.167-10.233 s (f305-f307)",
+   "layer": "S1/Down (42:15097) and S5/Ten (42:15274): SCALE_XY",
+   "problem": "These are the only frames the single-frame flicker scan flags. In each punch the peak is one frame, and the release moves as fast as the attack. 'down.' width per frame is 732, 753, 775, 754, 742, 737: attack +21/+22, then -21 on the first release frame, because the OUT key drops 50 % of the punch in its first frame. f36 differs from both neighbours by about 1.55 mean, while f35 and f37 differ from each other by 0.18. f306 shows the same pattern (1.16 vs 0.46). The hit reads as a jitter rather than an accent.",
+   "fix": "Keep the attack and change only the release curve. S1/Down SCALE_XY last key @1.5333 1,1: easing cubic:0.16,1,0.3,1 -> cubic:0.33,0,0.2,1 (release per frame 2, 7, 11, 9, 6, 4… px, so the peak holds about 2 frames). Make the same change on S5/Ten @10.5333 1,1."
+  }
+ ]
+}

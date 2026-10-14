@@ -1,0 +1,17 @@
+{
+  "AGENTS.md": "8d673a86f4452412",
+  "README.md": "8f0a3c49779ceb13",
+  "docs/agents/claim-verification.md": "84cc22b405a9e88d",
+  "docs/agents/using-the-mcp.md": "3f196e4322b5da0f",
+  "docs/clients.md": "7ba304c601dd638c",
+  "docs/reference/claims.md": "bdf2456bcdcdd5b7",
+  "docs/reference/current-state.md": "538ece00f2f9524b",
+  "docs/reference/protocol.md": "c83ebc8bbad66ef6",
+  "docs/reference/roadmap.md": "515a4b247c6011b6",
+  "docs/reference/tools.md": "74a6ce3994b7dd6a",
+  "docs/superpowers/specs/2026-10-06-figma-mcp-design.md": "81921942a70dd594",
+  "scripts/check-claims.mjs": "2bd181d2579acd18",
+  "scripts/check-docs.mjs": "df13a30e74fe4598",
+  "scripts/check-language.mjs": "96df50266ed02678",
+  "scripts/lock-docs.mjs": "2d14a965c2a4df50"
+}

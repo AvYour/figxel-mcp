@@ -1,0 +1,38 @@
+{
+ "ok": true,
+ "frameId": "42:15039",
+ "containers": [
+  {
+   "name": "S1 · Hook",
+   "id": "42:15040"
+  },
+  {
+   "name": "S2 · Ash Vase",
+   "id": "42:15041"
+  },
+  {
+   "name": "S3 · Collection",
+   "id": "42:15042"
+  },
+  {
+   "name": "S4 · End card",
+   "id": "42:15043"
+  },
+  {
+   "name": "S5 · Offer + CTA",
+   "id": "42:15044"
+  },
+  {
+   "name": "Brand bug",
+   "id": "42:15045"
+  }
+ ],
+ "globalLayers": [
+  "Brand bug = 42:15045 (FRAME, horizontal auto-layout, FIXED 952 x 76 at (64, 290), primary and counter align CENTER, itemSpacing 4 at rest, padding 0, no fill, clipsContent false; topmost child of the frame). Keyframes: STACK_SPACING @0 48 · @1.4 40 L · @1.8 4 LOCK; SCALE_XY @0 1,1 · @11.1 1,1 L · @11.5333 3,3 WHIP; TRANSLATION_Y @0 0 · @11.1 0 L · @11.5333 272 WHIP; OPACITY @0 1 · @11.5083 1 L · @11.5283 0 L. First call passed timelineDuration 14.4.",
+  "Bug/M = 42:15046 (TEXT 'M', Cormorant Garamond SemiBold 64, LH 76, LS 0, raw #1f1c18, auto width 55). fill:0 @0 #1f1c18 · @9.4083 #1f1c18 L · @9.4283 #ffffff L",
+  "Bug/o = 42:15047 (TEXT 'o', same style, width 32). fill:0 same as Bug/M",
+  "Bug/k = 42:15048 (TEXT 'k', same style, width 32). fill:0 same as Bug/M",
+  "Bug/u = 42:15049 (TEXT 'u', same style, width 33). fill:0 same as Bug/M"
+ ],
+ "deviations": "No design deviations. All 11 RIG nodes were built in one figma_create_from_spec call, and the actual properties were read back with figma_get_node (REST).\n\nFrame 42:15039 \"Moku — IG Story Ad v2 (motion)\":\n- top-level on Page 1 at x 6280, y 3200, size 1080 x 1920;\n- fill #fbf9f6, bound to color/bg/page (VariableID:30:13846);\n- clipsContent true, no auto-layout, never keyframed.\n\nThe five containers are in z-order S1, S2, S3, S4, S5, with Brand bug as the topmost child. Each container is a FRAME 1080 x 1920 at (0, 0) with no fill and clipsContent false. None of them has keyframes.\n\nBrand bug letters at rest: they are centred in the 952 px row (the row starts at screen x 64 and the letters start at screen x 458), and the glyphs sit at about screen y 301–348.\n\nTimeline: figma_get_motion_context confirms that all 5 tracks on Brand bug and the 4 fill tracks match the JSON exactly, with timeline id 42:15039 and duration 14.4 s. No LAYER_BLUR was needed for RIG. No twin id has appeared yet.\n\nProcess note (not a design change): figma_export_node refuses a saveTo inside the scratchpad, because only the export directory or an allowed root is accepted. The stills were therefore exported to ~/.figma-mcp/exports/moku-v2-build/ and copied to scratchpad/motion/build/ as rig-frame-rest.png and rig-brand-bug-rest.png. Both show the cream frame with \"Moku\" centred at about y 328 at the resting spacing of 4. Other builders will hit the same saveTo restriction and should use a relative saveTo.\n\nNo video was rendered. Still unchecked: the mechanism check for STACK_SPACING reflow (frame 0 should show \"M o k u\" widely spaced and 1.8 s should show it tight), which can only be seen in the verification render. If the spacing does not reflow there, apply the fallback in spec D.1: turn off the bug's auto-layout and key TRANSLATION_X per letter.\n\nNothing outside the new frame was touched."
+}

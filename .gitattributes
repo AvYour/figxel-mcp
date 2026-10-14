@@ -1,0 +1,20 @@
+# Default to LF in the repo, keep working tree native per platform.
+* text=auto eol=lf
+
+# Windows scripts must keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+
+# Generated / lockfiles: keep out of diffs merges are automatic anyway
+package-lock.json merge=binary

@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+plugin.zip
+
+# Runtime / local state
+.figma-mcp/
+.figxel/
+exports/
+token
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor/agent scratch files that must never be committed
+.hermes-tmp.*
+
+# Python bytecode from the live probes
+__pycache__/
+
+# Ephemeral run state written by the spikes (ids captured during a build).
+spikes/.ids*.json
+
+# Agent worktrees 窶・not part of this repo.
+.claude/

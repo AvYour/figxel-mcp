@@ -1,0 +1,1555 @@
+{
+ "source": "Parents, base boxes, clipping, stroke caps and text of the 2026-10-09 ad, from the build bible's layer tables (scratchpad motion/final-spec.md §A, §B and §D, the spec the builders followed), not from a live read. Path boxes of the imported SVGs come from the bible's SVG path data. A dimension the bible leaves to measurement (auto text widths, mask widths) is absent. Snapshot layers missing here belong to the scene their name prefix names.",
+ "frame": {
+  "name": "Moku — IG Story Ad v2 (motion)",
+  "width": 1080,
+  "height": 1920
+ },
+ "scenes": {
+  "S1/": "S1 · Hook",
+  "S2/": "S2 · Ash Vase",
+  "S3/": "S3 · Collection",
+  "S4/": "S4 · End card",
+  "S5/": "S5 · Offer + CTA",
+  "Bug/": "Brand bug"
+ },
+ "layers": [
+  {
+   "name": "S1 · Hook",
+   "type": "FRAME",
+   "parent": null,
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S2 · Ash Vase",
+   "type": "FRAME",
+   "parent": null,
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S3 · Collection",
+   "type": "FRAME",
+   "parent": null,
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S4 · End card",
+   "type": "FRAME",
+   "parent": null,
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S5 · Offer + CTA",
+   "type": "FRAME",
+   "parent": null,
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "Brand bug",
+   "type": "FRAME",
+   "parent": null,
+   "x": 64,
+   "y": 290,
+   "width": 952,
+   "height": 76,
+   "layoutMode": "HORIZONTAL"
+  },
+  {
+   "name": "Bug/M",
+   "type": "TEXT",
+   "parent": "Brand bug",
+   "height": 76,
+   "characters": "M",
+   "fontSize": 64
+  },
+  {
+   "name": "Bug/o",
+   "type": "TEXT",
+   "parent": "Brand bug",
+   "height": 76,
+   "characters": "o",
+   "fontSize": 64
+  },
+  {
+   "name": "Bug/k",
+   "type": "TEXT",
+   "parent": "Brand bug",
+   "height": 76,
+   "characters": "k",
+   "fontSize": 64
+  },
+  {
+   "name": "Bug/u",
+   "type": "TEXT",
+   "parent": "Brand bug",
+   "height": 76,
+   "characters": "u",
+   "fontSize": 64
+  },
+  {
+   "name": "S1/Window",
+   "type": "FRAME",
+   "parent": "S1 · Hook",
+   "x": 300,
+   "y": 400,
+   "width": 480,
+   "height": 560,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/Photo",
+   "type": "RECTANGLE",
+   "parent": "S1/Window",
+   "x": -110,
+   "y": -250,
+   "width": 700,
+   "height": 1050
+  },
+  {
+   "name": "S1/Slow",
+   "type": "FRAME",
+   "parent": "S1 · Hook",
+   "width": 952,
+   "height": 480,
+   "layoutMode": "HORIZONTAL"
+  },
+  {
+   "name": "S1/Slow/S",
+   "type": "TEXT",
+   "parent": "S1/Slow",
+   "height": 480,
+   "characters": "S",
+   "fontSize": 400
+  },
+  {
+   "name": "S1/Slow/l",
+   "type": "TEXT",
+   "parent": "S1/Slow",
+   "height": 480,
+   "characters": "l",
+   "fontSize": 400
+  },
+  {
+   "name": "S1/Slow/o",
+   "type": "TEXT",
+   "parent": "S1/Slow",
+   "height": 480,
+   "characters": "o",
+   "fontSize": 400
+  },
+  {
+   "name": "S1/Slow/w",
+   "type": "TEXT",
+   "parent": "S1/Slow",
+   "height": 480,
+   "characters": "w",
+   "fontSize": 400
+  },
+  {
+   "name": "S1/Down",
+   "type": "FRAME",
+   "parent": "S1 · Hook",
+   "x": 64,
+   "y": 1170,
+   "width": 952,
+   "height": 432
+  },
+  {
+   "name": "S1/Down/d-mask",
+   "type": "FRAME",
+   "parent": "S1/Down",
+   "height": 432,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/Down/o-mask",
+   "type": "FRAME",
+   "parent": "S1/Down",
+   "height": 432,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/Down/w-mask",
+   "type": "FRAME",
+   "parent": "S1/Down",
+   "height": 432,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/Down/n-mask",
+   "type": "FRAME",
+   "parent": "S1/Down",
+   "height": 432,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/Down/.-mask",
+   "type": "FRAME",
+   "parent": "S1/Down",
+   "height": 432,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/Down/d",
+   "type": "TEXT",
+   "parent": "S1/Down/d-mask",
+   "x": 36,
+   "y": 0,
+   "height": 432,
+   "characters": "d",
+   "fontSize": 360
+  },
+  {
+   "name": "S1/Down/o",
+   "type": "TEXT",
+   "parent": "S1/Down/o-mask",
+   "x": 36,
+   "y": 0,
+   "height": 432,
+   "characters": "o",
+   "fontSize": 360
+  },
+  {
+   "name": "S1/Down/w",
+   "type": "TEXT",
+   "parent": "S1/Down/w-mask",
+   "x": 36,
+   "y": 0,
+   "height": 432,
+   "characters": "w",
+   "fontSize": 360
+  },
+  {
+   "name": "S1/Down/n",
+   "type": "TEXT",
+   "parent": "S1/Down/n-mask",
+   "x": 36,
+   "y": 0,
+   "height": 432,
+   "characters": "n",
+   "fontSize": 360
+  },
+  {
+   "name": "S1/Down/.",
+   "type": "TEXT",
+   "parent": "S1/Down/.-mask",
+   "x": 36,
+   "y": 0,
+   "height": 432,
+   "characters": ".",
+   "fontSize": 360
+  },
+  {
+   "name": "S1/Wheel",
+   "type": "FRAME",
+   "parent": "S1 · Hook",
+   "x": 60,
+   "y": 590,
+   "width": 960,
+   "height": 960
+  },
+  {
+   "name": "S1/Ring",
+   "type": "FRAME",
+   "parent": "S1/Wheel",
+   "x": 0,
+   "y": 0,
+   "width": 960,
+   "height": 960
+  },
+  {
+   "name": "S1/Ring path",
+   "type": "VECTOR",
+   "parent": "S1/Ring",
+   "width": 956,
+   "height": 956,
+   "strokeCap": "ROUND",
+   "strokeWeight": 3
+  },
+  {
+   "name": "S1/Disc",
+   "type": "ELLIPSE",
+   "parent": "S1/Wheel",
+   "x": 40,
+   "y": 40,
+   "width": 880,
+   "height": 880
+  },
+  {
+   "name": "S1/Clay band",
+   "type": "ELLIPSE",
+   "parent": "S1/Wheel",
+   "x": 80,
+   "y": 80,
+   "width": 800,
+   "height": 800
+  },
+  {
+   "name": "S1/Cream band",
+   "type": "ELLIPSE",
+   "parent": "S1/Wheel",
+   "x": 80,
+   "y": 80,
+   "width": 800,
+   "height": 800
+  },
+  {
+   "name": "S1/Iris",
+   "type": "FRAME",
+   "parent": "S1/Wheel",
+   "x": 80,
+   "y": 80,
+   "width": 800,
+   "height": 800,
+   "clipsContent": true,
+   "cornerRadius": 400
+  },
+  {
+   "name": "S1/Hands",
+   "type": "RECTANGLE",
+   "parent": "S1/Iris",
+   "x": -320,
+   "y": -100,
+   "width": 1400,
+   "height": 933
+  },
+  {
+   "name": "S1/By hand",
+   "type": "FRAME",
+   "parent": "S1 · Hook",
+   "x": 64,
+   "y": 404,
+   "width": 952,
+   "height": 158
+  },
+  {
+   "name": "S1/By-mask",
+   "type": "FRAME",
+   "parent": "S1/By hand",
+   "height": 158,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/By",
+   "type": "TEXT",
+   "parent": "S1/By-mask",
+   "x": 24,
+   "y": 0,
+   "height": 158,
+   "characters": "By",
+   "fontSize": 132
+  },
+  {
+   "name": "S1/hand.-mask",
+   "type": "FRAME",
+   "parent": "S1/By hand",
+   "height": 158,
+   "clipsContent": true
+  },
+  {
+   "name": "S1/hand.",
+   "type": "TEXT",
+   "parent": "S1/hand.-mask",
+   "x": 24,
+   "y": 0,
+   "height": 158,
+   "characters": "hand.",
+   "fontSize": 132
+  },
+  {
+   "name": "S2/BG",
+   "type": "RECTANGLE",
+   "parent": "S2 · Ash Vase",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S2/Content",
+   "type": "FRAME",
+   "parent": "S2 · Ash Vase",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S2/Band window",
+   "type": "FRAME",
+   "parent": "S2/Content",
+   "x": 0,
+   "y": 540,
+   "width": 1080,
+   "height": 1040,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Push",
+   "type": "FRAME",
+   "parent": "S2/Band window",
+   "x": 0,
+   "y": 0,
+   "width": 768,
+   "height": 1280
+  },
+  {
+   "name": "S2/Vase photo",
+   "type": "RECTANGLE",
+   "parent": "S2/Push",
+   "x": -90,
+   "y": -20,
+   "width": 1400,
+   "height": 1120
+  },
+  {
+   "name": "S2/Warm",
+   "type": "RECTANGLE",
+   "parent": "S2/Push",
+   "x": -90,
+   "y": -20,
+   "width": 1400,
+   "height": 1120
+  },
+  {
+   "name": "S2/Dim line",
+   "type": "FRAME",
+   "parent": "S2/Push",
+   "x": 618,
+   "y": 258,
+   "width": 4,
+   "height": 614
+  },
+  {
+   "name": "S2/Dim line path",
+   "type": "VECTOR",
+   "parent": "S2/Dim line",
+   "width": 0,
+   "height": 610,
+   "strokeCap": "NONE",
+   "strokeWeight": 3
+  },
+  {
+   "name": "S2/Tick top",
+   "type": "FRAME",
+   "parent": "S2/Push",
+   "x": 604,
+   "y": 258,
+   "width": 32,
+   "height": 4
+  },
+  {
+   "name": "S2/Tick top path",
+   "type": "VECTOR",
+   "parent": "S2/Tick top",
+   "width": 28,
+   "height": 0,
+   "strokeCap": "NONE",
+   "strokeWeight": 3
+  },
+  {
+   "name": "S2/Tick bottom",
+   "type": "FRAME",
+   "parent": "S2/Push",
+   "x": 604,
+   "y": 868,
+   "width": 32,
+   "height": 4
+  },
+  {
+   "name": "S2/Tick bottom path",
+   "type": "VECTOR",
+   "parent": "S2/Tick bottom",
+   "width": 28,
+   "height": 0,
+   "strokeCap": "NONE",
+   "strokeWeight": 3
+  },
+  {
+   "name": "S2/32 cm-mask",
+   "type": "FRAME",
+   "parent": "S2/Push",
+   "x": 640,
+   "y": 543,
+   "height": 34,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/32 cm",
+   "type": "TEXT",
+   "parent": "S2/32 cm-mask",
+   "x": 0,
+   "y": 0,
+   "height": 34,
+   "characters": "32 cm",
+   "fontSize": 28
+  },
+  {
+   "name": "S2/Plate clay",
+   "type": "RECTANGLE",
+   "parent": "S2/Band window",
+   "x": 0,
+   "y": -1040,
+   "width": 1080,
+   "height": 1040
+  },
+  {
+   "name": "S2/Plate terracotta",
+   "type": "RECTANGLE",
+   "parent": "S2/Band window",
+   "x": 0,
+   "y": -1040,
+   "width": 1080,
+   "height": 1040
+  },
+  {
+   "name": "S2/Type",
+   "type": "FRAME",
+   "parent": "S2/Content",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S2/Headline",
+   "type": "FRAME",
+   "parent": "S2/Type",
+   "x": 64,
+   "y": 400,
+   "width": 952,
+   "height": 276
+  },
+  {
+   "name": "S2/Ash-mask",
+   "type": "FRAME",
+   "parent": "S2/Headline",
+   "x": -6,
+   "y": 0,
+   "height": 276,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Ash",
+   "type": "TEXT",
+   "parent": "S2/Ash-mask",
+   "x": 6,
+   "y": 0,
+   "height": 276,
+   "characters": "Ash",
+   "fontSize": 230
+  },
+  {
+   "name": "S2/Vase/V-mask",
+   "type": "FRAME",
+   "parent": "S2/Headline",
+   "height": 276,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Vase/a-mask",
+   "type": "FRAME",
+   "parent": "S2/Headline",
+   "height": 276,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Vase/s-mask",
+   "type": "FRAME",
+   "parent": "S2/Headline",
+   "height": 276,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Vase/e-mask",
+   "type": "FRAME",
+   "parent": "S2/Headline",
+   "height": 276,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Vase/V",
+   "type": "TEXT",
+   "parent": "S2/Vase/V-mask",
+   "x": 28,
+   "y": 0,
+   "height": 276,
+   "characters": "V",
+   "fontSize": 230
+  },
+  {
+   "name": "S2/Vase/a",
+   "type": "TEXT",
+   "parent": "S2/Vase/a-mask",
+   "x": 28,
+   "y": 0,
+   "height": 276,
+   "characters": "a",
+   "fontSize": 230
+  },
+  {
+   "name": "S2/Vase/s",
+   "type": "TEXT",
+   "parent": "S2/Vase/s-mask",
+   "x": 28,
+   "y": 0,
+   "height": 276,
+   "characters": "s",
+   "fontSize": 230
+  },
+  {
+   "name": "S2/Vase/e",
+   "type": "TEXT",
+   "parent": "S2/Vase/e-mask",
+   "x": 28,
+   "y": 0,
+   "height": 276,
+   "characters": "e",
+   "fontSize": 230
+  },
+  {
+   "name": "S2/Price",
+   "type": "FRAME",
+   "parent": "S2/Type",
+   "height": 294
+  },
+  {
+   "name": "S2/Price/$-mask",
+   "type": "FRAME",
+   "parent": "S2/Price",
+   "height": 294,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Price/4-mask",
+   "type": "FRAME",
+   "parent": "S2/Price",
+   "height": 294,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Price/8-mask",
+   "type": "FRAME",
+   "parent": "S2/Price",
+   "height": 294,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Price/$",
+   "type": "TEXT",
+   "parent": "S2/Price/$-mask",
+   "x": 13,
+   "y": 30,
+   "height": 264,
+   "characters": "$",
+   "fontSize": 220
+  },
+  {
+   "name": "S2/Price/4",
+   "type": "TEXT",
+   "parent": "S2/Price/4-mask",
+   "x": 13,
+   "y": 30,
+   "height": 264,
+   "characters": "4",
+   "fontSize": 220
+  },
+  {
+   "name": "S2/Price/8",
+   "type": "TEXT",
+   "parent": "S2/Price/8-mask",
+   "x": 13,
+   "y": 30,
+   "height": 264,
+   "characters": "8",
+   "fontSize": 220
+  },
+  {
+   "name": "S2/Spec 1-mask",
+   "type": "FRAME",
+   "parent": "S2/Type",
+   "height": 41,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Spec 1",
+   "type": "TEXT",
+   "parent": "S2/Spec 1-mask",
+   "x": 0,
+   "y": 0,
+   "height": 41,
+   "characters": "Hand-thrown",
+   "fontSize": 34
+  },
+  {
+   "name": "S2/Spec 2-mask",
+   "type": "FRAME",
+   "parent": "S2/Type",
+   "height": 41,
+   "clipsContent": true
+  },
+  {
+   "name": "S2/Spec 2",
+   "type": "TEXT",
+   "parent": "S2/Spec 2-mask",
+   "x": 0,
+   "y": 0,
+   "height": 41,
+   "characters": "Wood-fired",
+   "fontSize": 34
+  },
+  {
+   "name": "S3/BG",
+   "type": "RECTANGLE",
+   "parent": "S3 · Collection",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S3/Content",
+   "type": "FRAME",
+   "parent": "S3 · Collection",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S3/Window",
+   "type": "FRAME",
+   "parent": "S3/Content",
+   "x": 64,
+   "y": 760,
+   "width": 520,
+   "height": 720,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Mug",
+   "type": "RECTANGLE",
+   "parent": "S3/Window",
+   "x": -70,
+   "y": -177,
+   "width": 700,
+   "height": 1050
+  },
+  {
+   "name": "S3/Plates",
+   "type": "RECTANGLE",
+   "parent": "S3/Window",
+   "x": -100,
+   "y": -185,
+   "width": 700,
+   "height": 905
+  },
+  {
+   "name": "S3/Bowl",
+   "type": "RECTANGLE",
+   "parent": "S3/Window",
+   "x": -379,
+   "y": -4,
+   "width": 1288,
+   "height": 724
+  },
+  {
+   "name": "S3/Type",
+   "type": "FRAME",
+   "parent": "S3/Content",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S3/Kicker-mask",
+   "type": "FRAME",
+   "parent": "S3/Type",
+   "x": 64,
+   "y": 410,
+   "width": 600,
+   "height": 34,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Kicker",
+   "type": "FRAME",
+   "parent": "S3/Kicker-mask",
+   "x": 0,
+   "y": 0,
+   "width": 600,
+   "height": 34,
+   "layoutMode": "HORIZONTAL"
+  },
+  {
+   "name": "S3/Kicker/A",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "A",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/U1",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "U",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/T",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "T",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/U2",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "U",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/M",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "M",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/N",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "N",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/2a",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "2",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/0",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "0",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/2b",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "2",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/6",
+   "type": "TEXT",
+   "parent": "S3/Kicker",
+   "height": 34,
+   "characters": "6",
+   "fontSize": 28
+  },
+  {
+   "name": "S3/Kicker/Space",
+   "type": "FRAME",
+   "parent": "S3/Kicker",
+   "width": 10,
+   "height": 34
+  },
+  {
+   "name": "S3/The-mask",
+   "type": "FRAME",
+   "parent": "S3/Type",
+   "x": 58,
+   "y": 452,
+   "height": 144,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/The",
+   "type": "TEXT",
+   "parent": "S3/The-mask",
+   "x": 6,
+   "y": 0,
+   "height": 144,
+   "characters": "The",
+   "fontSize": 120
+  },
+  {
+   "name": "S3/Kiln-mask",
+   "type": "FRAME",
+   "parent": "S3/Type",
+   "height": 144,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Kiln",
+   "type": "TEXT",
+   "parent": "S3/Kiln-mask",
+   "x": 24,
+   "y": 0,
+   "height": 144,
+   "characters": "Kiln",
+   "fontSize": 120
+  },
+  {
+   "name": "S3/collection-mask",
+   "type": "FRAME",
+   "parent": "S3/Type",
+   "x": 58,
+   "y": 572,
+   "height": 144,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/collection",
+   "type": "TEXT",
+   "parent": "S3/collection-mask",
+   "x": 6,
+   "y": 0,
+   "height": 144,
+   "characters": "collection",
+   "fontSize": 120
+  },
+  {
+   "name": "S3/List",
+   "type": "FRAME",
+   "parent": "S3/Content",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S3/Name 1-mask",
+   "type": "FRAME",
+   "parent": "S3/List",
+   "x": 640,
+   "y": 900,
+   "width": 376,
+   "height": 76,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Name 1",
+   "type": "TEXT",
+   "parent": "S3/Name 1-mask",
+   "x": 0,
+   "y": 0,
+   "height": 76,
+   "characters": "Kiln Mug",
+   "fontSize": 60
+  },
+  {
+   "name": "S3/Price 1-mask",
+   "type": "FRAME",
+   "parent": "S3/List",
+   "x": 640,
+   "y": 982,
+   "width": 376,
+   "height": 41,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Price 1",
+   "type": "TEXT",
+   "parent": "S3/Price 1-mask",
+   "x": 0,
+   "y": 0,
+   "height": 41,
+   "characters": "$32",
+   "fontSize": 34
+  },
+  {
+   "name": "S3/Name 2-mask",
+   "type": "FRAME",
+   "parent": "S3/List",
+   "x": 640,
+   "y": 1080,
+   "width": 376,
+   "height": 76,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Name 2",
+   "type": "TEXT",
+   "parent": "S3/Name 2-mask",
+   "x": 0,
+   "y": 0,
+   "height": 76,
+   "characters": "Dinner Plates"
+  },
+  {
+   "name": "S3/Price 2-mask",
+   "type": "FRAME",
+   "parent": "S3/List",
+   "x": 640,
+   "y": 1162,
+   "width": 376,
+   "height": 41,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Price 2",
+   "type": "TEXT",
+   "parent": "S3/Price 2-mask",
+   "x": 0,
+   "y": 0,
+   "height": 41,
+   "characters": "$110 · set of 4"
+  },
+  {
+   "name": "S3/Name 3-mask",
+   "type": "FRAME",
+   "parent": "S3/List",
+   "x": 640,
+   "y": 1260,
+   "width": 376,
+   "height": 76,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Name 3",
+   "type": "TEXT",
+   "parent": "S3/Name 3-mask",
+   "x": 0,
+   "y": 0,
+   "height": 76,
+   "characters": "Serving Bowl"
+  },
+  {
+   "name": "S3/Price 3-mask",
+   "type": "FRAME",
+   "parent": "S3/List",
+   "x": 640,
+   "y": 1342,
+   "width": 376,
+   "height": 41,
+   "clipsContent": true
+  },
+  {
+   "name": "S3/Price 3",
+   "type": "TEXT",
+   "parent": "S3/Price 3-mask",
+   "x": 0,
+   "y": 0,
+   "height": 41,
+   "characters": "$58"
+  },
+  {
+   "name": "S3/Pointer",
+   "type": "ELLIPSE",
+   "parent": "S3/List",
+   "x": 608,
+   "y": 938,
+   "width": 16,
+   "height": 16
+  },
+  {
+   "name": "S3/Cream circle",
+   "type": "ELLIPSE",
+   "parent": "S3 · Collection",
+   "x": -1176,
+   "y": -262,
+   "width": 3000,
+   "height": 3000
+  },
+  {
+   "name": "S3/Terracotta circle",
+   "type": "ELLIPSE",
+   "parent": "S3 · Collection",
+   "x": -1176,
+   "y": -262,
+   "width": 3000,
+   "height": 3000
+  },
+  {
+   "name": "S4/BG",
+   "type": "RECTANGLE",
+   "parent": "S4 · End card",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S4/Logo",
+   "type": "FRAME",
+   "parent": "S4 · End card",
+   "x": 64,
+   "y": 486,
+   "width": 952,
+   "height": 228,
+   "layoutMode": "HORIZONTAL"
+  },
+  {
+   "name": "S4/Logo/M",
+   "type": "TEXT",
+   "parent": "S4/Logo",
+   "height": 228,
+   "characters": "M",
+   "fontSize": 192
+  },
+  {
+   "name": "S4/Logo/o",
+   "type": "TEXT",
+   "parent": "S4/Logo",
+   "height": 228,
+   "characters": "o",
+   "fontSize": 192
+  },
+  {
+   "name": "S4/Logo/k",
+   "type": "TEXT",
+   "parent": "S4/Logo",
+   "height": 228,
+   "characters": "k",
+   "fontSize": 192
+  },
+  {
+   "name": "S4/Logo/u",
+   "type": "TEXT",
+   "parent": "S4/Logo",
+   "height": 228,
+   "characters": "u",
+   "fontSize": 192
+  },
+  {
+   "name": "S4/Bowl arc",
+   "type": "FRAME",
+   "parent": "S4 · End card",
+   "x": 358,
+   "y": 690,
+   "width": 364,
+   "height": 48
+  },
+  {
+   "name": "S4/Bowl arc path",
+   "type": "VECTOR",
+   "parent": "S4/Bowl arc",
+   "width": 360,
+   "height": 42,
+   "strokeCap": "ROUND",
+   "strokeWeight": 4
+  },
+  {
+   "name": "S4/Tagline",
+   "type": "FRAME",
+   "parent": "S4 · End card",
+   "x": 64,
+   "y": 756,
+   "width": 952,
+   "height": 68
+  },
+  {
+   "name": "S4/Objects-mask",
+   "type": "FRAME",
+   "parent": "S4/Tagline",
+   "height": 68,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/for-mask",
+   "type": "FRAME",
+   "parent": "S4/Tagline",
+   "height": 68,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/slow-mask",
+   "type": "FRAME",
+   "parent": "S4/Tagline",
+   "height": 68,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/living.-mask",
+   "type": "FRAME",
+   "parent": "S4/Tagline",
+   "height": 68,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/Objects",
+   "type": "TEXT",
+   "parent": "S4/Objects-mask",
+   "x": 16,
+   "y": 0,
+   "height": 68,
+   "characters": "Objects",
+   "fontSize": 56
+  },
+  {
+   "name": "S4/for",
+   "type": "TEXT",
+   "parent": "S4/for-mask",
+   "x": 16,
+   "y": 0,
+   "height": 68,
+   "characters": "for",
+   "fontSize": 56
+  },
+  {
+   "name": "S4/slow",
+   "type": "TEXT",
+   "parent": "S4/slow-mask",
+   "x": 16,
+   "y": 0,
+   "height": 68,
+   "characters": "slow",
+   "fontSize": 56
+  },
+  {
+   "name": "S4/living.",
+   "type": "TEXT",
+   "parent": "S4/living.-mask",
+   "x": 16,
+   "y": 0,
+   "height": 68,
+   "characters": "living.",
+   "fontSize": 56
+  },
+  {
+   "name": "S4/Offer",
+   "type": "FRAME",
+   "parent": "S4 · End card",
+   "x": 64,
+   "y": 930,
+   "width": 952,
+   "height": 76
+  },
+  {
+   "name": "S4/10% off-mask",
+   "type": "FRAME",
+   "parent": "S4/Offer",
+   "height": 76,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/10% off",
+   "type": "TEXT",
+   "parent": "S4/10% off-mask",
+   "x": 8,
+   "y": 0,
+   "height": 76,
+   "characters": "10% off",
+   "fontSize": 60
+  },
+  {
+   "name": "S4/your first order-mask",
+   "type": "FRAME",
+   "parent": "S4/Offer",
+   "height": 76,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/your first order",
+   "type": "TEXT",
+   "parent": "S4/your first order-mask",
+   "x": 20,
+   "y": 0,
+   "height": 76,
+   "characters": "your first order",
+   "fontSize": 60
+  },
+  {
+   "name": "S4/URL-mask",
+   "type": "FRAME",
+   "parent": "S4 · End card",
+   "x": 64,
+   "y": 1262,
+   "width": 952,
+   "height": 44,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/URL",
+   "type": "TEXT",
+   "parent": "S4/URL-mask",
+   "x": 0,
+   "y": 0,
+   "width": 952,
+   "height": 44,
+   "characters": "moku.store",
+   "fontSize": 36
+  },
+  {
+   "name": "S4/Footer-mask",
+   "type": "FRAME",
+   "parent": "S4 · End card",
+   "x": 64,
+   "y": 1322,
+   "width": 952,
+   "height": 34,
+   "clipsContent": true
+  },
+  {
+   "name": "S4/Footer",
+   "type": "TEXT",
+   "parent": "S4/Footer-mask",
+   "x": 0,
+   "y": 0,
+   "width": 952,
+   "height": 34,
+   "characters": "Free shipping over $80 · Plastic-free",
+   "fontSize": 28
+  },
+  {
+   "name": "S5/Ripple",
+   "type": "RECTANGLE",
+   "parent": "S5 · Offer + CTA",
+   "x": 220,
+   "y": 1100,
+   "width": 640,
+   "height": 120,
+   "strokeWeight": 3,
+   "cornerRadius": 60
+  },
+  {
+   "name": "S5/Field",
+   "type": "RECTANGLE",
+   "parent": "S5 · Offer + CTA",
+   "x": 220,
+   "y": 1100,
+   "width": 640,
+   "height": 120,
+   "cornerRadius": 60
+  },
+  {
+   "name": "S5/Offer type",
+   "type": "FRAME",
+   "parent": "S5 · Offer + CTA",
+   "x": 0,
+   "y": 0,
+   "width": 1080,
+   "height": 1920
+  },
+  {
+   "name": "S5/Ten",
+   "type": "FRAME",
+   "parent": "S5/Offer type",
+   "x": 64,
+   "y": 380,
+   "width": 952,
+   "height": 480,
+   "layoutMode": "HORIZONTAL"
+  },
+  {
+   "name": "S5/Ten/1-mask",
+   "type": "FRAME",
+   "parent": "S5/Ten",
+   "height": 480,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/Ten/0-mask",
+   "type": "FRAME",
+   "parent": "S5/Ten",
+   "height": 480,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/Ten/%-mask",
+   "type": "FRAME",
+   "parent": "S5/Ten",
+   "height": 480,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/Ten/1",
+   "type": "TEXT",
+   "parent": "S5/Ten/1-mask",
+   "x": 26,
+   "y": 0,
+   "height": 480,
+   "characters": "1",
+   "fontSize": 400
+  },
+  {
+   "name": "S5/Ten/0",
+   "type": "TEXT",
+   "parent": "S5/Ten/0-mask",
+   "x": 26,
+   "y": 0,
+   "height": 480,
+   "characters": "0",
+   "fontSize": 400
+  },
+  {
+   "name": "S5/Ten/%",
+   "type": "TEXT",
+   "parent": "S5/Ten/%-mask",
+   "x": 26,
+   "y": 0,
+   "height": 480,
+   "characters": "%",
+   "fontSize": 400
+  },
+  {
+   "name": "S5/off-mask",
+   "type": "FRAME",
+   "parent": "S5/Offer type",
+   "height": 240,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/off",
+   "type": "TEXT",
+   "parent": "S5/off-mask",
+   "x": 24,
+   "y": 0,
+   "height": 240,
+   "characters": "off",
+   "fontSize": 200
+  },
+  {
+   "name": "S5/Line",
+   "type": "FRAME",
+   "parent": "S5/Offer type",
+   "x": 64,
+   "y": 1040,
+   "width": 952,
+   "height": 116
+  },
+  {
+   "name": "S5/your-mask",
+   "type": "FRAME",
+   "parent": "S5/Line",
+   "height": 116,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/first-mask",
+   "type": "FRAME",
+   "parent": "S5/Line",
+   "height": 116,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/order.-mask",
+   "type": "FRAME",
+   "parent": "S5/Line",
+   "height": 116,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/your",
+   "type": "TEXT",
+   "parent": "S5/your-mask",
+   "x": 24,
+   "y": 0,
+   "height": 116,
+   "characters": "your",
+   "fontSize": 96
+  },
+  {
+   "name": "S5/first",
+   "type": "TEXT",
+   "parent": "S5/first-mask",
+   "x": 24,
+   "y": 0,
+   "height": 116,
+   "characters": "first",
+   "fontSize": 96
+  },
+  {
+   "name": "S5/order.",
+   "type": "TEXT",
+   "parent": "S5/order.-mask",
+   "x": 24,
+   "y": 0,
+   "height": 116,
+   "characters": "order.",
+   "fontSize": 96
+  },
+  {
+   "name": "S5/Loop",
+   "type": "FRAME",
+   "parent": "S5/Offer type",
+   "x": 110,
+   "y": 391,
+   "width": 860,
+   "height": 460
+  },
+  {
+   "name": "S5/Loop path",
+   "type": "VECTOR",
+   "parent": "S5/Loop",
+   "width": 826,
+   "height": 395,
+   "strokeCap": "ROUND",
+   "strokeWeight": 6
+  },
+  {
+   "name": "S5/CTA mask",
+   "type": "FRAME",
+   "parent": "S5 · Offer + CTA",
+   "x": 220,
+   "y": 1100,
+   "width": 640,
+   "height": 120,
+   "clipsContent": true
+  },
+  {
+   "name": "S5/CTA label",
+   "type": "TEXT",
+   "parent": "S5/CTA mask",
+   "height": 48,
+   "characters": "Shop the collection",
+   "fontSize": 40
+  },
+  {
+   "name": "S5/Arrow",
+   "type": "FRAME",
+   "parent": "S5/CTA mask",
+   "width": 40,
+   "height": 28
+  },
+  {
+   "name": "S5/Arrow shaft",
+   "type": "VECTOR",
+   "parent": "S5/Arrow",
+   "width": 34,
+   "height": 0,
+   "strokeCap": "ROUND",
+   "strokeWeight": 4
+  },
+  {
+   "name": "S5/Arrow head",
+   "type": "VECTOR",
+   "parent": "S5/Arrow",
+   "width": 12,
+   "height": 22,
+   "strokeCap": "ROUND",
+   "strokeWeight": 4
+  }
+ ]
+}

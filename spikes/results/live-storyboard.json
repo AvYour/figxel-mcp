@@ -1,0 +1,1430 @@
+{
+  "spike": "live-storyboard",
+  "startedAt": "2026-10-13T07:23:45.761Z",
+  "finishedAt": "2026-10-13T07:24:41.029Z",
+  "file": "Untitled",
+  "session": "s-1",
+  "build": {
+    "plugin": "43fdb67e716f",
+    "dist": "43fdb67e716f",
+    "server": "43fdb67e716f",
+    "matches": true
+  },
+  "exercised": [
+    "figma_check_layout",
+    "figma_create_from_spec",
+    "figma_create_storyboard",
+    "figma_delete_nodes",
+    "figma_eval",
+    "figma_export_node",
+    "figma_import_image"
+  ],
+  "records": [
+    {
+      "probe": "setup.spot",
+      "ok": true,
+      "value": {
+        "x": 5280,
+        "y": 0
+      }
+    },
+    {
+      "probe": "setup.source",
+      "ok": true,
+      "value": {
+        "rootId": "82:380",
+        "created": [
+          {
+            "id": "82:380",
+            "name": "SF probe source (delete me)",
+            "path": "spec"
+          },
+          {
+            "id": "82:381",
+            "name": "Word",
+            "path": "spec.children[0]"
+          }
+        ],
+        "nodeCount": 2,
+        "idempotencyKey": "fmcp-sb-source-2026-10-13T07:23:45.761Z"
+      },
+      "images": []
+    },
+    {
+      "probe": "storyboard.result",
+      "ok": true,
+      "value": {
+        "storyboardId": "82:382",
+        "title": "figma-mcp storyboard probe (delete me)",
+        "aspect": "9:16",
+        "fps": 30,
+        "bpm": 100,
+        "beatsPerBar": 4,
+        "snap": "frame",
+        "durationS": 15.6667,
+        "durationFrames": 470,
+        "panels": [
+          {
+            "index": 1,
+            "id": "82:388",
+            "thumbId": "82:390",
+            "hintId": "82:391",
+            "captionIds": {
+              "timecode": "82:395",
+              "duration": "82:398",
+              "beat": "82:401",
+              "onScreen": "82:404",
+              "action": "82:407",
+              "camera": "82:410",
+              "transition": "82:413",
+              "audio": "82:416",
+              "notes": "82:419"
+            },
+            "durationS": 1.2,
+            "startS": 0,
+            "endS": 1.2,
+            "startFrame": 0,
+            "endFrame": 36,
+            "bar": "1.1",
+            "words": 2,
+            "readOk": true,
+            "styleframeId": "82:771"
+          },
+          {
+            "index": 2,
+            "id": "82:420",
+            "thumbId": "82:422",
+            "captionIds": {
+              "timecode": "82:426",
+              "duration": "82:429",
+              "beat": "82:432",
+              "onScreen": "82:435",
+              "action": "82:438",
+              "camera": "82:441",
+              "transition": "82:444",
+              "audio": "82:447",
+              "notes": "82:450"
+            },
+            "durationS": 1.2,
+            "startS": 1.2,
+            "endS": 2.4,
+            "startFrame": 36,
+            "endFrame": 72,
+            "bar": "1.3",
+            "words": 1,
+            "readOk": true,
+            "image": "source"
+          },
+          {
+            "index": 3,
+            "id": "82:451",
+            "thumbId": "82:453",
+            "hintId": "82:454",
+            "captionIds": {
+              "timecode": "82:458",
+              "duration": "82:461",
+              "beat": "82:464",
+              "onScreen": "82:467",
+              "action": "82:470",
+              "camera": "82:473",
+              "transition": "82:476",
+              "audio": "82:479",
+              "notes": "82:482"
+            },
+            "durationS": 1.2,
+            "startS": 2.4,
+            "endS": 3.6,
+            "startFrame": 72,
+            "endFrame": 108,
+            "bar": "2.1",
+            "words": 11,
+            "readOk": false
+          },
+          {
+            "index": 4,
+            "id": "82:483",
+            "thumbId": "82:485",
+            "hintId": "82:486",
+            "captionIds": {
+              "timecode": "82:490",
+              "duration": "82:493",
+              "beat": "82:496",
+              "onScreen": "82:499",
+              "action": "82:502",
+              "camera": "82:505",
+              "transition": "82:508",
+              "audio": "82:511",
+              "notes": "82:514"
+            },
+            "durationS": 1.266667,
+            "startS": 3.6,
+            "endS": 4.8667,
+            "startFrame": 108,
+            "endFrame": 146,
+            "bar": "2.3",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 5,
+            "id": "82:515",
+            "thumbId": "82:517",
+            "hintId": "82:518",
+            "captionIds": {
+              "timecode": "82:522",
+              "duration": "82:525",
+              "beat": "82:528",
+              "onScreen": "82:531",
+              "action": "82:534",
+              "camera": "82:537",
+              "transition": "82:540",
+              "audio": "82:543",
+              "notes": "82:546"
+            },
+            "durationS": 1.2,
+            "startS": 4.8667,
+            "endS": 6.0667,
+            "startFrame": 146,
+            "endFrame": 182,
+            "bar": "3.1",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 6,
+            "id": "82:547",
+            "thumbId": "82:549",
+            "hintId": "82:550",
+            "captionIds": {
+              "timecode": "82:554",
+              "duration": "82:557",
+              "beat": "82:560",
+              "onScreen": "82:563",
+              "action": "82:566",
+              "camera": "82:569",
+              "transition": "82:572",
+              "audio": "82:575",
+              "notes": "82:578"
+            },
+            "durationS": 1.2,
+            "startS": 6.0667,
+            "endS": 7.2667,
+            "startFrame": 182,
+            "endFrame": 218,
+            "bar": "3.3",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 7,
+            "id": "82:579",
+            "thumbId": "82:581",
+            "hintId": "82:582",
+            "captionIds": {
+              "timecode": "82:586",
+              "duration": "82:589",
+              "beat": "82:592",
+              "onScreen": "82:595",
+              "action": "82:598",
+              "camera": "82:601",
+              "transition": "82:604",
+              "audio": "82:607",
+              "notes": "82:610"
+            },
+            "durationS": 1.2,
+            "startS": 7.2667,
+            "endS": 8.4667,
+            "startFrame": 218,
+            "endFrame": 254,
+            "bar": "4.1",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 8,
+            "id": "82:611",
+            "thumbId": "82:613",
+            "hintId": "82:614",
+            "captionIds": {
+              "timecode": "82:618",
+              "duration": "82:621",
+              "beat": "82:624",
+              "onScreen": "82:627",
+              "action": "82:630",
+              "camera": "82:633",
+              "transition": "82:636",
+              "audio": "82:639",
+              "notes": "82:642"
+            },
+            "durationS": 1.2,
+            "startS": 8.4667,
+            "endS": 9.6667,
+            "startFrame": 254,
+            "endFrame": 290,
+            "bar": "4.3",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 9,
+            "id": "82:643",
+            "thumbId": "82:645",
+            "hintId": "82:646",
+            "captionIds": {
+              "timecode": "82:650",
+              "duration": "82:653",
+              "beat": "82:656",
+              "onScreen": "82:659",
+              "action": "82:662",
+              "camera": "82:665",
+              "transition": "82:668",
+              "audio": "82:671",
+              "notes": "82:674"
+            },
+            "durationS": 1.2,
+            "startS": 9.6667,
+            "endS": 10.8667,
+            "startFrame": 290,
+            "endFrame": 326,
+            "bar": "5.1",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 10,
+            "id": "82:675",
+            "thumbId": "82:677",
+            "hintId": "82:678",
+            "captionIds": {
+              "timecode": "82:682",
+              "duration": "82:685",
+              "beat": "82:688",
+              "onScreen": "82:691",
+              "action": "82:694",
+              "camera": "82:697",
+              "transition": "82:700",
+              "audio": "82:703",
+              "notes": "82:706"
+            },
+            "durationS": 1.2,
+            "startS": 10.8667,
+            "endS": 12.0667,
+            "startFrame": 326,
+            "endFrame": 362,
+            "bar": "5.3",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 11,
+            "id": "82:707",
+            "thumbId": "82:709",
+            "hintId": "82:710",
+            "captionIds": {
+              "timecode": "82:714",
+              "duration": "82:717",
+              "beat": "82:720",
+              "onScreen": "82:723",
+              "action": "82:726",
+              "camera": "82:729",
+              "transition": "82:732",
+              "audio": "82:735",
+              "notes": "82:738"
+            },
+            "durationS": 1.2,
+            "startS": 12.0667,
+            "endS": 13.2667,
+            "startFrame": 362,
+            "endFrame": 398,
+            "bar": "6.1",
+            "words": 0,
+            "readOk": true
+          },
+          {
+            "index": 12,
+            "id": "82:739",
+            "thumbId": "82:741",
+            "hintId": "82:742",
+            "captionIds": {
+              "timecode": "82:746",
+              "duration": "82:749",
+              "beat": "82:752",
+              "onScreen": "82:755",
+              "action": "82:758",
+              "camera": "82:761",
+              "transition": "82:764",
+              "audio": "82:767",
+              "notes": "82:770"
+            },
+            "durationS": 2.4,
+            "startS": 13.2667,
+            "endS": 15.6667,
+            "startFrame": 398,
+            "endFrame": 470,
+            "bar": "6.3",
+            "words": 1,
+            "readOk": true,
+            "styleframeId": "82:772"
+          }
+        ],
+        "offBeat": [
+          {
+            "index": 5,
+            "startS": 4.8667,
+            "nearestBeat": "3.1",
+            "offsetFrames": 2
+          },
+          {
+            "index": 6,
+            "startS": 6.0667,
+            "nearestBeat": "3.3",
+            "offsetFrames": 2
+          },
+          {
+            "index": 7,
+            "startS": 7.2667,
+            "nearestBeat": "4.1",
+            "offsetFrames": 2
+          },
+          {
+            "index": 8,
+            "startS": 8.4667,
+            "nearestBeat": "4.3",
+            "offsetFrames": 2
+          },
+          {
+            "index": 9,
+            "startS": 9.6667,
+            "nearestBeat": "5.1",
+            "offsetFrames": 2
+          },
+          {
+            "index": 10,
+            "startS": 10.8667,
+            "nearestBeat": "5.3",
+            "offsetFrames": 2
+          },
+          {
+            "index": 11,
+            "startS": 12.0667,
+            "nearestBeat": "6.1",
+            "offsetFrames": 2
+          },
+          {
+            "index": 12,
+            "startS": 13.2667,
+            "nearestBeat": "6.3",
+            "offsetFrames": 2
+          }
+        ],
+        "snapped": [
+          {
+            "index": 4,
+            "from": 1.25,
+            "to": 1.2667
+          }
+        ],
+        "readTime": [
+          {
+            "index": 3,
+            "words": 11,
+            "needS": 3.3,
+            "haveS": 1.2
+          }
+        ],
+        "textStyles": {
+          "meta": "Moku/Body M",
+          "head": "Moku/Price",
+          "label": "Moku/Label Caps",
+          "value": "Moku/Body S",
+          "hint": "Moku/Body S"
+        },
+        "created": [
+          "82:382",
+          "82:771",
+          "82:772"
+        ],
+        "nodeCount": 391,
+        "note": "Frames run [startFrame, endFrame). A thumbnail has no auto-layout: sketch into it with figma_create_from_spec { parentId: thumbId } and x/y, then delete its hintId. figma_import_image { renderNodeId, nodeId: thumbId } snapshots a styleframe into it.",
+        "idempotencyKey": "fmcp-sb-board-2026-10-13T07:23:45.761Z"
+      },
+      "images": [],
+      "expected": "12 panels; readTime names panel 3; offBeat names panel 5 (+2 frames); panel 2 filled from its source; 2 styleframes; 3 top-level nodes",
+      "pass": true,
+      "tool": "figma_create_storyboard"
+    },
+    {
+      "probe": "storyboard.pageGrew",
+      "ok": true,
+      "value": 3,
+      "expected": "3 new top-level nodes: the board and two styleframes",
+      "pass": true
+    },
+    {
+      "probe": "storyboard.readBack",
+      "ok": true,
+      "value": {
+        "name": "Storyboard / figma-mcp storyboard probe (delete me)",
+        "parent": "PAGE",
+        "x": 6680,
+        "y": 0,
+        "width": 1664,
+        "height": 2108,
+        "layout": "VERTICAL",
+        "gridWrap": "WRAP",
+        "rows": 2,
+        "cards": 12,
+        "cardNames": [
+          "Panel 01 · 0:00.0",
+          "Panel 02 · 0:01.2",
+          "Panel 03 · 0:02.4"
+        ],
+        "thumbs": [
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 0,
+            "fill": [
+              "IMAGE:0e050ca804439c68e9878fc5a2abf46bf2983020"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.267 s · 38 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "2.4 s · 72 f"
+          }
+        ],
+        "styleframes": [
+          {
+            "name": "SF 01 · Hook",
+            "x": 8744,
+            "y": 0,
+            "w": 1080,
+            "h": 1920,
+            "clips": true,
+            "parent": "PAGE"
+          },
+          {
+            "name": "SF 12 · End card",
+            "x": 10024,
+            "y": 0,
+            "w": 1080,
+            "h": 1920,
+            "clips": true,
+            "parent": "PAGE"
+          }
+        ],
+        "record": {
+          "v": 1,
+          "title": "figma-mcp storyboard probe (delete me)",
+          "aspect": "9:16",
+          "fps": 30,
+          "bpm": 100,
+          "beatsPerBar": 4,
+          "panels": [
+            {
+              "index": 1,
+              "id": "82:388",
+              "thumbId": "82:390",
+              "captionIds": {
+                "timecode": "82:395",
+                "duration": "82:398",
+                "beat": "82:401",
+                "onScreen": "82:404",
+                "action": "82:407",
+                "camera": "82:410",
+                "transition": "82:413",
+                "audio": "82:416",
+                "notes": "82:419"
+              },
+              "styleframeId": "82:771",
+              "plannedS": 1.2
+            },
+            {
+              "index": 2,
+              "id": "82:420",
+              "thumbId": "82:422",
+              "captionIds": {
+                "timecode": "82:426",
+                "duration": "82:429",
+                "beat": "82:432",
+                "onScreen": "82:435",
+                "action": "82:438",
+                "camera": "82:441",
+                "transition": "82:444",
+                "audio": "82:447",
+                "notes": "82:450"
+              },
+              "plannedS": 1.2,
+              "sourceId": "82:380"
+            },
+            {
+              "index": 3,
+              "id": "82:451",
+              "thumbId": "82:453",
+              "captionIds": {
+                "timecode": "82:458",
+                "duration": "82:461",
+                "beat": "82:464",
+                "onScreen": "82:467",
+                "action": "82:470",
+                "camera": "82:473",
+                "transition": "82:476",
+                "audio": "82:479",
+                "notes": "82:482"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 4,
+              "id": "82:483",
+              "thumbId": "82:485",
+              "captionIds": {
+                "timecode": "82:490",
+                "duration": "82:493",
+                "beat": "82:496",
+                "onScreen": "82:499",
+                "action": "82:502",
+                "camera": "82:505",
+                "transition": "82:508",
+                "audio": "82:511",
+                "notes": "82:514"
+              },
+              "plannedS": 1.266667
+            },
+            {
+              "index": 5,
+              "id": "82:515",
+              "thumbId": "82:517",
+              "captionIds": {
+                "timecode": "82:522",
+                "duration": "82:525",
+                "beat": "82:528",
+                "onScreen": "82:531",
+                "action": "82:534",
+                "camera": "82:537",
+                "transition": "82:540",
+                "audio": "82:543",
+                "notes": "82:546"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 6,
+              "id": "82:547",
+              "thumbId": "82:549",
+              "captionIds": {
+                "timecode": "82:554",
+                "duration": "82:557",
+                "beat": "82:560",
+                "onScreen": "82:563",
+                "action": "82:566",
+                "camera": "82:569",
+                "transition": "82:572",
+                "audio": "82:575",
+                "notes": "82:578"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 7,
+              "id": "82:579",
+              "thumbId": "82:581",
+              "captionIds": {
+                "timecode": "82:586",
+                "duration": "82:589",
+                "beat": "82:592",
+                "onScreen": "82:595",
+                "action": "82:598",
+                "camera": "82:601",
+                "transition": "82:604",
+                "audio": "82:607",
+                "notes": "82:610"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 8,
+              "id": "82:611",
+              "thumbId": "82:613",
+              "captionIds": {
+                "timecode": "82:618",
+                "duration": "82:621",
+                "beat": "82:624",
+                "onScreen": "82:627",
+                "action": "82:630",
+                "camera": "82:633",
+                "transition": "82:636",
+                "audio": "82:639",
+                "notes": "82:642"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 9,
+              "id": "82:643",
+              "thumbId": "82:645",
+              "captionIds": {
+                "timecode": "82:650",
+                "duration": "82:653",
+                "beat": "82:656",
+                "onScreen": "82:659",
+                "action": "82:662",
+                "camera": "82:665",
+                "transition": "82:668",
+                "audio": "82:671",
+                "notes": "82:674"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 10,
+              "id": "82:675",
+              "thumbId": "82:677",
+              "captionIds": {
+                "timecode": "82:682",
+                "duration": "82:685",
+                "beat": "82:688",
+                "onScreen": "82:691",
+                "action": "82:694",
+                "camera": "82:697",
+                "transition": "82:700",
+                "audio": "82:703",
+                "notes": "82:706"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 11,
+              "id": "82:707",
+              "thumbId": "82:709",
+              "captionIds": {
+                "timecode": "82:714",
+                "duration": "82:717",
+                "beat": "82:720",
+                "onScreen": "82:723",
+                "action": "82:726",
+                "camera": "82:729",
+                "transition": "82:732",
+                "audio": "82:735",
+                "notes": "82:738"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 12,
+              "id": "82:739",
+              "thumbId": "82:741",
+              "captionIds": {
+                "timecode": "82:746",
+                "duration": "82:749",
+                "beat": "82:752",
+                "onScreen": "82:755",
+                "action": "82:758",
+                "camera": "82:761",
+                "transition": "82:764",
+                "audio": "82:767",
+                "notes": "82:770"
+              },
+              "styleframeId": "82:772",
+              "plannedS": 2.4
+            }
+          ]
+        }
+      },
+      "expected": "a vertical board on the page at x/y, 1664 wide; 12 cards wrapping into 2 rows; thumbs 216×384 clipped, no layout; panel 2's thumb an IMAGE with no hint; durations captioned; record v1 with 12 panels",
+      "pass": true,
+      "claim": [
+        "C-188",
+        "C-095"
+      ]
+    },
+    {
+      "probe": "storyboard.styleframes",
+      "ok": true,
+      "value": {
+        "name": "Storyboard / figma-mcp storyboard probe (delete me)",
+        "parent": "PAGE",
+        "x": 6680,
+        "y": 0,
+        "width": 1664,
+        "height": 2108,
+        "layout": "VERTICAL",
+        "gridWrap": "WRAP",
+        "rows": 2,
+        "cards": 12,
+        "cardNames": [
+          "Panel 01 · 0:00.0",
+          "Panel 02 · 0:01.2",
+          "Panel 03 · 0:02.4"
+        ],
+        "thumbs": [
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 0,
+            "fill": [
+              "IMAGE:0e050ca804439c68e9878fc5a2abf46bf2983020"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.267 s · 38 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "1.2 s · 36 f"
+          },
+          {
+            "w": 216,
+            "h": 384,
+            "clips": true,
+            "layout": "NONE",
+            "kids": 1,
+            "fill": [
+              "SOLID"
+            ],
+            "duration": "2.4 s · 72 f"
+          }
+        ],
+        "styleframes": [
+          {
+            "name": "SF 01 · Hook",
+            "x": 8744,
+            "y": 0,
+            "w": 1080,
+            "h": 1920,
+            "clips": true,
+            "parent": "PAGE"
+          },
+          {
+            "name": "SF 12 · End card",
+            "x": 10024,
+            "y": 0,
+            "w": 1080,
+            "h": 1920,
+            "clips": true,
+            "parent": "PAGE"
+          }
+        ],
+        "record": {
+          "v": 1,
+          "title": "figma-mcp storyboard probe (delete me)",
+          "aspect": "9:16",
+          "fps": 30,
+          "bpm": 100,
+          "beatsPerBar": 4,
+          "panels": [
+            {
+              "index": 1,
+              "id": "82:388",
+              "thumbId": "82:390",
+              "captionIds": {
+                "timecode": "82:395",
+                "duration": "82:398",
+                "beat": "82:401",
+                "onScreen": "82:404",
+                "action": "82:407",
+                "camera": "82:410",
+                "transition": "82:413",
+                "audio": "82:416",
+                "notes": "82:419"
+              },
+              "styleframeId": "82:771",
+              "plannedS": 1.2
+            },
+            {
+              "index": 2,
+              "id": "82:420",
+              "thumbId": "82:422",
+              "captionIds": {
+                "timecode": "82:426",
+                "duration": "82:429",
+                "beat": "82:432",
+                "onScreen": "82:435",
+                "action": "82:438",
+                "camera": "82:441",
+                "transition": "82:444",
+                "audio": "82:447",
+                "notes": "82:450"
+              },
+              "plannedS": 1.2,
+              "sourceId": "82:380"
+            },
+            {
+              "index": 3,
+              "id": "82:451",
+              "thumbId": "82:453",
+              "captionIds": {
+                "timecode": "82:458",
+                "duration": "82:461",
+                "beat": "82:464",
+                "onScreen": "82:467",
+                "action": "82:470",
+                "camera": "82:473",
+                "transition": "82:476",
+                "audio": "82:479",
+                "notes": "82:482"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 4,
+              "id": "82:483",
+              "thumbId": "82:485",
+              "captionIds": {
+                "timecode": "82:490",
+                "duration": "82:493",
+                "beat": "82:496",
+                "onScreen": "82:499",
+                "action": "82:502",
+                "camera": "82:505",
+                "transition": "82:508",
+                "audio": "82:511",
+                "notes": "82:514"
+              },
+              "plannedS": 1.266667
+            },
+            {
+              "index": 5,
+              "id": "82:515",
+              "thumbId": "82:517",
+              "captionIds": {
+                "timecode": "82:522",
+                "duration": "82:525",
+                "beat": "82:528",
+                "onScreen": "82:531",
+                "action": "82:534",
+                "camera": "82:537",
+                "transition": "82:540",
+                "audio": "82:543",
+                "notes": "82:546"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 6,
+              "id": "82:547",
+              "thumbId": "82:549",
+              "captionIds": {
+                "timecode": "82:554",
+                "duration": "82:557",
+                "beat": "82:560",
+                "onScreen": "82:563",
+                "action": "82:566",
+                "camera": "82:569",
+                "transition": "82:572",
+                "audio": "82:575",
+                "notes": "82:578"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 7,
+              "id": "82:579",
+              "thumbId": "82:581",
+              "captionIds": {
+                "timecode": "82:586",
+                "duration": "82:589",
+                "beat": "82:592",
+                "onScreen": "82:595",
+                "action": "82:598",
+                "camera": "82:601",
+                "transition": "82:604",
+                "audio": "82:607",
+                "notes": "82:610"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 8,
+              "id": "82:611",
+              "thumbId": "82:613",
+              "captionIds": {
+                "timecode": "82:618",
+                "duration": "82:621",
+                "beat": "82:624",
+                "onScreen": "82:627",
+                "action": "82:630",
+                "camera": "82:633",
+                "transition": "82:636",
+                "audio": "82:639",
+                "notes": "82:642"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 9,
+              "id": "82:643",
+              "thumbId": "82:645",
+              "captionIds": {
+                "timecode": "82:650",
+                "duration": "82:653",
+                "beat": "82:656",
+                "onScreen": "82:659",
+                "action": "82:662",
+                "camera": "82:665",
+                "transition": "82:668",
+                "audio": "82:671",
+                "notes": "82:674"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 10,
+              "id": "82:675",
+              "thumbId": "82:677",
+              "captionIds": {
+                "timecode": "82:682",
+                "duration": "82:685",
+                "beat": "82:688",
+                "onScreen": "82:691",
+                "action": "82:694",
+                "camera": "82:697",
+                "transition": "82:700",
+                "audio": "82:703",
+                "notes": "82:706"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 11,
+              "id": "82:707",
+              "thumbId": "82:709",
+              "captionIds": {
+                "timecode": "82:714",
+                "duration": "82:717",
+                "beat": "82:720",
+                "onScreen": "82:723",
+                "action": "82:726",
+                "camera": "82:729",
+                "transition": "82:732",
+                "audio": "82:735",
+                "notes": "82:738"
+              },
+              "plannedS": 1.2
+            },
+            {
+              "index": 12,
+              "id": "82:739",
+              "thumbId": "82:741",
+              "captionIds": {
+                "timecode": "82:746",
+                "duration": "82:749",
+                "beat": "82:752",
+                "onScreen": "82:755",
+                "action": "82:758",
+                "camera": "82:761",
+                "transition": "82:764",
+                "audio": "82:767",
+                "notes": "82:770"
+              },
+              "styleframeId": "82:772",
+              "plannedS": 2.4
+            }
+          ]
+        }
+      },
+      "expected": "two empty 1080×1920 clipped frames on the page, right of the board",
+      "pass": true
+    },
+    {
+      "probe": "storyboard.check_layout",
+      "ok": true,
+      "value": {
+        "root": {
+          "id": "82:382",
+          "name": "Storyboard / figma-mcp storyboard probe (delete me)",
+          "type": "FRAME"
+        },
+        "checked": 389,
+        "ok": true,
+        "counts": {
+          "error": 0,
+          "warning": 0,
+          "info": 0
+        },
+        "issues": [],
+        "rawColors": {
+          "distinct": 7,
+          "top": [
+            {
+              "color": "#6b6b73",
+              "uses": 108
+            },
+            {
+              "color": "#1a1a1e",
+              "uses": 108
+            },
+            {
+              "color": "#111114",
+              "uses": 13
+            },
+            {
+              "color": "#e6e6ea",
+              "uses": 11
+            },
+            {
+              "color": "#5c5c66",
+              "uses": 11
+            },
+            {
+              "color": "#55555c",
+              "uses": 2
+            },
+            {
+              "color": "#ffffff",
+              "uses": 1
+            }
+          ],
+          "hint": "Raw hex where a design system exists (this file defines 9 paint/text style(s) and 38 variable(s)). Use it instead: figma_apply_style_to_node or figma_bind_variable_to_node; audit: [\"tokens\"] lists every node."
+        }
+      },
+      "images": [],
+      "expected": "ok: true — no errors, no warnings",
+      "pass": true,
+      "tool": "figma_check_layout"
+    },
+    {
+      "probe": "import_image.render",
+      "ok": true,
+      "value": {
+        "id": "82:549",
+        "name": "Panel 06 / Frame",
+        "imageHash": "0e050ca804439c68e9878fc5a2abf46bf2983020",
+        "applied": "fill",
+        "rendered": {
+          "nodeId": "82:380",
+          "width": 432,
+          "height": 768
+        },
+        "idempotencyKey": "k-7059beb2-b7e0-491b-a8ff-f9e10865d7fd"
+      },
+      "images": [],
+      "expected": "rendered 432 × 768 (2x a 216 px thumb) into the thumbnail's fill",
+      "pass": true,
+      "tool": "figma_import_image",
+      "claim": "C-076"
+    },
+    {
+      "probe": "import_image.render.readBack",
+      "ok": true,
+      "value": [
+        {
+          "type": "IMAGE",
+          "hash": "0e050ca804439c68e9878fc5a2abf46bf2983020",
+          "scaleMode": "FILL"
+        }
+      ],
+      "expected": "one IMAGE fill with the hash the tool reported",
+      "pass": true
+    },
+    {
+      "probe": "import_image.render.overCap",
+      "ok": false,
+      "error": "INVALID_PARAM: `renderNodeId`: rendering \"SF probe source (delete me)\" 4096 px wide makes a 4096 × 7282 px picture; Figma takes images up to 4096 px a side.\nRender it at most 2304 px wide.",
+      "expected": "refused: /4096 × 7282 px picture/",
+      "pass": true,
+      "claim": "C-076"
+    },
+    {
+      "probe": "import_image.render.overCap.unchanged",
+      "ok": true,
+      "value": 0,
+      "expected": "nothing new on the page",
+      "pass": true
+    },
+    {
+      "probe": "import_image.twoSources",
+      "ok": false,
+      "error": "INVALID_PARAM: Give one image source, not `url` and `renderNodeId`.",
+      "expected": "refused: /one image source/",
+      "pass": true
+    },
+    {
+      "probe": "storyboard.unknownSource",
+      "ok": false,
+      "error": "NODE_NOT_FOUND: `panels[0].source`: no node with id `999999:1` in this file.",
+      "expected": "refused: /^NODE_NOT_FOUND/",
+      "pass": true
+    },
+    {
+      "probe": "storyboard.sourceAndImage",
+      "ok": false,
+      "error": "INVALID_PARAM: `panels[0]` gives both `source` and `image`: one picture per thumbnail.\n`source` snapshots a node of this file; `image` reuses an imageHash already in it.",
+      "expected": "refused: /^INVALID_PARAM.*both `source` and `image`/",
+      "pass": true
+    },
+    {
+      "probe": "storyboard.tooLong",
+      "ok": false,
+      "error": "INVALID_PARAM: The panels run 660 s; a board plans at most 600 s.\nSplit the piece into several boards.",
+      "expected": "refused: /at most 600 s/",
+      "pass": true
+    },
+    {
+      "probe": "storyboard.refusals.unchanged",
+      "ok": true,
+      "value": 0,
+      "expected": "no new top-level node",
+      "pass": true
+    },
+    {
+      "probe": "render",
+      "ok": true,
+      "value": "spikes\\results\\live-storyboard.png"
+    },
+    {
+      "probe": "cleanup",
+      "ok": true,
+      "value": {
+        "deleted": 4,
+        "items": [
+          {
+            "id": "82:772",
+            "ok": true
+          },
+          {
+            "id": "82:771",
+            "ok": true
+          },
+          {
+            "id": "82:382",
+            "ok": true
+          },
+          {
+            "id": "82:380",
+            "ok": true
+          }
+        ],
+        "note": "This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z reverts the whole call.",
+        "idempotencyKey": "k-c9385f31-a201-4e84-8753-1f0809e85261"
+      },
+      "images": []
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "figxel-mcp",
+  "version": "0.1.0",
+  "description": "A read-write MCP server for Figma desktop, through a local plugin: Figma Design, FigJam and Slides tools, plus design, storyboard, motion and critique skills",
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "figma",
+    "figma-plugin",
+    "figjam",
+    "figma-slides",
+    "design",
+    "ai-agents",
+    "claude"
+  ],
+  "author": "Darrel Gusti",
+  "license": "MIT",
+  "homepage": "https://github.com/AvYour/figxel-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/AvYour/figxel-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AvYour/figxel-mcp.git"
+  },
+  "type": "module",
+  "bin": {
+    "figxel-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist/server.js",
+    "dist/build-id.json",
+    "dist/plugin/",
+    "dist/THIRD_PARTY_NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "prepack": "npm run build",
+    "typecheck": "tsc -p tsconfig.json && tsc -p src/plugin/tsconfig.sandbox.json && tsc -p src/plugin/tsconfig.ui.json",
+    "test": "vitest run",
+    "check:docs": "node scripts/check-docs.mjs && node scripts/check-claims.mjs && node scripts/lock-docs.mjs",
+    "check": "npm run typecheck && npm test && npm run check:docs",
+    "mock-plugin": "node tools/mock-plugin.mjs"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "1.141.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@types/node": "24.19.1",
+    "@types/ws": "8.18.2",
+    "esbuild": "0.28.2",
+    "pdf-lib": "1.17.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "ws": "8.22.0",
+    "zod": "4.6.5"
+  }
+}

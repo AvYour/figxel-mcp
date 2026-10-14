@@ -1,0 +1,107 @@
+role proxy, file "Untitled", build {"plugin":"1cf1e6aca699","dist":"1cf1e6aca699","server":"1cf1e6aca699","matches":true}
+
+-- sandbox
+  ok    create sandbox frame                                 {"id":"30:13217","name":"figma-mcp WP-B probe (delete me)","type":"FRAME","width":1200,"height":80,"idempotencyKey":"k-655d8a97-fffd-43ce-b683-27f35f0d66ee"}
+
+-- absolute positioning
+  ok    move_nodes positioning absolute (badge)              item {"id":"30:13221","ok":true,"sizing":"width fixed (was fill)","positioning":"absolute"}
+  ok    badge is ABSOLUTE at (260, -8), out of the flow      pos=ABSOLUTE x=260 y=-8 card 107→72
+  ok    move_nodes positioning auto (back into the flow)     {"moved":1,"items":[{"id":"30:13223","ok":true,"positioning":"auto"}],"idempotencyKey":"k-6890fd92-25c1-4db0-a8df-0263ba5b7199"}
+  ok    floater is AUTO again                                AUTO
+  ok    move_nodes absolute under a frame with no layout → ok:false absolute positioning needs an auto-layout parent — this node's parent has none, so x/y already place it
+
+-- wrap, rowGap, alignContent
+  ok    create_frame wrap + rowGap 12                        {"id":"30:13225","name":"Chips","type":"FRAME","width":300,"height":10,"idempotencyKey":"k-78676975-2c8c-4b1d-ad4f-5f2b788f30d8"}
+  ok    chips wrap with 12 px between rows                   rows=3 gap=12
+  ok    spec wrap + rowGap + alignContent                    {"rootId":"30:13250","created":[{"id":"30:13250","name":"Chips (spec)","path":"spec"},{"id":"30:13251","name":"S1","path":"spec.children[0]"},{"id":"30:13252","…
+  ok    spec chips: WRAP, rowGap 16, SPACE_BETWEEN           {"wrap":"WRAP","spacing":16,"content":"SPACE_BETWEEN"}
+  ok    set_auto_layout rowGap 20 + alignContent on a wrapping frame {"id":"30:13225","layoutMode":"HORIZONTAL","itemSpacing":8,"padding":[0,0,0,0],"primaryAxisAlignItems":"MIN","counterAxisAlignItems":"MIN","layoutWrap":"WRAP","…
+  ok    chips row gap is 20                                  [20,"SPACE_BETWEEN"]
+
+-- baseline, negative gap, stacking
+  ok    create_frame alignY baseline                         {"id":"30:13271","name":"Price","type":"FRAME","width":10,"height":10,"idempotencyKey":"k-f278e3fe-382e-475c-98f7-641b7cc9f7b3"}
+  ok    price row is BASELINE aligned                        BASELINE
+  ok    set_auto_layout alignY baseline                      {"id":"30:13274","layoutMode":"HORIZONTAL","itemSpacing":4,"padding":[0,0,0,0],"primaryAxisAlignItems":"MIN","counterAxisAlignItems":"BASELINE","layoutWrap":"NO…
+  ok    alignY baseline on a column is refused, safe to retry INVALID_PARAM: `alignY: baseline` lines up text baselines across a row: it works as alignY of a horizontal layout only.
+  ok    set_auto_layout gap -12, reverseZIndex, strokesInLayout {"id":"30:13277","layoutMode":"HORIZONTAL","itemSpacing":-12,"padding":[0,0,0,0],"primaryAxisAlignItems":"MIN","counterAxisAlignItems":"MIN","layoutWrap":"NO_WR…
+  ok    avatar stack: itemSpacing -12, first on top, strokes in layout [-12,true,true]
+
+-- min / max
+  ok    resize_nodes maxWidth 480 + minHeight 20 on a fill paragraph {"resized":1,"items":[{"id":"30:13283","ok":true}],"idempotencyKey":"k-1894abbe-df22-454f-bb55-10eb571f5c9f"}
+  ok    paragraph is at most 480 wide                        w=480
+  ok    resize_nodes clearLimits                             {"resized":1,"items":[{"id":"30:13283","ok":true}],"idempotencyKey":"k-689ed37b-4f10-4e41-9058-9fdb53f84ed2"}
+  ok    limits removed, the fill width is back               w=900
+  ok    min above max is refused before any node changes     INVALID_PARAM: `minWidth` (500) is above `maxWidth` (300).
+
+-- clip content
+  ok    set_clips_content true (+ a rectangle → ok:false)    rect: a RECTANGLE has no clipsContent
+  ok    clip frame clips                                     true
+  ok    set_clips_content false                              {"updated":1,"items":[{"id":"30:13284","ok":true}]}
+  ok    clip frame no longer clips                           false
+
+-- rotate pivot
+  ok    rotate_nodes 45 (default centre pivot)               {"rotated":1,"items":[{"id":"30:13286","ok":true,"pivot":"center"}],"idempotencyKey":"k-fc9ca179-1c13-43da-9916-6d47c128019f"}
+  ok    the centre did not move                              centre (100.0, 70.0) → (100.0, 70.0) rotation 45
+  ok    rotate_nodes 0 pivot origin                          {"rotated":1,"items":[{"id":"30:13286","ok":true,"pivot":"origin"}],"idempotencyKey":"k-497dd4e2-fd33-47ac-8147-898ce1e88371"}
+
+-- spec grammar
+  ok    spec with an unknown key → refused, nothing created  refused with the nearest key; nothing on the canvas
+  ok    spec root sizing { width: fill } into the wrapper    {"rootId":"30:13287","created":[{"id":"30:13287","name":"Full-width section","path":"spec"},{"id":"30:13288","name":"This section spans the wrapper.","path":"sp…
+  ok    the section fills the wrapper's inner width          w=1120 inner=1120
+  ok    spec root x/y in a frame without layout              {"rootId":"30:13289","created":[{"id":"30:13289","name":"Placed","path":"spec"}],"nodeCount":1,"idempotencyKey":"k-4442a1a5-d7a6-47d2-8bb7-11b6e8581b7b"}
+  ok    placed at (300, 12)                                  [300,12]
+  ok    spec absolute child                                  {"rootId":"30:13290","created":[{"id":"30:13290","name":"Dot card","path":"spec"},{"id":"30:13291","name":"Inbox","path":"spec.children[0]"},{"id":"30:13292","n…
+  ok    the dot is ABSOLUTE at (232, -6)                     ["ABSOLUTE",232,-6]
+
+-- instances in the spec
+  ok    spec instances with properties + a nested instance, one call {"rootId":"30:13301","created":[{"id":"30:13301","name":"Buttons","path":"spec"},{"id":"30:13302","name":"WPB Button","path":"spec.children[0]"},{"id":"30:13306…
+  ok    labels and the nested glyph were set without a follow-up call {"a":["♥","Buy now"],"b":["★","Learn more"]}
+  ok    a misspelt property is refused before any node exists INVALID_PARAM: `spec.properties`: the component has no property "Lable".
+Its properties: Label#30:23 (TEXT). Nothing was created.
+  ok    spec componentKey (local key; outcome is a measurement) refused cleanly: INVALID_PARAM: Figma could not import the component with key "b26d400d71d8d7736186d036b9ff881d59d1284f" at spec: Cannot import component with key "b26d400d71d8d…
+
+-- variables in the spec
+  ok    spec variableModes { <theme>: Dark }                 {"rootId":"30:13313","created":[{"id":"30:13313","name":"Dark panel","path":"spec"}],"nodeCount":1,"idempotencyKey":"k-5bea4243-38ba-42f5-917b-80b183be19ea"}
+  ok    the panel pins Dark explicitly                       {"VariableCollectionId:30:13310":"30:17"}
+  ok    spec svg colorVariable                               {"rootId":"30:13314","created":[{"id":"30:13314","name":"Bound icon","path":"spec"}],"nodeCount":1,"idempotencyKey":"k-486d9eaf-557c-423e-b25d-ea6cf3b82e52"}
+  ok    every painted vector is bound to wpb/icon, strokes stay strokes [{"s":"VariableID:30:13312","f":0}]
+  ok    variables.fill on an svg is refused (use colorVariable) INVALID_PARAM: `spec.variables.fill` on an svg would paint the wrapper frame, not the icon.
+Use `colorVariable` (a COLOR variable) or `color` to recolour the ic…
+  ok    spec variables / style maps by id                    {"rootId":"30:13317","created":[{"id":"30:13317","name":"By ids","path":"spec"},{"id":"30:13318","name":"Var by id","path":"spec.children[0]"},{"id":"30:13319",…
+  ok    bound by the ids given                               {"v":"VariableID:30:13312","s":"S:ac251ec9582b8777e94cf8fe0352b02100deb158,"}
+
+-- batch
+  ok    batch: set_fills + set_corner_radius + set_effects   {"steps":[{"index":0,"op":"set_fills","ok":true,"result":{"updated":1,"items":[{"id":"30:13320","ok":true}]}},{"index":1,"op":"set_corner_radius","ok":true,"res…
+  ok    all three edits landed                               {"fill":{"r":0.95686274766922,"g":0.24705882370471954,"b":0.3686274588108063},"r":16,"fx":1,"o":1}
+  ok    a schema-invalid step: nothing runs, safe to retry   INVALID_PARAM: `steps[1].params.opacity`: Too big: expected number to be <=1
+The parameters are figma_set_opacity's own; its tool description lists them.
+  note  one-undo-step check skipped: run with UNDO=1, or press Ctrl+Z once by hand and watch Tile revert fully.
+
+-- check_layout
+  ok    build a section with known defects                   {"rootId":"30:13321","created":[{"id":"30:13321","name":"QA","path":"spec"},{"id":"30:13322","name":"Heading","path":"spec.children[0]"},{"id":"30:13323","name"…
+  ok    check_layout audit tokens/names/fonts, expectFonts Inter kinds text_collapsed, fill_in_hug, wrong_font, unbound_color, placeholder_text, sibling_overlap, unbound_spacing
+  ok    check_layout with two selected roots checks both     roots Card, QA
+
+-- safeToRetry
+  ok    rowGap on a frame that does not wrap: safeToRetry true INVALID_PARAM: `rowGap` / `alignContent` space wrapped rows: they need `wrap: true` on a horizontal layout.
+  ok    a read that fails: safeToRetry present               safeToRetry=true
+
+-- cross-page parent
+  note  only one page in this file: the cross-page parent check needs a second page.
+
+-- look
+  saved spikes\results\live-wpB-layout.png
+  ok    check_layout on the sandbox (errors only)            ok=false errors=1 (the QA section's thread is deliberate)
+
+-- cleanup
+  ok    delete sandbox                                       {"deleted":1,"items":[{"id":"30:13217","ok":true}],"note":"This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z reverts th…
+  ok    delete the probe collection                          {"deleted":"VariableCollectionId:30:13310","name":"WPB Theme 620784","variableCount":2,"idempotencyKey":"k-f76fb183-904c-46a3-b48a-325c939763d3"}
+  ok    delete the probe style                               {"deleted":1,"items":[{"id":"S:ac251ec9582b8777e94cf8fe0352b02100deb158,","ok":true}],"idempotencyKey":"k-92bac4b5-579e-4675-85b0-7cabc01e3681"}
+
+====================================================================================================
+  steps: 60   failed: 0
+  WP-B tools not exercised: []
+  measured (for docs/reference/claims.md):
+    - C-110 componentKey of a local unpublished component: refused — INVALID_PARAM: Figma could not import the component with key "b26d400d71d8d7736186d036b9ff881d59d1284f" at spec: Cannot import component with key "b26d400d71d8d…
+    - check_layout audit on the live QA section: kinds ["text_collapsed","fill_in_hug","wrong_font","unbound_color","placeholder_text","sibling_overlap","unbound_spacing"]; designSystem found: this file defines 1 paint/text style(s) and 2 variable(s); fonts {"Inter":2,"Arial":1}
+====================================================================================================

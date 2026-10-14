@@ -1,0 +1,94 @@
+role proxy, file "Untitled", build {"plugin":"1cf1e6aca699","dist":"1cf1e6aca699","server":"1cf1e6aca699","matches":true}
+
+-- sandbox
+  ok    create sandbox frame                                     {"id":"30:13566","name":"figma-mcp WP-E probe (delete me)","type":"FRAME","width":80,"height":80,"idempotencyKey":"k-365f3f4e-00d8-40ef-84a4-2f1c012b199a"}
+
+-- variants: create_from_spec + combine_as_variants columns
+  ok    create_from_spec: 4 button components                    {"rootId":"30:13567","created":[{"id":"30:13567","name":"Variants","path":"spec"},{"id":"30:13570","name":"Size=Small, State=Default","path":"spec.children[0]"}…
+  ok    combine_as_variants columns=State gap=20 + description   columns [{"value":"Default","x":40080},{"value":"Hover","x":40213}] rows ["Size=Small","Size=Large"]
+  ok    grid: one x per State, page coordinates match, description Default x=40 Hover x=173 (page 40213 = grid 40213)
+
+-- component properties
+  ok    add_component_property TEXT Label (one variant bound)    key Label#30:63, bound in 4 variants
+  ok    add_component_property again → reused, no duplicate      {"componentId":"30:13580","key":"Label#30:63","type":"TEXT","defaultValue":"Button","bound":["30:13572","30:13569","30:13575","30:13578"],"reused":true}
+  ok    one Label property on the set                            ["Label#30:63","Size","State"]
+  ok    create_instance of the set + variant                     {"id":"30:13581","name":"WP-E Button","type":"INSTANCE","componentId":"30:13573","componentSetId":"30:13580","idempotencyKey":"k-1d3fadba-c8b3-42e4-90c0-2ae4ea8…
+  ok    set_instance_properties Label=Override                   {"id":"30:13581","name":"WP-E Button","properties":{"Label#30:63":"Override"}}
+  ok    edit_component_property rename Label→Text                key Text#30:63, rewired 0 [C-113]
+  ok    C-113: override and wiring survive the rename            instance text "Override", 4 labels on Text#30:63; rename did carry references
+  ok    edit_component_property defaultValue                     {"componentId":"30:13580","key":"Text#30:63","type":"TEXT","bound":[],"unbound":[]}
+  ok    default reads back                                       {"value":"Click me","durationMs":1,"idempotencyKey":"k-2245af51-1875-42e4-ac60-2c1c0ac097e5"}
+  ok    edit_component_property unbindNodeIds (twins too)        {"componentId":"30:13580","key":"Text#30:63","type":"TEXT","bound":[],"unbound":["30:13569","30:13572","30:13575","30:13578"]}
+  ok    no label is wired any more                               {"value":[null,null,null,null],"durationMs":1,"idempotencyKey":"k-0edace7b-88d2-4a55-a504-9b7928a9aee2"}
+  ok    edit_component_property bindNodeIds (twins too)          {"componentId":"30:13580","key":"Text#30:63","type":"TEXT","bound":["30:13575","30:13569","30:13572","30:13578"],"unbound":[]}
+  ok    edit: defaultValue on a VARIANT is refused               refused: INVALID_PARAM: A VARIANT property has no default to edit.
+  ok    delete: a VARIANT property is refused                    refused: INVALID_PARAM: "State" is a VARIANT property: it comes from the variant names, and Figma cannot delete one.
+
+-- instance swap, preferred values, delete
+  ok    create_from_spec: two icon components                    {"rootId":"30:13583","created":[{"id":"30:13583","name":"Icons","path":"spec"},{"id":"30:13586","name":"Icon/Star","path":"spec.children[0]"},{"id":"30:13585","…
+  ok    create_from_spec: a Chip component with an icon instance {"rootId":"30:13594","created":[{"id":"30:13594","name":"WP-E Chip","path":"spec"},{"id":"30:13591","name":"Icon","path":"spec.children[0]"},{"id":"30:13593","n…
+  ok    add_component_property INSTANCE_SWAP + preferredValues   {"componentId":"30:13594","key":"Icon#30:68","type":"INSTANCE_SWAP","defaultValue":"30:13586","bound":["30:13591"],"preferredValues":[{"type":"COMPONENT","key":…
+  ok    preferred values are the two icon KEYS                   [{"type":"COMPONENT","key":"c7c84226720850fdae30f7dc9c76c0415db39d0c"},{"type":"COMPONENT","key":"811177b0232705d34a6b93d4b55bc9c7a0031528"}]
+  ok    edit_component_property preferredValues → [Dot]          {"componentId":"30:13594","key":"Icon#30:68","type":"INSTANCE_SWAP","bound":[],"unbound":[]}
+  ok    one preferred value left                                 {"value":[{"type":"COMPONENT","key":"811177b0232705d34a6b93d4b55bc9c7a0031528"}],"durationMs":1,"idempotencyKey":"k-359b76cf-54e8-4acd-8a8d-bba39003da4f"}
+  ok    add_component_property BOOLEAN Show icon                 {"componentId":"30:13594","key":"Show icon#30:69","type":"BOOLEAN","defaultValue":true,"bound":["30:13591"]}
+  ok    delete_component_property Show icon                      {"componentId":"30:13594","deleted":"Show icon#30:69","type":"BOOLEAN"}
+  ok    Show icon is gone, and so is its wiring                  keys ["Icon#30:68"] refs {"mainComponent":"Icon#30:68"}
+
+-- get_component, get_local_components
+  ok    get_component on a variant → the set's definitions       3 properties, 4 references, default 30:13570
+  ok    get_component on the instance → its main component       {"id":"30:13573","name":"Size=Large, State=Hover","type":"COMPONENT","key":"71341d0c80413dfc1dab22fd0de45763140e661d","remote":false,"description":null,"instanc…
+  ok    get_component paginates references                       page 2: 2
+  ok    get_component names a local preferred value              {"id":"30:13594","name":"WP-E Chip","type":"COMPONENT","key":"559f641227151f40c92666a14a37f4e8f50d8d04","remote":false,"description":null,"owner":{"id":"30:1359…
+  ok    get_local_components: key, setId, variantCount, options  7 components, 1 sets
+  ok    C-090: the list matches a whole-document find            7 components / 1 sets across 1 page(s)
+  ok    get_local_components { pageId }                          {"pageId":"0:1","componentCount":7,"componentSetCount":1,"components":[{"id":"30:13570","name":"Size=Small, State=Default","type":"COMPONENT","pageId":"0:1","de…
+
+-- slots [C-112]
+  ok    create_from_spec: a Card component                       {"rootId":"30:13597","created":[{"id":"30:13597","name":"WP-E Card","path":"spec"},{"id":"30:13596","name":"Title","path":"spec.children[0]"}],"nodeCount":2,"id…
+  ok    create_slot name/layout/size/sizing                      slot 30:13598, property Content#30:70
+  ok    the slot and its SLOT property read back                 h=120 sizing=FILL refs={"slotContentId":"Content#30:70"}
+  ok    create_slot on a set is refused                          refused: INVALID_PARAM: A slot goes into a component; `30:13580` is a component set — pass one of its variants.
+  ok    create_instance of the Card                              {"id":"30:13599","name":"WP-E Card","type":"INSTANCE","componentId":"30:13597","idempotencyKey":"k-4192f90c-7f9d-4923-8119-096cf7d4eba4"}
+  ok    fill the slot: create_text parentId = slot in the instance {"id":"30:13602","name":"Filled","type":"TEXT","width":288,"height":17,"wraps":"fills the column (auto)","font":{"family":"Inter","style":"Regular","fellBack":f…
+  ok    the instance's slot holds the new text                   ["Filled"]
+  ok    set_instance_properties refuses the SLOT                 refused: INVALID_PARAM: "Content#30:70" is a SLOT: a slot is filled by adding layers into it, not set.
+  ok    reset_slot                                               {"reset":1,"items":[{"id":"I30:13599;30:13598","ok":true}]}
+  ok    the slot is back to the component's content              []
+
+-- descriptions
+  ok    set_description on the set: text + link                  {"id":"30:13580","type":"COMPONENT_SET","description":"The primary action.","documentationLink":"https://example.com/button"}
+  ok    set description and link read back                       {"value":{"d":"The primary action.","links":[{"uri":"https://example.com/button"}]},"durationMs":1,"idempotencyKey":"k-86ef7928-2629-42b0-96f6-01b8de8a4beb"}
+  ok    set_description on a variant → note                      {"id":"30:13570","type":"COMPONENT","description":"x","note":"`30:13570` is a variant: a description usually belongs on its set `30:13580`, which is what the as…
+  ok    set_description on a local style (markdown)              {"id":"S:5bab536ec5fa371cd3805f108c0aaa9761d18926,","type":"PAINT_STYLE","description":"**Accent** for primary actions","markdown":"A PAINT_STYLE in this Figma …
+  ok    style markdown description reads back                    {"plain":"**Accent** for primary actions"}
+  ok    set_description on a local variable                      {"id":"VariableID:30:13607","type":"VARIABLE","description":"Accent colour"}
+  ok    variable description reads back                          {"value":"Accent colour","durationMs":0,"idempotencyKey":"k-8d7c8c65-6138-45d5-b273-f8e52179053d"}
+  ok    a link on a variable is refused                          refused: INVALID_PARAM: A variable has no documentation link — only components, component sets and styles do.
+  ok    convert_to_component + description                       {"id":"30:13609","name":"WP-E Converted","type":"COMPONENT","sourceId":"30:13608","description":"Made by the probe","idempotencyKey":"k-69e11da0-176e-44ba-92f3-…
+  ok    converted component description reads back               {"value":"Made by the probe","durationMs":1,"idempotencyKey":"k-5f5abd71-f044-4bf2-b9ee-eb9c92e5fcd3"}
+
+-- swap_component with variant
+  ok    swap_component set + variant                             {"id":"30:13581","name":"WP-E Button","componentId":"30:13570","idempotencyKey":"k-db129e0d-fdfe-450a-869e-ce160ccc23ce"}
+  ok    the instance shows Small / Default                       {"value":"Size=Small, State=Default","durationMs":1,"idempotencyKey":"k-24271c28-243d-4deb-a942-4ce6b6d471c1"}
+
+-- library import by key [C-110]
+  no library instance in this file and no LIBRARY_KEY: only the refusal paths run
+  ok    import_library_assets: per-item results                  bogus key: "Figma could not import the component with key "0000000000000000000000000000000000000000": Could not find a published component with the key "0000000000000000000000000000000000000000""; unpublished local set: "Figma could not import the component set with key "9ab2dbc515c690107531205234b52681beb203b9": Failed to import component set by key "9ab2dbc515c690107531205234b52681beb203b9""; library: n/a
+  ok    create_instance with a bad key creates nothing           refused: NODE_NOT_FOUND: Figma could not import the component with key "0000000000000000000000000000000000000000": Could not find a published component with the key "000…
+  ok    sandbox unchanged after the refused import               {"value":7,"durationMs":1,"idempotencyKey":"k-6db3e045-ec49-452e-9b0e-876932cdc45a"}
+  ok    search_nodes { componentId } lists the Card's instance   {"query":null,"type":null,"componentId":"30:13597","scope":{"id":"0:1","name":"Page 1","type":"PAGE","from":"page"},"count":1,"nodes":[{"id":"30:13599","name":"…
+
+-- look
+  saved spikes\results\live-wpE-components.png
+  ok    check_layout on the sandbox                              ok=false errors=0 warnings=6
+
+-- cleanup
+  ok    delete sandbox                                           {"deleted":1,"items":[{"id":"30:13566","ok":true}],"note":"This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z reverts th…
+  ok    delete probe style                                       {"deleted":1,"items":[{"id":"S:5bab536ec5fa371cd3805f108c0aaa9761d18926,","ok":true}],"idempotencyKey":"k-33f6fad9-9781-4779-9330-83edd29ce5e1"}
+  ok    delete probe variable collection                         {"deleted":"VariableCollectionId:30:13606","name":"WP-E probe","variableCount":1,"idempotencyKey":"k-6cb4003b-99db-4560-9a22-50f1ecb7f3f9"}
+
+====================================================================================================
+  steps: 64   failed: 0
+  WP-E tools registered but not exercised: []
+====================================================================================================

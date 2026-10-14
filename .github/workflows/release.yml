@@ -1,0 +1,52 @@
+name: release
+
+# Publishes figxel-mcp to npm and creates the GitHub Release, with the Figma
+# plugin as a zip, when a tag v<version> is pushed. The tag must equal "v" plus
+# package.json's version.
+#
+# One repository secret: NPM_TOKEN, an npm access token that may publish
+# figxel-mcp (Settings → Secrets and variables → Actions).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # gh release create
+  id-token: write # npm publish --provenance
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - name: The tag is v + package.json's version
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json's version ($expected)"
+            exit 1
+          fi
+      - run: npm ci
+      # Typecheck, tests (which build dist/) and the documentation gates.
+      - run: npm run check
+      - run: node scripts/check-language.mjs
+      # prepack builds dist/ again from this checkout, so the tarball holds only the "files" in package.json.
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Zip the plugin
+        run: zip -X -j "figxel-plugin-${GITHUB_REF_NAME}.zip" dist/plugin/* LICENSE
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "figxel-plugin-${GITHUB_REF_NAME}.zip" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag

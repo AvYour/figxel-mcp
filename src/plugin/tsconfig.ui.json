@@ -1,0 +1,17 @@
+{
+  "//": "The plugin UI iframe (ui.html): a browser context with the DOM and WebSocket, no figma.* access.",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2020", "DOM"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["ui.ts", "messages.ts", "../shared/protocol.ts", "../shared/errors.ts"]
+}

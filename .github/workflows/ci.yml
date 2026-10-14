@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        # 22 is the lowest version package.json "engines" accepts; 24 is current.
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    # macOS had no CI job and no live run before this one, so it reports without
+    # blocking until it has passed; then drop this line.
+    continue-on-error: ${{ matrix.os == 'macos-latest' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Builds dist/ first (test/global-setup.ts), then unit, integration and e2e tests.
+      - run: npm test
+      # The locked documentation surface: links/anchors/tool counts, claim registry, lock baseline.
+      - run: npm run check:docs
+      # AGENTS.md § Language: everything in the repository is English.
+      - run: node scripts/check-language.mjs

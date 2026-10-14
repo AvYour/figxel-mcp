@@ -1,0 +1,712 @@
+{
+  "spike": "live-craft",
+  "startedAt": "2026-10-13T07:24:42.324Z",
+  "finishedAt": "2026-10-13T07:25:01.241Z",
+  "session": {
+    "file": "Untitled",
+    "editorType": "figma",
+    "build": {
+      "plugin": "43fdb67e716f",
+      "dist": "43fdb67e716f",
+      "server": "43fdb67e716f",
+      "matches": true
+    }
+  },
+  "measured": {
+    "at": {
+      "x": 8280,
+      "y": 0
+    },
+    "serif": {
+      "family": "Cormorant Garamond",
+      "style": "SemiBold"
+    },
+    "figures": {
+      "serif": {
+        "font": {
+          "family": "Cormorant Garamond",
+          "style": "SemiBold",
+          "variationSettings": {
+            "wght": 600
+          }
+        },
+        "fontSize": 200,
+        "boxHeight": 242,
+        "inkHeight": 82.40000915527344,
+        "ratio": 0.4120000457763672
+      },
+      "inter": {
+        "font": {
+          "family": "Inter",
+          "style": "Regular",
+          "variationSettings": {
+            "slnt": 0,
+            "wght": 400
+          }
+        },
+        "fontSize": 200,
+        "boxHeight": 242,
+        "inkHeight": 149.4318389892578,
+        "ratio": 0.747159194946289
+      }
+    },
+    "lines": {
+      "strike": {
+        "width": 400,
+        "height": 0,
+        "box": {
+          "x": 21680,
+          "y": 320,
+          "width": 400,
+          "height": 0
+        },
+        "render": {
+          "x": 21680,
+          "y": 318,
+          "width": 400,
+          "height": 2
+        }
+      }
+    }
+  },
+  "records": [
+    {
+      "probe": "craft near_size → near_size",
+      "expected": "near_size on Ash glaze",
+      "pass": true,
+      "found": [
+        {
+          "name": "Ash glaze",
+          "severity": "info",
+          "detail": "is Inter 60 px, and \"Wood-fired\" (82:775) is Inter 56 px — 1.07×, too close to read as two levels. Make them one size, or step them at least 1.2× apart (figma_set_text_properties fontSize)."
+        }
+      ],
+      "others": [
+        "unbalanced_space:craft near_size"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "craft no_shared_edge → no_shared_edge",
+      "expected": "no_shared_edge (warning) on Body",
+      "pass": true,
+      "found": [
+        {
+          "name": "Body",
+          "severity": "warning",
+          "detail": "sits under \"Head\" (82:778) with its left edge 3 px off — close enough to look like a slip. Align them exactly (figma_move_nodes), or offset by a full spacing step on purpose."
+        }
+      ],
+      "others": [
+        "unbalanced_space:craft no_shared_edge"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": false
+    },
+    {
+      "probe": "craft tangent → tangent",
+      "expected": "tangent on Arch",
+      "pass": true,
+      "found": [
+        {
+          "name": "Arch",
+          "severity": "info",
+          "detail": "almost touches \"Mug\" (82:782): it sits 5 px from it, under 8 px. Shapes that nearly meet read as a mistake — overlap decisively or clear by a full spacing step (figma_move_nodes)."
+        }
+      ],
+      "others": [
+        "unbalanced_space:craft tangent"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "craft glyph_gaps → glyph_gaps",
+      "expected": "glyph_gaps (warning) on o",
+      "pass": true,
+      "found": [
+        {
+          "name": "o",
+          "severity": "warning",
+          "detail": "sits 18 px (0.18 em) after \"l\" (82:785) on one baseline — a word set one letter per layer reads broken once a gap opens past its spacing. Close it (figma_move_nodes), or set the word as one text."
+        }
+      ],
+      "others": [
+        "unbalanced_space:craft glyph_gaps"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": false
+    },
+    {
+      "probe": "craft oldstyle_figures → oldstyle_figures",
+      "expected": "oldstyle_figures (warning) on Old-style 10, not on Lining 10",
+      "pass": true,
+      "found": [
+        {
+          "name": "Old-style 10",
+          "severity": "warning",
+          "detail": "\"10\" renders 82.4 px tall at 200 px (0.41× the size): old-style figures, a 1 and a 0 as short as an o, so a number can misread. Set numbers people read in lining figures, or in another face."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "craft"
+      ],
+      "ok": false
+    },
+    {
+      "probe": "craft unbalanced_space → unbalanced_space",
+      "expected": "unbalanced_space on craft unbalanced_space",
+      "pass": true,
+      "found": [
+        {
+          "name": "craft unbalanced_space",
+          "severity": "info",
+          "detail": "its content's centre of mass sits 663.5 px above the frame's centre (35% of the height), leaving 1544.1 px empty below it. Centre the block on its field, then lift it slightly on purpose (figma_move_nodes)."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "craft"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "craft safe_area → safe_area",
+      "expected": "safe_area (warning) on Kicker, not on Inside",
+      "pass": true,
+      "found": [
+        {
+          "name": "Kicker",
+          "severity": "warning",
+          "detail": "runs 143 px top outside the safe area \"64,250,952,1330\" — the brief keeps that band free. Move it in (figma_move_nodes) or make it smaller."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "craft"
+      ],
+      "ok": false
+    },
+    {
+      "probe": "craft low_contrast_over_shape → low_contrast_over_shape",
+      "expected": "low_contrast_over_shape (warning) on Ash Vase",
+      "pass": true,
+      "found": [
+        {
+          "name": "Ash Vase",
+          "severity": "warning",
+          "detail": "contrast 1.63:1 (#444444 on #222222, the fill of \"Band\" (82:797) under it); text this size needs 3:1. Change either colour, or move the text off the shape."
+        }
+      ],
+      "others": [
+        "unbalanced_space:craft low_contrast_over_shape"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": false
+    },
+    {
+      "probe": "craft min_text → min_text",
+      "expected": "min_text (warning) on Small label",
+      "pass": true,
+      "found": [
+        {
+          "name": "Small label",
+          "severity": "warning",
+          "detail": "is 22 px, under this frame's floor of 28 px (minTextSize) — too small to read at the size it is shown. Enlarge it (figma_set_text_properties fontSize)."
+        }
+      ],
+      "others": [
+        "unbalanced_space:craft min_text"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": false
+    },
+    {
+      "probe": "craft stroke_crosses_text → stroke_crosses_text",
+      "expected": "stroke_crosses_text (warning) on URL, Ring label",
+      "pass": true,
+      "found": [
+        {
+          "name": "URL",
+          "severity": "warning",
+          "detail": "is crossed by the stroke of \"Strike\" (82:803) — a line through live type reads as a strike-through or a slip. Move one of them, or end the stroke before the text."
+        },
+        {
+          "name": "Ring label",
+          "severity": "warning",
+          "detail": "is crossed by the stroke of \"Ring\" (82:804) — a line through live type reads as a strike-through or a slip. Move one of them, or end the stroke before the text."
+        }
+      ],
+      "others": [
+        "unbalanced_space:craft stroke_crosses_text"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": false
+    },
+    {
+      "probe": "craft edge_slices_text → edge_slices_text",
+      "expected": "edge_slices_text on Sliced",
+      "pass": true,
+      "found": [
+        {
+          "name": "Sliced",
+          "severity": "info",
+          "detail": "the top edge of \"Band\" (82:807) runs through it at 50% of its height — type sitting on a boundary looks like a mistake. Move the text clear of the edge, or carry the shape past the text."
+        }
+      ],
+      "others": [
+        "tangent:Band",
+        "unbalanced_space:craft edge_slices_text"
+      ],
+      "ran": [
+        "craft"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "craft weak_graphic_contrast → weak_graphic_contrast",
+      "expected": "weak_graphic_contrast on Ripple",
+      "pass": true,
+      "found": [
+        {
+          "name": "Ripple",
+          "severity": "info",
+          "detail": "its 1 px stroke is 1.36:1 against the ground (#dddddd on #ffffff); a line people need to read the content needs 3:1. Darken or thicken it — or leave it, if nobody needs it."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "craft"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells default_typeface → default_typeface",
+      "expected": "default_typeface on tells default_typeface",
+      "pass": true,
+      "found": [
+        {
+          "name": "tells default_typeface",
+          "severity": "info",
+          "detail": "every text is Inter, in 2 styles (Bold, Regular) — the face a tool sets when nobody chooses. Choose one from the subject's world, or pair a display face with it; fine when the brand sets it."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells flat_hierarchy → flat_hierarchy",
+      "expected": "flat_hierarchy on Display",
+      "pass": true,
+      "found": [
+        {
+          "name": "Display",
+          "severity": "info",
+          "detail": "is the largest text at 24 px, 1.50× the 16 px body; a frame 1080 px or wider wants 2× or more for an entry point. Scale the display up from a ratio on the body size; fine for a dense tool UI."
+        }
+      ],
+      "others": [
+        "default_typeface:tells flat_hierarchy"
+      ],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells too_many_sizes → too_many_sizes",
+      "expected": "too_many_sizes on tells too_many_sizes",
+      "pass": true,
+      "found": [
+        {
+          "name": "tells too_many_sizes",
+          "severity": "info",
+          "detail": "uses 7 text sizes (12, 14, 16, 18, 20, 24, 32 px) — more levels than a reader tells apart. Keep a scale of a few sizes from one ratio."
+        }
+      ],
+      "others": [
+        "default_typeface:tells too_many_sizes"
+      ],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells centred_block → centred_block",
+      "expected": "centred_block on Lede",
+      "pass": true,
+      "found": [
+        {
+          "name": "Lede",
+          "severity": "info",
+          "detail": "is a centred block of about 5 lines — ragged on both sides, so each line starts somewhere new. Left-align it; centre only titles and one-line statements."
+        }
+      ],
+      "others": [
+        "mostly_centred:tells centred_block"
+      ],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells centred_block → mostly_centred",
+      "expected": "mostly_centred on tells centred_block",
+      "pass": true,
+      "found": [
+        {
+          "name": "tells centred_block",
+          "severity": "info",
+          "detail": "100% of the multi-line text is centred — the no-decision alignment. Give the layout a strong left edge."
+        }
+      ],
+      "others": [
+        "centred_block:Lede"
+      ],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells eyebrow_everywhere → eyebrow_everywhere",
+      "expected": "eyebrow_everywhere on tells eyebrow_everywhere",
+      "pass": true,
+      "found": [
+        {
+          "name": "tells eyebrow_everywhere",
+          "severity": "info",
+          "detail": "1 of 1 heading has a small tracked all-caps label right above — template chrome that appears whatever the content. Keep a label only where it says what the heading does not."
+        }
+      ],
+      "others": [
+        "default_typeface:tells eyebrow_everywhere"
+      ],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells measure → measure",
+      "expected": "measure on Para",
+      "pass": true,
+      "found": [
+        {
+          "name": "Para",
+          "severity": "info",
+          "detail": "sets about 169 characters per line over 4 lines; reading text is comfortable at 45–90. Narrow its column (figma_resize_nodes)."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells leading → leading",
+      "expected": "leading on Tight",
+      "pass": true,
+      "found": [
+        {
+          "name": "Tight",
+          "severity": "info",
+          "detail": "is body text at 1.00× line height; body reads best at 1.2–1.45×. Set lineHeight near 22 px (figma_set_text_properties)."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells card_trio → card_trio",
+      "expected": "card_trio on Card A",
+      "pass": true,
+      "found": [
+        {
+          "name": "Card A",
+          "severity": "info",
+          "detail": "\"Card A\", \"Card B\", \"Card C\" are 3 identical cards of icon + title + text — the feature-trio kit, whatever each item weighs. Rank them: give the one that matters most more room, or set them as a list."
+        }
+      ],
+      "others": [
+        "default_typeface:tells card_trio",
+        "flat_hierarchy:Card A title"
+      ],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells nested_cards → nested_cards",
+      "expected": "nested_cards on Inner",
+      "pass": true,
+      "found": [
+        {
+          "name": "Inner",
+          "severity": "info",
+          "detail": "is a filled, rounded card inside the card \"Outer\" (82:853) — boxes in boxes flatten the hierarchy. Group with space and type; keep a container only where grouping needs one."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells one_radius → one_radius",
+      "expected": "one_radius on tells one_radius",
+      "pass": true,
+      "found": [
+        {
+          "name": "tells one_radius",
+          "severity": "info",
+          "detail": "4 containers all have radius 12 — a kit setting, not a system. Set radius by role and size, or go sharp if the direction says so."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells nested_radius → nested_radius",
+      "expected": "nested_radius on Photo",
+      "pass": true,
+      "found": [
+        {
+          "name": "Photo",
+          "severity": "info",
+          "detail": "has radius 16 inside \"Card\" (radius 16), inset 12 px — an inner corner as round as the outer one looks pinched. Inner = outer − inset: about 4."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells same_shadow → same_shadow",
+      "expected": "same_shadow on tells same_shadow",
+      "pass": true,
+      "found": [
+        {
+          "name": "tells same_shadow",
+          "severity": "info",
+          "detail": "4 of 5 filled containers carry the same drop shadow (#000000 10% 0,4 blur 12) — elevation as decoration. Lift only what sits above something, in few levels."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells default_gradient → default_gradient",
+      "expected": "default_gradient on Wash",
+      "pass": true,
+      "found": [
+        {
+          "name": "Wash",
+          "severity": "info",
+          "detail": "is painted with a blue-violet gradient (hue 239–271°) over 36% of the frame — the wash generated UIs default to. Take colour from the subject, or keep the gradient with a reason (light, a material)."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells glow → glow",
+      "expected": "glow on Blob",
+      "pass": true,
+      "found": [
+        {
+          "name": "Blob",
+          "severity": "info",
+          "detail": "a 120 px layer blur glows behind \"Heading\" (82:874) — atmosphere standing in for an idea. Get depth from scale, contrast and real surfaces; keep it when light is the subject."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells emoji_icon → emoji_icon",
+      "expected": "emoji_icon on Rocket",
+      "pass": true,
+      "found": [
+        {
+          "name": "Rocket",
+          "severity": "info",
+          "detail": "starts with \"🚀\" — an emoji standing in for an icon. Draw icons in one weight (figma_import_svg), or drop them."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells chrome_string → chrome_string",
+      "expected": "chrome_string on Meta, CTA label",
+      "pass": true,
+      "found": [
+        {
+          "name": "Meta",
+          "severity": "info",
+          "detail": "reads \"Hand-thrown · Wood-fired · 32 cm\": an \"A · B · C\" meta string — template chrome that appears whatever the subject. Write it as content."
+        },
+        {
+          "name": "CTA label",
+          "severity": "info",
+          "detail": "reads \"Shop the collection →\": an arrow appended to a label — template chrome that appears whatever the subject. Write it as content."
+        }
+      ],
+      "others": [],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "tells divider_everywhere → divider_everywhere",
+      "expected": "divider_everywhere on tells divider_everywhere",
+      "pass": true,
+      "found": [
+        {
+          "name": "tells divider_everywhere",
+          "severity": "info",
+          "detail": "2 of 2 headings have a hairline rule right after them — separation by habit. Separate with space, colour or a change of layout; keep a rule where it divides something."
+        }
+      ],
+      "others": [
+        "default_typeface:tells divider_everywhere"
+      ],
+      "ran": [
+        "tells"
+      ],
+      "ok": true
+    },
+    {
+      "probe": "always placeholder_text → placeholder_text",
+      "expected": "placeholder_text on Byline",
+      "pass": true,
+      "found": [
+        {
+          "name": "Byline",
+          "severity": "info",
+          "detail": "names \"John Doe\" — a template's stand-in person, brand or domain, not content. Write a plausible specific one and list it as a placeholder to replace."
+        }
+      ],
+      "others": [],
+      "ran": [],
+      "ok": true
+    },
+    {
+      "probe": "control → nothing",
+      "expected": "no finding",
+      "pass": true,
+      "found": []
+    },
+    {
+      "probe": "measured: text ink height",
+      "pass": null,
+      "value": {
+        "serif": {
+          "font": {
+            "family": "Cormorant Garamond",
+            "style": "SemiBold",
+            "variationSettings": {
+              "wght": 600
+            }
+          },
+          "fontSize": 200,
+          "boxHeight": 242,
+          "inkHeight": 82.40000915527344,
+          "ratio": 0.4120000457763672
+        },
+        "inter": {
+          "font": {
+            "family": "Inter",
+            "style": "Regular",
+            "variationSettings": {
+              "slnt": 0,
+              "wght": 400
+            }
+          },
+          "fontSize": 200,
+          "boxHeight": 242,
+          "inkHeight": 149.4318389892578,
+          "ratio": 0.747159194946289
+        }
+      }
+    },
+    {
+      "probe": "measured: a LINE's boxes",
+      "pass": null,
+      "value": {
+        "strike": {
+          "width": 400,
+          "height": 0,
+          "box": {
+            "x": 21680,
+            "y": 320,
+            "width": 400,
+            "height": 0
+          },
+          "render": {
+            "x": 21680,
+            "y": 318,
+            "width": 400,
+            "height": 2
+          }
+        }
+      }
+    },
+    {
+      "probe": "render",
+      "pass": null,
+      "value": "spikes\\results\\live-craft.png"
+    },
+    {
+      "probe": "cleanup",
+      "pass": true,
+      "value": true
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+ "lens": "Technical QA (finishing editor): frame-by-frame defects in moku-ig-story-ad-v2-r1.mp4. I checked every frame for diffs, ran region diffs on each handoff, measured pixels on the cut, swap, ripple and anticipation frames, and read back the motion context of 42:15039 (96 layers).",
+ "verdict": "fix",
+ "score": 7.5,
+ "findings": [
+  {
+   "severity": "major",
+   "time": "13.367-13.567 s (f401-f407), faint until about f412",
+   "layer": "S5/Ripple (47:2313) over S4/URL 'moku.store' (47:2309)",
+   "problem": "The ripple's bottom edge sweeps across the URL in the end card. The URL glyphs sit at y 1278-1304. The ring's lower edge (measured at x 380 and x 700) is at y 1283 on f401, 1291 on f402, 1297 on f403, 1301 on f404 and 1307 on f407, so it strikes through 'moku.store' at about 90 % opacity with a 5-6 px stroke on f401-f403, then fades over it. This is the only place in the piece where a graphic crosses live text, and it happens on the CTA beat. The cause is the final HEIGHT 300 with TRANSLATION_XY -120,-90: its bottom is at y 1310.",
+   "fix": "Change only the @13.9 end keys of S5/Ripple: WIDTH 880→820, HEIGHT 300→200, CORNER_RADIUS 150→100, TRANSLATION_XY -120,-90 → -90,-40. Keep the @13.2667 start keys (692×130, -26,-5, r65), the OUT easing, STROKE_WEIGHT 8→1.5 and the OPACITY FADE as they are. The centre stays at (540,1160) and the ring ends at x 130-950, y 1060-1260. That leaves at least 17 px above the URL glyphs (more as S4's 1.035 drift pushes the URL down) and about 60 px below the offer-row descenders (y ≈ 1000)."
+  },
+  {
+   "severity": "minor",
+   "time": "3.433-3.567 s (f103-f107)",
+   "layer": "S1/By (47:2198)",
+   "problem": "Something is left behind after the exit. A 2 px grey speck (value 221 on 248 cream) stays at screen (394-395, 404) for 5 frames: it is the anti-aliased tip of the 'y' descender sitting on the By mask's top edge after the TRANSLATION_Y exit to -158. It lies inside the dot-hold frames, where E.2 still #12 requires 'one crisp dot … nothing else', and only disappears when S2 covers it on f108. A pixel scan of f104-f107 finds nothing else on cream.",
+   "fix": "Add a frame-exact OPACITY guard to S1/By: @0 1 L · @3.4083 1 L · @3.4283 0 L, which turns it off from f103, the first frame where no other part of 'By' is still inside the mask. An alternative is to end the exit at -176 instead of -158 (@3.4333 -176 cubic:0.7,0,0.84,0), so the descender clears the mask edge by a full row."
+  },
+  {
+   "severity": "minor",
+   "time": "3.400-3.467 s (f102-f104)",
+   "layer": "S1/By (47:2198), S1/hand. (47:2200)",
+   "problem": "The words pop off at the end of their exits. Both ride IN (cubic:0.7,0,0.84,0) to -158 with no blur. Each word rises only about 50 px over 5 frames (y = 0.31 at x = 0.83), then covers the remaining ~108 px in one sharp frame: 'By' is legible on f102 and gone on f103, 'hand.' is legible on f103 and gone on f104. Every other IN exit in the piece on the same curve (S1/Down letters, S5/Ten letters) carries a 10 px blur on its last frames, so these two read as cut off rather than whipped out.",
+   "fix": "Append exit blur keys to the existing effect:0:RADIUS tracks. S1/By: … @2.5667 0 SOFT · @3.3667 0 L · @3.4333 10 SOFT. S1/hand.: … @2.6333 0 SOFT · @3.4 0 L · @3.4667 10 SOFT. Translation keys stay unchanged. The guard from the previous finding still hides any residue after f103."
+  },
+  {
+   "severity": "minor",
+   "time": "3.567→3.600 s (f107→f108)",
+   "layer": "S2/Band window (47:2204), S2/Push (47:2205); squeeze on S1/Wheel (47:2188)",
+   "problem": "The dot handoff is not pixel-identical. S1/Wheel squeezes the dot 96 → 90 → 84 px (0.0955 on f107). On f108 S2 switches on with its Band window at Ø96, so the dot snaps back +12 px (14 %) for one frame before the burst on f109. In the dot region the diff is 15.4 on f108 against 7.5-8.2 on the squeeze frames. The spec's must-hold for f108 is 'identical to S1's last state'. Position is fine: centre (383,1180) on f105-f108.",
+   "fix": "Keep the squeeze and start S2 at the squeezed size. S2/Band window: WIDTH and HEIGHT @0 84 · @3.6 84 L (the @4.1 1080/1040 keys stay); CORNER_RADIUS @0 42 · @3.6 42 L (the 3.9 and 4.2 keys stay); TRANSLATION_XY @0 342,598 · @3.6 342,598 L. S2/Push: TRANSLATION_XY @0 -342,-598 · @3.6 -342,-598 L, so the photo stays screen-locked (same OUT curve, so the offsets cancel on every frame). The simpler alternative is to delete the S1/Wheel SCALE_XY key @3.5667 0.0955, so the dot holds at 96."
+  },
+  {
+   "severity": "minor",
+   "time": "5.567-5.833 s (f167-f175)",
+   "layer": "S2/Content (47:2203) anticipation; clip is S2/Band window (47:2204)",
+   "problem": "During the 0.965 anticipation pull-back, both ends of the full-bleed band become visible. Cream slivers appear down the band's left and right edges: 3/5 px on f167, 9/16 on f168, 13/24 on f171 and 9/17 on f174, gone from f176 (left/right, measured at y 1000). The vase photo is already overscanned (1400 wide at x -90 in S2/Push), so the 1080-wide Band window clip is what shows its edge.",
+   "fix": "Overscan the band window by 48 px. S2/Band window: @4.1 WIDTH 1128 (was 1080) and @4.1 TRANSLATION_XY -16,0 (was 0,0). S2/Push: @4.1 TRANSLATION_XY 16,0 (was 0,0), which compensates and keeps the photo and the Push pivot at (384,1180). Resize S2/Plate clay (47:2216) and S2/Plate terracotta (47:2217) to 1128 wide, keeping x 0. At 5.7 the band then maps to x -2 … 1086, so it stays past both frame edges, and the resting look after 4.2 is unchanged because the frame clips it."
+  },
+  {
+   "severity": "minor",
+   "time": "3.900-4.000 s (f117-f120)",
+   "layer": "S2/Vase/V (47:2223), S2/Vase/a (47:2225) over S2/Plate terracotta (47:2217)",
+   "problem": "Terracotta type crosses a terracotta plate. While the plate wipe is still clearing the top of the band, the terracotta italic 'V' (and then 'a') rises across it: the lower half of the 'V' disappears on f118, and a terracotta strip cuts through 'Va' on f119-f120. That is 3 frames where the headline's second word partly vanishes.",
+   "fix": "Delay the four Vase letters by 4 frames, so the first glyph enters after S2/Plate terracotta finishes at 4.0333. Add 0.1333 to every TRANSLATION_Y and effect:0:RADIUS key from the rise start onward: V 3.8333/3.8667/3.9667/4.2333 → 3.9667/4.0/4.1/4.3667. Shift a, s and e by the same amount (e lands at 4.5667). Their t=0 keys stay."
+  },
+  {
+   "severity": "minor",
+   "time": "14.400 s (f432)",
+   "layer": "Export / master file",
+   "problem": "The reviewed master moku-ig-story-ad-v2-r1.mp4 has 433 frames (14.433 s), one more than the 14.4 s timeline (432 frames). It renders an extra frame at t = 14.4 that is almost identical to f431 (diff 0.095). The 432-frame copy …-r1-432f.mp4 is correct: 432 frames and 14.400 s, frame-aligned with the master (PSNR mean 56.3 dB, minimum 52.0 dB at f86, a lossless-looking 2.0 Mbps re-encode).",
+   "fix": "No keyframe change. Deliver moku-ig-story-ad-v2-r1-432f.mp4. For future renders, trim at export: ffmpeg -i <render> -frames:v 432 -c:v libx264 -crf 14 -pix_fmt yuv420p <out>."
+  }
+ ]
+}

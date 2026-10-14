@@ -1,0 +1,109 @@
+name: Bug report
+description: Something in Figxel does not work as documented.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. A security problem does not belong here: report it privately as [SECURITY.md](https://github.com/AvYour/figxel-mcp/blob/main/SECURITY.md) describes.
+
+        Before you paste anything below, **remove personal data**: your Figma user name and id, file and page names, and paths that contain your user name.
+  - type: input
+    id: version
+    attributes:
+      label: Figxel version
+      description: "`bridge.version` in the figma_status output, or what `figxel-mcp --version` prints (for example `npx -y figxel-mcp@latest --version`)."
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating system version
+      placeholder: Windows 11 24H2, macOS 15.1
+  - type: input
+    id: figma-version
+    attributes:
+      label: Figma desktop version
+      placeholder: "126.9.13"
+    validations:
+      required: true
+  - type: input
+    id: ai-app
+    attributes:
+      label: AI app and version
+      description: The MCP client that starts Figxel.
+      placeholder: Claude Desktop, Claude Code 2.1, Cursor, VS Code, Codex, Gemini CLI, ...
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: The model the app was running, if you know it.
+  - type: dropdown
+    id: editor
+    attributes:
+      label: Kind of file open in Figma
+      options:
+        - Figma Design
+        - FigJam
+        - Figma Slides
+        - Not relevant
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The tool, the error code and message, or what looked wrong on the canvas.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you asked the agent, and the tool calls with their parameters if you have them.
+      placeholder: |
+        1. Ran the Figxel plugin in a new Design file
+        2. Asked the agent to ...
+        3. The agent called figma_create_from_spec with ...
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: figma_status output
+      description: |
+        Ask the agent to call figma_status and paste the result. **Remove first:** your Figma user name and id (`sessions[].user`), file and page names (`sessions[].file`, `sessions[].page`), and paths that contain your user name (such as `token.tokenPath`).
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server log
+      description: Lines starting with `[figxel]` from your app's MCP log (for Claude Desktop, `mcp-server-figxel.log`). Remove personal data the same way.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I removed my Figma user name and id, file and page names, and personal paths from everything above.
+          required: true
+        - label: I searched the existing issues and the README's Troubleshooting section.
+          required: true

@@ -1,0 +1,17 @@
+{
+  "name": "figma-mcp yield spike",
+  "id": "figma-mcp-yield-spike",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "*"
+    ],
+    "reasoning": "Sends spike results to a local collector at ws://127.0.0.1:38453 (spikes/collect.mjs). Loopback only; Figma rejects IP-literal entries, so \"*\" is required."
+  }
+}

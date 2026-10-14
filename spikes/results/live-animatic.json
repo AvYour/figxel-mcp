@@ -1,0 +1,1518 @@
+{
+  "spike": "live-animatic",
+  "startedAt": "2026-10-13T07:47:36.796Z",
+  "finishedAt": "2026-10-13T07:49:32.418Z",
+  "file": "Untitled",
+  "session": "s-1",
+  "build": {
+    "plugin": "43fdb67e716f",
+    "dist": "43fdb67e716f",
+    "server": "43fdb67e716f",
+    "matches": true
+  },
+  "exercised": [
+    "figma_create_animatic",
+    "figma_create_frame",
+    "figma_create_storyboard",
+    "figma_delete_nodes",
+    "figma_eval",
+    "figma_export_video",
+    "figma_get_motion_context",
+    "figma_set_fills",
+    "figma_set_keyframes"
+  ],
+  "records": [
+    {
+      "probe": "setup.spot",
+      "ok": true,
+      "value": {
+        "x": 5280,
+        "y": 0
+      }
+    },
+    {
+      "probe": "24.board",
+      "ok": true,
+      "value": [
+        [
+          0,
+          12
+        ],
+        [
+          12,
+          30
+        ],
+        [
+          30,
+          54
+        ],
+        [
+          54,
+          60
+        ],
+        [
+          60,
+          75
+        ],
+        [
+          75,
+          87
+        ]
+      ]
+    },
+    {
+      "probe": "24.animatic.result",
+      "ok": true,
+      "value": {
+        "animaticId": "82:1538",
+        "storyboardId": "82:1466",
+        "title": "figma-mcp animatic probe 24 fps (delete me)",
+        "aspect": "9:16",
+        "width": 216,
+        "height": 384,
+        "fps": 24,
+        "durationS": 3.625,
+        "timelineS": 3.5833,
+        "expectedFrames": 87,
+        "panels": [
+          {
+            "index": 1,
+            "layerId": "82:1539",
+            "artId": "82:1540",
+            "inFrame": 0,
+            "outFrame": 12,
+            "image": "styleframe"
+          },
+          {
+            "index": 2,
+            "layerId": "82:1541",
+            "artId": "82:1542",
+            "inFrame": 12,
+            "outFrame": 30,
+            "image": "styleframe"
+          },
+          {
+            "index": 3,
+            "layerId": "82:1543",
+            "artId": "82:1544",
+            "inFrame": 30,
+            "outFrame": 54,
+            "image": "source"
+          },
+          {
+            "index": 4,
+            "layerId": "82:1545",
+            "artId": "82:1546",
+            "inFrame": 54,
+            "outFrame": 60,
+            "image": "source"
+          },
+          {
+            "index": 5,
+            "layerId": "82:1547",
+            "artId": "82:1548",
+            "inFrame": 60,
+            "outFrame": 75,
+            "image": "thumb",
+            "blank": true
+          },
+          {
+            "index": 6,
+            "layerId": "82:1549",
+            "artId": "82:1550",
+            "inFrame": 75,
+            "outFrame": 87,
+            "image": "thumb",
+            "blank": true
+          }
+        ],
+        "blank": [
+          5,
+          6
+        ],
+        "verified": true,
+        "timeline": {
+          "id": "82:1538",
+          "duration": 3.5833
+        },
+        "render": "figma_export_video { nodeId: \"82:1538\", fps: 24, width: 108, jobId: \"animatic-figma-mcp-animatic-probe-24-fps-delete-m\" }",
+        "created": [
+          "82:1538"
+        ],
+        "nodeCount": 13,
+        "note": "Panels 2–6 rest at opacity 0; figma_export_node shows panel 1 only. The timeline runs 3.5833 s because the end frame renders too, so the render holds exactly 87 frames. Render it, then judge the pace with figma_review_video on the file.",
+        "idempotencyKey": "fmcp-anim-24-20261013074736"
+      },
+      "images": [],
+      "expected": "verified; 6 plates on the board's frames; pictures styleframe ×2, source ×2, thumb ×2 (blank 5, 6); 87 frames",
+      "pass": true,
+      "tool": "figma_create_animatic",
+      "claim": [
+        "C-240",
+        "C-250"
+      ]
+    },
+    {
+      "probe": "24.readBack.tracks",
+      "ok": true,
+      "value": {
+        "scope": {
+          "from": "node",
+          "ids": [
+            "82:1538"
+          ],
+          "recursive": true
+        },
+        "count": 6,
+        "nodes": [
+          {
+            "nodeId": "82:1539",
+            "name": "Plate 01 · 0:00.0",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1538",
+            "timeline": {
+              "id": "82:1538",
+              "durationS": 3.5833
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.4688,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.4938,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 1 → 0 over 0–0.4938 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1541",
+            "name": "Plate 02 · 0:00.5",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1538",
+            "timeline": {
+              "id": "82:1538",
+              "durationS": 3.5833
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.4688,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.4938,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.2188,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.2438,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–1.2438 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1543",
+            "name": "Plate 03 · 0:01.3",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1538",
+            "timeline": {
+              "id": "82:1538",
+              "durationS": 3.5833
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.2188,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.2438,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.2188,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.2438,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–2.2438 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1545",
+            "name": "Plate 04 · 0:02.3",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1538",
+            "timeline": {
+              "id": "82:1538",
+              "durationS": 3.5833
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.2188,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.2438,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.4688,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.4938,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–2.4938 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1547",
+            "name": "Plate 05 · 0:02.5",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1538",
+            "timeline": {
+              "id": "82:1538",
+              "durationS": 3.5833
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.4688,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.4938,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.0938,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.1188,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–3.1188 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1549",
+            "name": "Plate 06 · 0:03.1",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1538",
+            "timeline": {
+              "id": "82:1538",
+              "durationS": 3.5833
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.0938,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.1188,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 1 over 0–3.1188 s (LINEAR)"
+          }
+        ],
+        "timelineCohorts": [
+          {
+            "rootNodeId": "82:1538",
+            "timelineId": "82:1538",
+            "timelineIds": [
+              "82:1538"
+            ],
+            "durationMs": 3583,
+            "memberNodeIds": [
+              "82:1539",
+              "82:1541",
+              "82:1543",
+              "82:1545",
+              "82:1547",
+              "82:1549"
+            ]
+          }
+        ],
+        "limits": [
+          "loopMode is not exposed by the Plugin API",
+          "the pivot is the node centre"
+        ],
+        "truncated": false
+      },
+      "images": [],
+      "expected": "each plate's OPACITY reads back as keyed: 1 on [in, out), 0 on every other frame",
+      "pass": true,
+      "tool": "figma_get_motion_context",
+      "claim": "C-240"
+    },
+    {
+      "probe": "24.readBack.rest",
+      "ok": true,
+      "value": {
+        "parent": "PAGE",
+        "name": "Animatic · figma-mcp animatic probe 24 fps (delete me)",
+        "plates": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "timeline": {
+          "id": "82:1538",
+          "duration": 3.583333
+        }
+      },
+      "expected": "a top-level frame; plates rest at 1,0,0,0,0,0; the timeline runs (E − 1) / fps = 3.5833 s",
+      "pass": true,
+      "claim": [
+        "C-194",
+        "C-204"
+      ]
+    },
+    {
+      "probe": "24.render",
+      "ok": true,
+      "value": {
+        "path": "~\\.figma-mcp\\exports\\live-animatic-24.mp4",
+        "frameCount": 87,
+        "expectedFrames": 87,
+        "renderS": 10.2,
+        "polls": 0
+      }
+    },
+    {
+      "probe": "24.frameCount",
+      "ok": true,
+      "value": 87,
+      "expected": "exactly 87 frames: a timeline of (E − 1) / fps renders its end frame too",
+      "pass": true,
+      "claim": "C-194"
+    },
+    {
+      "probe": "24.exactFrames",
+      "ok": true,
+      "value": {
+        "frames": 87,
+        "wrong": [
+          {
+            "frame": 0,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 1,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 2,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 3,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 4,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 5,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 6,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 7,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 8,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 9,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 10,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 11,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 75,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 76,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 77,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 78,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 79,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 80,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 81,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 82,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          }
+        ],
+        "greys": [
+          32,
+          72,
+          112,
+          152,
+          192,
+          232
+        ]
+      },
+      "expected": "every frame shows the grey of the panel whose [startFrame, endFrame) holds it, and no other",
+      "pass": false,
+      "claim": [
+        "C-193",
+        "C-240"
+      ]
+    },
+    {
+      "probe": "24.boundaries",
+      "ok": true,
+      "value": [
+        {
+          "frame": 12,
+          "before": 16,
+          "after": 62
+        },
+        {
+          "frame": 30,
+          "before": 62,
+          "after": 110
+        },
+        {
+          "frame": 54,
+          "before": 110,
+          "after": 157
+        },
+        {
+          "frame": 60,
+          "before": 157,
+          "after": 202
+        },
+        {
+          "frame": 75,
+          "before": 202,
+          "after": 249
+        }
+      ]
+    },
+    {
+      "probe": "30.board",
+      "ok": true,
+      "value": [
+        [
+          0,
+          15
+        ],
+        [
+          15,
+          36
+        ],
+        [
+          36,
+          66
+        ],
+        [
+          66,
+          75
+        ],
+        [
+          75,
+          94
+        ],
+        [
+          94,
+          109
+        ]
+      ]
+    },
+    {
+      "probe": "30.animatic.result",
+      "ok": true,
+      "value": {
+        "animaticId": "82:1735",
+        "storyboardId": "82:1663",
+        "title": "figma-mcp animatic probe 30 fps (delete me)",
+        "aspect": "9:16",
+        "width": 216,
+        "height": 384,
+        "fps": 30,
+        "durationS": 3.6333,
+        "timelineS": 3.6,
+        "expectedFrames": 109,
+        "panels": [
+          {
+            "index": 1,
+            "layerId": "82:1736",
+            "artId": "82:1737",
+            "inFrame": 0,
+            "outFrame": 15,
+            "image": "styleframe"
+          },
+          {
+            "index": 2,
+            "layerId": "82:1738",
+            "artId": "82:1739",
+            "inFrame": 15,
+            "outFrame": 36,
+            "image": "styleframe"
+          },
+          {
+            "index": 3,
+            "layerId": "82:1740",
+            "artId": "82:1741",
+            "inFrame": 36,
+            "outFrame": 66,
+            "image": "source"
+          },
+          {
+            "index": 4,
+            "layerId": "82:1742",
+            "artId": "82:1743",
+            "inFrame": 66,
+            "outFrame": 75,
+            "image": "source"
+          },
+          {
+            "index": 5,
+            "layerId": "82:1744",
+            "artId": "82:1745",
+            "inFrame": 75,
+            "outFrame": 94,
+            "image": "thumb",
+            "blank": true
+          },
+          {
+            "index": 6,
+            "layerId": "82:1746",
+            "artId": "82:1747",
+            "inFrame": 94,
+            "outFrame": 109,
+            "image": "thumb",
+            "blank": true
+          }
+        ],
+        "blank": [
+          5,
+          6
+        ],
+        "verified": true,
+        "timeline": {
+          "id": "82:1735",
+          "duration": 3.6
+        },
+        "render": "figma_export_video { nodeId: \"82:1735\", fps: 30, width: 108, jobId: \"animatic-figma-mcp-animatic-probe-30-fps-delete-m\" }",
+        "created": [
+          "82:1735"
+        ],
+        "nodeCount": 13,
+        "note": "Panels 2–6 rest at opacity 0; figma_export_node shows panel 1 only. The timeline runs 3.6 s because the end frame renders too, so the render holds exactly 109 frames. Render it, then judge the pace with figma_review_video on the file.",
+        "idempotencyKey": "fmcp-anim-30-20261013074736"
+      },
+      "images": [],
+      "expected": "verified; 6 plates on the board's frames; pictures styleframe ×2, source ×2, thumb ×2 (blank 5, 6); 109 frames",
+      "pass": true,
+      "tool": "figma_create_animatic",
+      "claim": [
+        "C-240",
+        "C-250"
+      ]
+    },
+    {
+      "probe": "30.readBack.tracks",
+      "ok": true,
+      "value": {
+        "scope": {
+          "from": "node",
+          "ids": [
+            "82:1735"
+          ],
+          "recursive": true
+        },
+        "count": 6,
+        "nodes": [
+          {
+            "nodeId": "82:1736",
+            "name": "Plate 01 · 0:00.0",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1735",
+            "timeline": {
+              "id": "82:1735",
+              "durationS": 3.6
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.475,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.495,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 1 → 0 over 0–0.495 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1738",
+            "name": "Plate 02 · 0:00.5",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1735",
+            "timeline": {
+              "id": "82:1735",
+              "durationS": 3.6
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.475,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 0.495,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.175,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.195,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–1.195 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1740",
+            "name": "Plate 03 · 0:01.2",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1735",
+            "timeline": {
+              "id": "82:1735",
+              "durationS": 3.6
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.175,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 1.195,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.175,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.195,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–2.195 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1742",
+            "name": "Plate 04 · 0:02.2",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1735",
+            "timeline": {
+              "id": "82:1735",
+              "durationS": 3.6
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.175,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.195,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.475,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.495,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–2.495 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1744",
+            "name": "Plate 05 · 0:02.5",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1735",
+            "timeline": {
+              "id": "82:1735",
+              "durationS": 3.6
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.475,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 2.495,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.1083,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.1283,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 0 over 0–3.1283 s (LINEAR)"
+          },
+          {
+            "nodeId": "82:1746",
+            "name": "Plate 06 · 0:03.1",
+            "type": "FRAME",
+            "topLevelFrameId": "82:1735",
+            "timeline": {
+              "id": "82:1735",
+              "durationS": 3.6
+            },
+            "tracks": [
+              {
+                "field": "OPACITY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.1083,
+                    "value": "0",
+                    "easing": "LINEAR"
+                  },
+                  {
+                    "t": 3.1283,
+                    "value": "1",
+                    "easing": "LINEAR"
+                  }
+                ]
+              }
+            ],
+            "animationStyles": [],
+            "summary": "OPACITY 0 → 1 over 0–3.1283 s (LINEAR)"
+          }
+        ],
+        "timelineCohorts": [
+          {
+            "rootNodeId": "82:1735",
+            "timelineId": "82:1735",
+            "timelineIds": [
+              "82:1735"
+            ],
+            "durationMs": 3600,
+            "memberNodeIds": [
+              "82:1736",
+              "82:1738",
+              "82:1740",
+              "82:1742",
+              "82:1744",
+              "82:1746"
+            ]
+          }
+        ],
+        "limits": [
+          "loopMode is not exposed by the Plugin API",
+          "the pivot is the node centre"
+        ],
+        "truncated": false
+      },
+      "images": [],
+      "expected": "each plate's OPACITY reads back as keyed: 1 on [in, out), 0 on every other frame",
+      "pass": true,
+      "tool": "figma_get_motion_context",
+      "claim": "C-240"
+    },
+    {
+      "probe": "30.readBack.rest",
+      "ok": true,
+      "value": {
+        "parent": "PAGE",
+        "name": "Animatic · figma-mcp animatic probe 30 fps (delete me)",
+        "plates": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "timeline": {
+          "id": "82:1735",
+          "duration": 3.6
+        }
+      },
+      "expected": "a top-level frame; plates rest at 1,0,0,0,0,0; the timeline runs (E − 1) / fps = 3.6000 s",
+      "pass": true,
+      "claim": [
+        "C-194",
+        "C-204"
+      ]
+    },
+    {
+      "probe": "30.render",
+      "ok": true,
+      "value": {
+        "path": "~\\.figma-mcp\\exports\\live-animatic-30.mp4",
+        "frameCount": 109,
+        "expectedFrames": 109,
+        "renderS": 16.3,
+        "polls": 0
+      }
+    },
+    {
+      "probe": "30.frameCount",
+      "ok": true,
+      "value": 109,
+      "expected": "exactly 109 frames: a timeline of (E − 1) / fps renders its end frame too",
+      "pass": true,
+      "claim": "C-194"
+    },
+    {
+      "probe": "30.exactFrames",
+      "ok": true,
+      "value": {
+        "frames": 109,
+        "wrong": [
+          {
+            "frame": 0,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 1,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 2,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 3,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 4,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 5,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 6,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 7,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 8,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 9,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 10,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 11,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 12,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 13,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 14,
+            "want": 1,
+            "got": 0,
+            "grey": 16
+          },
+          {
+            "frame": 94,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 95,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 96,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 97,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          },
+          {
+            "frame": 98,
+            "want": 6,
+            "got": 0,
+            "grey": 249
+          }
+        ],
+        "greys": [
+          32,
+          72,
+          112,
+          152,
+          192,
+          232
+        ]
+      },
+      "expected": "every frame shows the grey of the panel whose [startFrame, endFrame) holds it, and no other",
+      "pass": false,
+      "claim": [
+        "C-193",
+        "C-240"
+      ]
+    },
+    {
+      "probe": "30.boundaries",
+      "ok": true,
+      "value": [
+        {
+          "frame": 15,
+          "before": 16,
+          "after": 62
+        },
+        {
+          "frame": 36,
+          "before": 62,
+          "after": 110
+        },
+        {
+          "frame": 66,
+          "before": 110,
+          "after": 157
+        },
+        {
+          "frame": 75,
+          "before": 157,
+          "after": 202
+        },
+        {
+          "frame": 94,
+          "before": 202,
+          "after": 249
+        }
+      ]
+    },
+    {
+      "probe": "dissolve.result",
+      "ok": true,
+      "value": {
+        "animaticId": "82:1841",
+        "storyboardId": "82:1793",
+        "title": "figma-mcp animatic dissolve probe (delete me)",
+        "aspect": "9:16",
+        "width": 216,
+        "height": 384,
+        "fps": 30,
+        "durationS": 3,
+        "timelineS": 2.9667,
+        "expectedFrames": 90,
+        "panels": [
+          {
+            "index": 1,
+            "layerId": "82:1842",
+            "artId": "82:1843",
+            "inFrame": 0,
+            "outFrame": 30,
+            "lastFrame": 33,
+            "image": "thumb",
+            "blank": true
+          },
+          {
+            "index": 2,
+            "layerId": "82:1844",
+            "artId": "82:1845",
+            "inFrame": 30,
+            "outFrame": 60,
+            "dissolveIn": 4,
+            "image": "thumb",
+            "blank": true
+          },
+          {
+            "index": 3,
+            "layerId": "82:1846",
+            "artId": "82:1847",
+            "inFrame": 60,
+            "outFrame": 90,
+            "image": "thumb",
+            "blank": true
+          }
+        ],
+        "dissolves": [
+          {
+            "from": 1,
+            "to": 2,
+            "frames": 4,
+            "asked": 4
+          }
+        ],
+        "blank": [
+          1,
+          2,
+          3
+        ],
+        "verified": true,
+        "timeline": {
+          "id": "82:1841",
+          "duration": 2.9667
+        },
+        "render": "figma_export_video { nodeId: \"82:1841\", fps: 30, width: 108, jobId: \"animatic-figma-mcp-animatic-dissolve-probe-delete\" }",
+        "created": [
+          "82:1841"
+        ],
+        "nodeCount": 7,
+        "note": "Panels 2–3 rest at opacity 0; figma_export_node shows panel 1 only. The timeline runs 2.9667 s because the end frame renders too, so the render holds exactly 90 frames. Render it, then judge the pace with figma_review_video on the file.",
+        "idempotencyKey": "fmcp-anim-dissolve-20261013074736"
+      },
+      "images": [],
+      "expected": "verified; one dissolve of 4 frames from panel 1 into panel 2; panel 1 on screen through frame 33",
+      "pass": true,
+      "tool": "figma_create_animatic"
+    },
+    {
+      "probe": "dissolve.render",
+      "ok": true,
+      "value": {
+        "path": "~\\.figma-mcp\\exports\\live-animatic-dissolve.mp4",
+        "frameCount": 91
+      }
+    },
+    {
+      "probe": "dissolve.exactAround",
+      "ok": true,
+      "value": [
+        {
+          "frame": 29,
+          "want": 40,
+          "got": 24
+        },
+        {
+          "frame": 34,
+          "want": 200,
+          "got": 213
+        },
+        {
+          "frame": 59,
+          "want": 200,
+          "got": 213
+        },
+        {
+          "frame": 60,
+          "want": 120,
+          "got": 119
+        }
+      ],
+      "expected": "frame 29 dark, 34 light, 59 light, 60 mid (each within the tolerance)",
+      "pass": false
+    },
+    {
+      "probe": "dissolve.mix",
+      "ok": true,
+      "value": [
+        {
+          "frame": 30,
+          "planned": 72,
+          "got": 62
+        },
+        {
+          "frame": 31,
+          "planned": 104,
+          "got": 100
+        },
+        {
+          "frame": 32,
+          "planned": 136,
+          "got": 137
+        },
+        {
+          "frame": 33,
+          "planned": 168,
+          "got": 175
+        }
+      ],
+      "expected": "for information: the planned sRGB mix (m + 1) / 5 against what Figma rendered",
+      "pass": null
+    },
+    {
+      "probe": "refusal.notAStoryboard",
+      "ok": false,
+      "error": "INVALID_PARAM: `82:1459` is not a storyboard figma_create_storyboard made: it carries no storyboard record.\nPass the board's storyboardId (the wrapper frame), or build one with figma_create_storyboard.",
+      "expected": "refused: not a storyboard",
+      "pass": true
+    },
+    {
+      "probe": "refusal.unchanged",
+      "ok": true,
+      "value": 0,
+      "expected": "no new top-level node",
+      "pass": true
+    },
+    {
+      "probe": "cleanup",
+      "ok": true,
+      "value": {
+        "deleted": 15,
+        "items": [
+          {
+            "id": "82:1841",
+            "ok": true
+          },
+          {
+            "id": "82:1793",
+            "ok": true
+          },
+          {
+            "id": "82:1735",
+            "ok": true
+          },
+          {
+            "id": "82:1734",
+            "ok": true
+          },
+          {
+            "id": "82:1733",
+            "ok": true
+          },
+          {
+            "id": "82:1663",
+            "ok": true
+          },
+          {
+            "id": "82:1662",
+            "ok": true
+          },
+          {
+            "id": "82:1661",
+            "ok": true
+          },
+          {
+            "id": "82:1538",
+            "ok": true
+          },
+          {
+            "id": "82:1537",
+            "ok": true
+          },
+          {
+            "id": "82:1536",
+            "ok": true
+          },
+          {
+            "id": "82:1466",
+            "ok": true
+          },
+          {
+            "id": "82:1465",
+            "ok": true
+          },
+          {
+            "id": "82:1464",
+            "ok": true
+          },
+          {
+            "id": "82:1459",
+            "ok": true
+          }
+        ],
+        "note": "This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z reverts the whole call.",
+        "idempotencyKey": "k-a6002e9e-05cc-473d-8040-1f307cf8a846"
+      },
+      "images": []
+    }
+  ]
+}

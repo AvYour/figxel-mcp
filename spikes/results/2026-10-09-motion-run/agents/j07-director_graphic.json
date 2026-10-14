@@ -1,0 +1,33 @@
+{
+ "path": "<tmp>/claude/<session>/scratchpad/motion/spec-graphic.md",
+ "title": "One circle of clay (Moku IG Story, graphic shape-led cut)",
+ "concept": "One terracotta circle of clay carries the whole edit. It starts as the potter's wheel in the hook, collapses into a 96 px dot exactly on the Ash Vase's belly, and bursts open as the image band (a circle-to-rectangle morph). It then becomes the collection's shape-shifting window (tall pill, wide pill, circle), blooms into the full-screen offer field, and finally shrinks into the CTA pill while the brand bug flies in to become the logo. The colour script goes cream, clay, terracotta, then kiln-black, cut on a 100 BPM grid (beat = 18 frames, 8th = 9 frames). Transitions are stacked brand-colour wipes offset by 2 frames, trim-path details mark the beats, and all type is kinetic: per-word and per-letter mask rises.",
+ "durationS": 14.4,
+ "bpm": 100,
+ "scenes": 5,
+ "animatedLayers": 82,
+ "techniques": [
+  "Speed graphs as cubic tokens: expo-out arrivals (0.16,1,0.3,1), ease-in exits (0.7,0,0.84,0), whip in-outs (0.83,0,0.17,1), plus iris, draw and quick-out curves",
+  "Cold open already in motion: concentric stacked iris (terracotta disc, clay, cream, photo) offset by 2 frames each, on SCALE_XY and a clip-frame WIDTH/HEIGHT",
+  "Match cut: the disc anticipates, collapses into a dot (ease-in) on the vase position, then bursts (expo-out) into the image band",
+  "Circle-to-rectangle morph: WIDTH/HEIGHT plus CORNER_RADIUS 9999 (clamped) snapped to 0, re-centred with TRANSLATION",
+  "Counter-translation of children inside animated clip frames (the AE parent-to-null equivalent) so photos stay registered",
+  "Stacked colour plate wipes inside windows (terracotta then clay or cream, 2 frames apart) with LAYER_BLUR faked motion blur",
+  "Full-screen stacked wipe push: terracotta, cream, then the clay scene layer, with the next scene riding in on the last layer",
+  "Beat cuts in a shape-shifting window (tall pill, wide pill, circle); images swap under full plate cover",
+  "Circular bloom match cut from the circular window into the offer field (cream lead, terracotta 2 frames behind)",
+  "Offer field collapses into the CTA pill (one rectangle: circle wipe, full field, pill)",
+  "Brand bug match-moves and scales 3.5x into the end-card logo; its fill colour flips as the bloom passes",
+  "Trim paths: ring spin, dimension line with ticks, title and shelf rules, price ring, hand-drawn offer loop, bowl arc drawn from the centre out, arrow",
+  "Per-word and per-letter mask rises, scale punches on mask frames on the beat, animated tracking via STACK_SPACING",
+  "Camera push and parallax: linear photo SCALE 4-5 %, type-plane TRANSLATION_Y drift, linear ring rotation",
+  "Hand-keyed overshoot on three accents only (bug dot, price disc, CTA pulse), plus an even-offset CTA ripple and arrow nudges",
+  "Designed breath 10.5-10.9 s before the end card, and a final pulse on beat 13.2",
+  "HOLD swaps only under cover or off-frame (robust to how HOLD is interpreted); OPACITY guards against stray pixels from zero-length trims"
+ ],
+ "riskiest": [
+  "Counter-translated mask morphs (Iris + Hands photo, Band window + Push, Kiln window + 3 photos) depend on a child holding its canvas position while the parent clip frame animates WIDTH/HEIGHT/TRANSLATION. Fallback: in S1, an ELLIPSE set as a mask (figma_set_mask) scaled from its centre; in S2, drop the Push counter-tracks (the plates hide the slide); in S3, drop the photo counter-tracks and place bowl at local (-75,-15) and plates at (-81,-385), since every morph happens under the plates.",
+  "The Terracotta field is one rectangle doing three jobs: a circle bloom with WIDTH/HEIGHT 2 to 2420 and radius 9999 clamping, a HOLD swap at 9.9 s to a full-screen rectangle, then the collapse into the CTA pill. Fallback: split it into a Terracotta circle ELLIPSE (SCALE_XY bloom, hidden at 9.9) and a field rectangle switched on at 9.867 that keeps only the keys from 9.9 onwards. The picture is identical.",
+  "The brand bug becomes the logo through a 3.5x SCALE on a frame with masked text and a LAYER_BLUR, which risks soft glyphs or a blur that grows with the scale. Fallback: a native 210 px Logo lockup at (232,534), 616x252, swapped in with HOLD at 11.533 s, drifting with its own 1 to 1.03 scale. Drop the bug's blur track if it misbehaves."
+ ]
+}

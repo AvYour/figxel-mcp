@@ -1,0 +1,84 @@
+{
+ "lens": "MOTION CRAFT (senior After Effects motion designer)",
+ "verdict": "fix",
+ "score": 6.5,
+ "findings": [
+  {
+   "severity": "blocker",
+   "time": "3.500-3.633 (f105-f109)",
+   "layer": "S1/Wheel (SCALE_XY, TRANSLATION_XY, effect:0:RADIUS) and the S1 exit keys in 3.1-3.6; S2/Band window",
+   "problem": "The concept's main match cut (the disc collapsing to a dot that bursts into the band) shows the dot for exactly one frame. Wheel diameter by frame: f106 719, f107 505, f108 96 (the dot), and S2 is already back at 450 on f109, then 688 on f110. The IN collapse arrives at full speed and the OUT burst leaves at full speed from the same frame, so size and direction (down-left, then up-right) both reverse in a single frame. On screen the dot never registers; it reads as the disc flickering or bouncing. The probe (f105-f111) confirms it.",
+   "fix": "Land the dot 3 frames early, hold it, and keep S2's burst on the 3.6 beat. S1/Wheel SCALE_XY: @0 0.001 · @1.5 0.001 L · @1.6 0.1023 OUT · @1.7 0.0777 SOFT · @1.8 0.0818 SOFT · @1.9 0.0655 QOUT · @2.4 1 (see the swell finding) · @3.0667 1.02 L · @3.1667 1.05 QOUT · @3.5 0.1091 IN (the slam into the dot on f105) · @3.5667 0.0955 SOFT (a 2-frame squeeze as anticipation; the cap is 100 keys, so 11 is fine). TRANSLATION_XY: @0 0,0 · @3.1667 0,0 L · @3.5 -156,110 IN. effect:0:RADIUS: …@3.3 0 L · @3.4667 8 SOFT · @3.5 0 L. Move every other S1 exit key between 3.13 and 3.53 0.1 s earlier: S1/Iris (all tracks: 3.3→3.2, 3.4667→3.3667; the opacity cut 3.4417/3.4617→3.3417/3.3617; blur 3.3667/3.4333→3.2667/3.3333), S1/Hands (3.3→3.2, 3.4667→3.3667), S1/Cream band (3.3333→3.2333, 3.5→3.4; cut 3.475/3.495→3.375/3.395), S1/Clay band (3.3667→3.2667, 3.5333→3.4333; cut 3.5083/3.5283→3.4083/3.4283), S1/Ring path (PATH_TRIM_START 3.1333/3.3667→3.0333/3.2667, which overlaps the draw end and turns it into a chase; OPACITY cut→3.2417/3.2617; ROTATION end→3.2667), S1/By (3.2/3.4→3.1/3.3), S1/hand. (3.2333/3.4333→3.1333/3.3333). Leave S2 unchanged; the burst still starts on f108. Result: a 4-frame dot (f105-f108) the eye can read before the burst."
+  },
+  {
+   "severity": "major",
+   "time": "5.967-6.233 (f179-f187)",
+   "layer": "S3/Content (SCALE_XY, TRANSLATION_XY, effect:0:RADIUS)",
+   "problem": "The push-through is not velocity-matched; only the blur value carries across the cut. S2's last visible zoom step is +24 %/frame (f178 1.50x → f179 1.91x, with f180 due at 2.6x). S3 enters at 0.82x and steps +7.6 %, then +4.8 %, +2.9 %, and stops by f186. The camera brakes about 3-4x on the cut, so it reads as a hard cut (mean diff 68 at f180) instead of flying through. S3 also scales about its own centre (540,960), while S2 dives into (384,1180), so the zoom origin jumps as well. The blur falls from 18 to 6.7 in one frame.",
+   "fix": "S3/Content SCALE_XY: @0 0.5,0.5 · @6 0.5,0.5 L · @6.7 1,1 OUT. Measured per frame, that gives +23.8 %, +15.2 %, +9.7 %, +6.4 %…, a geometric decay that continues S2's +24 %. TRANSLATION_XY (new): @0 -78,110 · @6 -78,110 L · @6.7 0,0 OUT, which puts the zoom origin on S2's dive point (384,1180), since T = (1−s)·(−156,220). effect:0:RADIUS: @0 18 · @6 18 L · @6.2667 0 OUT, so the blur decays over about 8 frames and follows the speed. S3/BG is not inside S3/Content, so the 0.5x start shows no border."
+  },
+  {
+   "severity": "major",
+   "time": "2.100-2.267 (f63-f68)",
+   "layer": "S1/Wheel (SCALE_XY easing into @2.4, effect:0:RADIUS); S1/Clay band, S1/Cream band",
+   "problem": "The disc swell is a one-frame pop. WHIP (0.83,0,0.17,1) over 15 frames puts 30 % of the growth into f64→f65: the diameter goes 331 → 606 → 739, a hard-edged jump of +275 px with no faked blur (the Wheel's blur track only runs from 3.4 s). After it, 6 frames creep from 0.84 to 1.0, so the visible hit is at 2.167 rather than on the 2.4 downbeat. The stacked burst that follows does the same on its first frames (clay goes 0 → Ø≈264 on f73) without blur.",
+   "fix": "S1/Wheel SCALE_XY: ease into @2.4 1 with cubic:0.7,0,0.3,1 instead of WHIP. Computed steps: Ø +80, +134, +177, +134, +80 over f63-f67, a peak 35 % lower and spread over 5 frames. S1/Wheel effect:0:RADIUS: add @2.0667 0 L · @2.1667 10 SOFT · @2.2667 0 SOFT before the collapse keys. S1/Clay band and S1/Cream band: add LAYER_BLUR 0 (figma_set_effects), then effect:0:RADIUS @0 0 · @2.4 0 L · @2.4667 8 L · @2.6 0 SOFT, and the same shifted to 2.4667/2.5333/2.6667 for Cream band."
+  },
+  {
+   "severity": "major",
+   "time": "13.233-13.833 (f397-f415)",
+   "layer": "S5/Ripple (WIDTH, HEIGHT, TRANSLATION_XY, CORNER_RADIUS, STROKE_WEIGHT, OPACITY)",
+   "problem": "The final CTA ripple barely reads. It starts at 640 wide while the pill is already punching to 1.072x (686 wide) on f397, so for its first 3 frames it is hidden under the pill. It clears the pill only from f400, when its expansion has already slowed to about 15 px/frame and its opacity is down to 0.86. It travels only 50 px per side, as a 3 → 1 px terracotta stroke on ink (1 px is about 0.35 px on a phone). The money beat of the ad gets a faint halo, not a ripple.",
+   "fix": "Launch it from the pill's peak and make it bigger and thicker. OPACITY: @0 0 · @13.2417 0 L · @13.2617 1 L · @13.9 0 FADE. WIDTH: @0 692 · @13.2667 692 L · @13.9 880 OUT. HEIGHT: @0 130 · @13.2667 130 L · @13.9 300 OUT. TRANSLATION_XY: @0 -26,-5 · @13.2667 -26,-5 L · @13.9 -120,-90 OUT. CORNER_RADIUS: @0 65 · @13.2667 65 L · @13.9 150 OUT. STROKE_WEIGHT: @0 8 · @13.2667 8 L · @13.9 1.5 OUT. The ring then separates from the pill on its first visible frame and travels 120 px at speed while it thins."
+  },
+  {
+   "severity": "major",
+   "time": "7.4-9.2 (f222-f276; worst f253-f276)",
+   "layer": "S3/Content (SCALE_XY), S3/Type and S3/List (TRANSLATION_Y)",
+   "problem": "The collection scene is effectively dead between its cuts. Per-frame mean diff (gray, 270 px) is 0.12 over f230-f242 and 0.08-0.09 over f253-f276. That is STILLER than the designed breath (0.22 at f312-f327), so the breath loses its contrast. The only drift is inside the arch (bowl at about 0.5 px/frame). S3/Content stops at 1.0 by f186, S3/Type moves 0.13 px/frame, and nothing gives parallax.",
+   "fix": "Give S3 a camera push and a counter-drift. S3/Content SCALE_XY (after the push-through fix): @0 0.5 · @6 0.5 L · @6.7 1 OUT · @9.6 1.045,1.045 L (the bloom circles still cover: r 1500×1.045; the bug flip stays on f283). S3/Type TRANSLATION_Y: change the last key to @9.6 -40 L. S3/List: new TRANSLATION_Y @0 0 · @6.9 0 L · @9.6 -24 L. Foreground type rises against the push at a different speed, and the collection's energy ends up above the breath's."
+  },
+  {
+   "severity": "minor",
+   "time": "12.37-13.20 and 13.60-14.40 (f371-f396, f408-f431)",
+   "layer": "S4 · End card (container, SCALE_XY)",
+   "problem": "The end card is frozen: diff 0.03-0.04 per frame for 26 + 25 frames. The S4/Logo drift (1→1.03 and spacing 12→20 over 2.87 s, about 0.18 px/frame) does not register, and everything else in S4 has no drift.",
+   "fix": "S4 · End card SCALE_XY: @0 1,1 · @11.5333 1,1 L · @14.4 1.035,1.035 L. It starts exactly at the logo-swap frame, so the bug-to-logo match at f346 is unchanged. The CTA in S5 stays put, which gives parallax between the card copy and the button. Keep S4/Logo's own drift."
+  },
+  {
+   "severity": "minor",
+   "time": "5.533-6.0 (f166-f179)",
+   "layer": "S2/Content (SCALE_XY, TRANSLATION_XY, effect:0:RADIUS), S2/Type (OPACITY)",
+   "problem": "The dive has no anticipation, only an ease-in: f166-f173 add 2.2 % in total, then 5 explosive frames. The blur leads the motion: it is 5 at f173 when the zoom is 1.2 %/frame, and only 18 at f179 when it is 27 %/frame. While enlarged (f175-f178), the 'Ash Vase' headline passes under the 'Moku' bug and collides with it.",
+   "fix": "S2/Content SCALE_XY: @0 1 · @5.5333 1 L · @5.7 0.965,0.965 QOUT · @6 2.6,2.6 IN. TRANSLATION_XY: @0 0,0 · @5.5333 0,0 L · @5.7 -5.5,7.7 QOUT · @6 249.6,-352 IN, which keeps the pivot at (384,1180) during the pull-back. effect:0:RADIUS: @0 0 · @5.7667 0 L · @5.9 8 IN · @5.9667 18 IN · @6 18 L. S2/Type OPACITY (new): @0 1 · @5.7667 1 L · @5.9 0 IN, so the type plane drops out inside the blurred frames and never sits under the bug."
+  },
+  {
+   "severity": "minor",
+   "time": "1.5, 4.8, 9.6 (f45, f144, f285-f290)",
+   "layer": "S1/Wheel, S1/Wheel OPACITY; S2/Price/$, /4, /8; S5 · Offer + CTA OPACITY, S5/Ten/*, S5/off, S5/your, S5/first, S5/order., S5/Loop path",
+   "problem": "Beat hits read 1-2 frames late because arrivals start on the beat behind masks or from scale 0. The dot is invisible on f45 and jumps to 90 % of its peak on f46, with no growth frame. '$' first shows on f145. The terracotta field is full from f285, but '1' first shows on f290, leaving a 5-frame empty plate across the 9.6 downbeat.",
+   "fix": "Pre-roll by a frame or two. S1/Wheel: OPACITY cut to 1.4417/1.4617, SCALE_XY @1.4667 0.001 L · @1.5667 0.1023 cubic:0.3,0.8,0.3,1 (2 visible growth frames, on the beat), with the settle keys unchanged. S2/Price/$, /4, /8: every key from 4.8 on moves 0.0333 s earlier. S5 · Offer + CTA OPACITY: cut at 9.5083/9.5283 (f286; the bloom covers every pixel from f286). Move every S5/Ten/*, off, your, first, order. rise key and the S5/Loop path draw keys 0.0667 s earlier, so '1' is mid-rise on f288."
+  },
+  {
+   "severity": "minor",
+   "time": "9.433-9.5 (f283-f285)",
+   "layer": "S3/Terracotta circle, S3/Cream circle (SCALE_XY)",
+   "problem": "The bloom's edge decelerates exactly as it leaves the frame. A cream sliver creeps across the top-right corner for 3 frames (scale steps 0.149, then 0.078; the corner needs r 1451 and is covered only at f286), so the wipe 'parks' in the corner instead of exiting at speed.",
+   "fix": "Overshoot the end size so the corner is crossed while the edge is still fast. S3/Terracotta circle SCALE_XY: @9.6 1.35,1.35 IRIS (was 1). S3/Cream circle: @9.5333 1.35,1.35 IRIS. Computed: the terracotta radius is 844 on f282 (still short of the bug at 901, so the bug stays ink on cream), 1428 on f283 (past the bug at 978, so the flip on f283 holds), and 1729 on f284 (corner covered, a frame earlier, at speed)."
+  },
+  {
+   "severity": "minor",
+   "time": "3.867-4.3 (f116-f129)",
+   "layer": "S2/Band window (CORNER_RADIUS)",
+   "problem": "The circle-to-rectangle morph is a separate late event, not part of the burst. Growth is 98 % done by f116, then the circle sits for 7 frames, and the radius snaps 520 → 443 → 237 → 105 → 39 in 4 frames (f124-f127), landing on 4.3, off the 4.2 beat.",
+   "fix": "CORNER_RADIUS: @0 48 · @3.6 48 L · @3.9 520 OUT · @4.2 0 cubic:0.4,0,0.2,1. The squaring then starts while the band is still growing and lands square on beat 4.2 (f126) over 9 frames."
+  },
+  {
+   "severity": "minor",
+   "time": "0.2-0.6 (f7-f18)",
+   "layer": "S1/Slow (STACK_SPACING)",
+   "problem": "The 'Slow' tracking collapse is front-loaded: −9, −10, −11, −9 px per gap on f1-f4, and it is visually done by f7. That leaves a 10-frame lull (diff 0.07-0.2) before 'down.' at f19. The word that asks to slow down snaps shut in 0.2 s and nothing overlaps the 'down.' entry.",
+   "fix": "STACK_SPACING: @0 54 · @0.9 -8 cubic:0.2,0.45,0.25,1 · @1.9 -6 L · @2.3 -40 IN. The deceleration becomes visibly long, with first steps of about 4-5 px/frame, and is still settling at about 1 px/frame under the first 'down.' letters, which removes the dead gap."
+  }
+ ]
+}

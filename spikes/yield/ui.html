@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 12px; font: 12px/1.45 Inter, system-ui, sans-serif;
+         color: var(--figma-color-text, #222); background: var(--figma-color-bg, #fff); }
+  h1 { font-size: 13px; margin: 0 0 6px; }
+  p { margin: 4px 0; color: var(--figma-color-text-secondary, #555); }
+  button { padding: 5px 9px; margin: 2px 2px 2px 0; font: inherit; border-radius: 4px; border: 0;
+           background: var(--figma-color-bg-brand, #0d99ff); color: #fff; cursor: pointer; }
+  button.secondary { background: var(--figma-color-bg-secondary, #eee); color: inherit; }
+  button#cancel { background: var(--figma-color-bg-danger, #f24822); }
+  fieldset { border: 1px solid var(--figma-color-border, #ddd); border-radius: 4px; margin: 8px 0; padding: 6px 8px; }
+  label { display: block; }
+  textarea { width: 100%; height: 190px; box-sizing: border-box; font: 11px ui-monospace, monospace; }
+  #state { font-weight: 600; margin: 6px 0; }
+</style>
+</head>
+<body>
+  <h1>figma-mcp — yield spike (spec §14.1)</h1>
+  <p>Run on a <b>scratch file</b>. 1) Setup creates 5,000 rectangles in one frame. 2) Run each option.
+     While a run is going, try: click <b>Cancel</b>, draw a rectangle, open a menu. Tick what worked, then run the next option.</p>
+  <div>
+    <button id="setup">1 · Setup 5,000 nodes</button>
+    <label style="display:inline">passes <input id="passes" type="number" value="5" min="1" max="100" style="width:48px"></label>
+  </div>
+  <div>
+    <button data-opt="A">Run A (setTimeout)</button>
+    <button data-opt="B">Run B (iframe)</button>
+    <button data-opt="C">Run C (microtask)</button>
+    <button data-opt="none" class="secondary">Run baseline (no yield)</button>
+    <button id="cancel">Cancel</button>
+  </div>
+  <fieldset>
+    <legend>During the last run, did these work? (human check)</legend>
+    <label><input type="checkbox" id="h-cancel"> Cancel button responded</label>
+    <label><input type="checkbox" id="h-draw"> Drawing on the canvas worked</label>
+    <label><input type="checkbox" id="h-menu"> A menu opened</label>
+    <button id="record" class="secondary">Record human check for the last run</button>
+  </fieldset>
+  <div id="state">Waiting for the sandbox…</div>
+  <p id="collector">Collector: connecting to ws://127.0.0.1:38453…</p>
+  <textarea id="out" readonly></textarea>
+  <button id="copy" class="secondary">Select all (then Ctrl+C)</button>
+  <button id="cleanup" class="secondary">Delete the spike frame</button>
+<script>
+  var report = { env: null, runs: [] };
+  var probeTimer = null;
+  var out = document.getElementById("out");
+  var stateEl = document.getElementById("state");
+  function send(m) { parent.postMessage({ pluginMessage: m }, "*"); }
+  // Results flow to spikes/collect.mjs so nobody has to copy them; the text box stays as a fallback.
+  var collector = null;
+  var collectorEl = document.getElementById("collector");
+  function connectCollector() {
+    try {
+      collector = new WebSocket("ws://127.0.0.1:38453");
+    } catch (e) {
+      collectorEl.textContent = "Collector: blocked (" + e.message + ") — copy the JSON by hand";
+      return;
+    }
+    collector.onopen = function () { collectorEl.textContent = "Collector: connected — results are sent automatically"; push(); };
+    collector.onclose = function () {
+      collectorEl.textContent = "Collector: not connected (retrying) — is `node spikes/collect.mjs` running?";
+      setTimeout(connectCollector, 2000);
+    };
+    collector.onerror = function () {};
+  }
+  function push() {
+    if (collector && collector.readyState === 1) collector.send(JSON.stringify({ spike: "yield", report: report }));
+  }
+  connectCollector();
+  function render() { out.value = JSON.stringify(report, null, 2); push(); }
+  function startProbes() {
+    stopProbes();
+    probeTimer = setInterval(function () { send({ kind: "probe", sentAt: Date.now() }); }, 20);
+  }
+  function stopProbes() { if (probeTimer) clearInterval(probeTimer); probeTimer = null; }
+
+  window.onmessage = function (ev) {
+    var m = ev.data && ev.data.pluginMessage;
+    if (!m) return;
+    if (m.kind === "tick-request") return send({ kind: "tick", id: m.id });
+    if (m.kind === "env") { report.env = m.env; stateEl.textContent = "Ready. typeof setTimeout = " + m.env.typeofSetTimeout; render(); }
+    if (m.kind === "setup-progress") stateEl.textContent = "Setup " + m.done + " / " + m.total;
+    if (m.kind === "setup-done") stateEl.textContent = "Setup done: " + m.nodes + " nodes" + (m.reused ? " (reused)" : "");
+    if (m.kind === "running") { stateEl.textContent = "Running option " + m.option + "… interact with Figma now"; startProbes(); }
+    if (m.kind === "result") {
+      stopProbes();
+      m.result.at = new Date().toISOString();
+      report.runs.push(m.result);
+      stateEl.textContent = "Done: option " + m.result.option + (m.result.available === false ? " (unavailable)" : " in " + m.result.totalMs + " ms");
+      render();
+    }
+    if (m.kind === "error") { stopProbes(); stateEl.textContent = "Error: " + m.message; }
+    if (m.kind === "cleaned") stateEl.textContent = "Spike frame deleted.";
+  };
+
+  document.getElementById("setup").onclick = function () { stateEl.textContent = "Setting up…"; send({ kind: "setup" }); };
+  Array.prototype.forEach.call(document.querySelectorAll("button[data-opt]"), function (b) {
+    b.onclick = function () {
+      var passes = Math.max(1, Number(document.getElementById("passes").value) || 1);
+      ["h-cancel", "h-draw", "h-menu"].forEach(function (id) { document.getElementById(id).checked = false; });
+      send({ kind: "run", option: b.getAttribute("data-opt"), passes: passes });
+    };
+  });
+  document.getElementById("cancel").onclick = function () { send({ kind: "cancel" }); };
+  document.getElementById("record").onclick = function () {
+    var last = report.runs[report.runs.length - 1];
+    if (!last) return;
+    last.human = {
+      cancelResponded: document.getElementById("h-cancel").checked,
+      drawingWorked: document.getElementById("h-draw").checked,
+      menuOpened: document.getElementById("h-menu").checked,
+    };
+    render();
+  };
+  document.getElementById("copy").onclick = function () { out.focus(); out.select(); };
+  document.getElementById("cleanup").onclick = function () { send({ kind: "cleanup" }); };
+</script>
+</body>
+</html>

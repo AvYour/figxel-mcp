@@ -1,0 +1,89 @@
+{
+ "path": "<tmp>/claude/<session>/scratchpad/motion/inventory.md",
+ "images": [
+  {
+   "hash": "4f0c889acfa136ce743258ce6a8d1f07697fcf8c",
+   "sourceId": "30:14025",
+   "subject": "Row of ~10 mixed vases on a pale wood shelf (crackled terracotta globe, ribbed ochre, white honeycomb gourd, white trumpet, speckled blush vase). 1400x933 landscape. Also used by the current ad (30:14997). Busy range shot: use as a horizontal band or lateral truck; too soft for full bleed (needs 2.06x).",
+   "colours": "#775d48 #9d826a #b09882 #c9bdb0 #d8d4ce #e7e6e2 (avg #c9bdb3)"
+  },
+  {
+   "hash": "b1e64fd760af16e36d356c2d758139152a48ad21",
+   "sourceId": "30:14027",
+   "subject": "Single matte white bud vase on light-grey seamless, empty right half. 1400x1120 landscape. Also 30:14420. Minimal single-object beat and circle match-cut source; series with 558f930a and f5a98f81.",
+   "colours": "#675b55 #8a7f79 #a29c98 #afadab #bbbcba #c6c7c6 (cool grey)"
+  },
+  {
+   "hash": "90925717d81d67ef050ae9f0aa1e478d8fdb50da",
+   "sourceId": "30:14076",
+   "subject": "Three lumpy hand-built unglazed sand vessels on a concrete plinth, warm grey wall. 1400x2100 portrait, native full bleed (0.91x). Best opener or 'made by hand' hero.",
+   "colours": "#4d4131 #776d56 #86826e #928f7b #a5a18f #bdbdb3"
+  },
+  {
+   "hash": "346ee9f0268857764d35721ef7386bf48798c2bc",
+   "sourceId": "30:14082",
+   "subject": "Folded linen cloths (white, peach, blush, flax, grey) on a wooden stool. 1400x1750 portrait. Texture or lifestyle cutaway, not a product.",
+   "colours": "#272016 #634935 #9a836e #b6af9f #c6c2b3 #d7d4c6"
+  },
+  {
+   "hash": "bff7b99e2e0e870d51f5b1f37793ba8c19986313",
+   "sourceId": "30:14088",
+   "subject": "Warm evening interior: glowing arc-lamp shade, sheer curtains, black bottle vases and a white squat vase on a table. 1400x1856 portrait (1.03x). Mood beat and natural bridge into the dark #1f1c18 end card.",
+   "colours": "#2e1b06 #543314 #6f4721 #926f4b #bdaf9b #ecd5a6"
+  },
+  {
+   "hash": "a20ae21ad3dd4b6d070a5856fce3ea2d9468b1e9",
+   "sourceId": "30:14094",
+   "subject": "White brick wall, wood shelves on leather straps, two-tone pots, succulents, trailing plants. 1400x933 landscape. Low priority, busy and plant-led; background plate at most.",
+   "colours": "#482c19 #6e543d #887764 #a19888 #bfbfb9 #d6d8d7"
+  },
+  {
+   "hash": "e6467ef2ad5881493d047570d9e0f6c627961b18",
+   "sourceId": "30:14225",
+   "subject": "Clay-covered hands throwing a pot on a wheel, near-black background. 1400x933 landscape. The strongest story or process image; use in a square or circle mask (wheel circle to circle-mask match cut), white type on dark.",
+   "colours": "#020201 #1c1813 #47372c #746356 #b2a8a1 #dbdad2"
+  },
+  {
+   "hash": "6abdd71a966b0784e95e1bceae1e0884e20ea960",
+   "sourceId": "30:14426",
+   "subject": "White peony in a small white bud vase, shallow depth of field, high-key. 1400x1750 portrait (1.10x). Also 30:14418 and ad 30:15000 (the current 'Ash Vase'). Soft and airy but low contrast; the flower hides the vase.",
+   "colours": "#aaa493 #bfbbb5 #c8c5c1 #d1cdca #dcd8d4 #e6e1dd (near-monochrome)"
+  },
+  {
+   "hash": "558f930a54e5deb899ab2e260ff2c8f95258dea6",
+   "sourceId": "30:14422",
+   "subject": "Three identical white bud vases stacked as a pyramid, grey seamless. 1400x1120 landscape. Rhythm series (1 vase, then 3 in a row, then the stack) for hard cuts on the beat.",
+   "colours": "#5f544e #817773 #908784 #a39c9a #b3b1af #c6c7c5"
+  },
+  {
+   "hash": "f5a98f81c56c83ee9828181d89093f4600991910",
+   "sourceId": "30:14424",
+   "subject": "Three identical white bud vases in an evenly spaced row, grey seamless. 1400x933 landscape. Repetition beat as a horizontal band.",
+   "colours": "#635853 #7d726e #8d8480 #9f9897 #adaaa9 #c1c1c1"
+  },
+  {
+   "hash": "acbb852e49aa6f3b180839fb60dd57da0906ada4",
+   "sourceId": "30:15013",
+   "subject": "Four hand-pinched blush-cream mugs stacked vertically, handles alternating, cream plaster. 1400x2100 portrait, native full bleed. Kiln Mug hero; suits a vertical pan. Warmest match to #fbf9f6.",
+   "colours": "#8b6f5b #aa9586 #b9a79a #cdc2b9 #e3e0db #f1efec"
+  },
+  {
+   "hash": "5992035e9601a007ca539c5fc8f2d4959a847124",
+   "sourceId": "30:15018",
+   "subject": "Serving bowl, raw terracotta exterior and white interior painted with green grass strokes. 1400x787 landscape 16:9. The only object in the accent colour: ideal match cut into a terracotta wipe. Wide band only (2.44x for full bleed).",
+   "colours": "#764126 #8f5c3d #ab9277 #bbb49f #d6d4c8 #e6e8e1"
+  },
+  {
+   "hash": "b6f9ac8e82fed12a9a25b9f6e1b154011293e70a",
+   "sourceId": "30:15023",
+   "subject": "Stack of white bowls and embossed plates on white terrazzo with terracotta flecks. 1400x1810 portrait (1.06x). Dinner Plates hero; cool cast, pair with cream.",
+   "colours": "#8a8c8b #b3b6b8 #c2c6c8 #d5d8da #e4e8ed #eaeff4 (cool white)"
+  }
+ ],
+ "spot": {
+  "x": 6280,
+  "y": 3200,
+  "why": "Frame spans x 6280-7360, y 3200-5120. Left: 200 px to the current ad (right edge x 6080). Above: 2120 px to 'v2 / 01 Cover - B' (30:13736, bottom y 1080). Right and below: nothing on the page. Checked against every top-level node on Page 1. x 6480 gives 400 px if more air is wanted, and x 7560 is clear for a second variant. Note that 30:14651 and 30:14989 are one node (the ad and its Motion timeline id): same subtree, and the REST document id is 30:14989. Do not treat it as a duplicate, and never touch either id."
+ },
+ "critique": "The current ad (30:14651, alias 30:14989; 12.0 s, 30 fps, 4 stacked scene frames, 23 animated layers) is a well-mannered Figma prototype that fades things in. Its vocabulary is right: line-mask reveals, expo-out arrivals, ease-in exits, one trim path. But one move ('opacity + 20-160 px slide') is used on 15 of 23 layers, and the scenes are cut as a slideshow: build in, freeze, push off to nothing, build in again. The layouts are lifted from the e-commerce page (hero card, 3-up product grid, pill price).\n\nMeasured failures:\n(1) Frames 0-4 are a completely blank cream frame (luma 230 flat), and nothing moves until 0.30 s. The hook (headline readable, photo opaque) lands only at about 1.0-1.2 s.\n(2) Brand 'Moku' first appears at 9.1 s, so the brand-by-2 s rule fails.\n(3) freezedetect finds about 3.2 s of frozen frames: 0-0.30, 4.90-5.37, 7.43-8.50, 10.37-11.07 and 11.40-12.03. Camera pushes ease to a stop, and there is no parallax.\n(4) Transitions are not designed. At 2.95-3.2 s the Scene 2 photo slides over Scene 1 while it is still visible. At 5.80-5.93 s a push-off leaves an empty frame. At 8.8-8.95 s a flat dark panel wipes an already-emptied frame. There is no match cut, no stacked colour wipe and no blur on moves peaking at about 280, 300 and 410 px per frame.\n(5) Type moves as whole lines (the Scene 3 title is one block). There is no per-word stagger, scale punch or tracking.\n(6) Staggers are 0.15 s (4.5 frames), and many keys sit on half frames (0.05 s grid). Hits follow no BPM.\n(7) The price pill is visible as a 0.2-scale blob for about 4 frames. Two spring pops are used, the second with a rotation wobble on centred text.\n(8) Scene 3 puts about 33 words on screen for 0.9-1.8 s, so read times fail. The details line gets 1.15 s against the 1.5 s needed.\n(9) The logo fades in on black (grey for about 6 frames). The CTA is fully visible only 1.63 s, so the CTA rule (2 s or more) fails. The 6 % CTA pulse is barely perceptible.\n\nPassing: palette, two typefaces, safe zones and margins, a clean last frame.\nKeep: line masks (extend them per word), the curve set, the terracotta-on-cream look with the dark end card, the underline trim path.\n\nImage notes: 13 unique hashes. All originals are 1400 px wide, so only #3 (90925717), #11 (acbb852e), #13 (b6f9ac8e), #5 (bff7b99e) and #8 (6abdd71a) fill 9:16 at about native resolution. #7 (hands, e6467ef2) and #12 (terracotta bowl, 5992035e) are the story and match-cut images; use them in masks or bands.\n\nTrap: figma_export_node renders 1x1 px for any layer under an opacity-0 resting ancestor. The ad tiles were therefore cropped from the video at 8.0 s.\n\nFiles:\n- contact sheets and 30 fps close-ups: scratchpad/motion/sheets/\n- small renders: scratchpad/motion/inv/\n- original image bytes: ~/.figma-mcp/exports/moku-inv/raw/\n\nNothing was created or changed on the canvas."
+}

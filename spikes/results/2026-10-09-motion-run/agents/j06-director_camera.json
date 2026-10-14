@@ -1,0 +1,32 @@
+{
+ "path": "<tmp>/claude/<session>/scratchpad/motion/spec-camera.md",
+ "title": "Moku Kiln: One Camera",
+ "concept": "One camera that never stops moving finds Moku like a luxury product film. It racks focus onto hand-built vessels, whip-tilts down to the potter's wheel, and turns the wheel's circle into the Ash Vase's frame with a match cut and a circle-to-window morph. It then pushes straight through the vase into a gallery-shelf truck of mug, plates and bowl. Finally the bowl's terracotta blooms into a stacked colour iris that opens on a dark kiln-arch end card with a pulsing CTA. Every cut is carried by the camera and lands on a 100 BPM grid. The brand is on frame 0 and the CTA stays readable for 2.3 s.",
+ "durationS": 14.4,
+ "bpm": 100,
+ "scenes": 5,
+ "animatedLayers": 72,
+ "techniques": [
+  "Rack focus: LAYER_BLUR radius 12 to 0 on the S1 plate, landing on beat 2",
+  "Continuous camera push and pedestal drift: linear SCALE_XY and TRANSLATION on every photo, never eased to a stop",
+  "Foreground/background parallax: type drifts at twice the plate's rate; S4 photos lag their windows by 120 px",
+  "Vertical whip-tilt with anticipation: S1 and S2 move as one strip on cubic:0.83,0,0.17,1, with faked motion blur 0-20-0 px and a SCALE_Y smear",
+  "Follow-through: the S2 circle and ring lag, overshoot and settle after the whip",
+  "Match cut on a circle: the wheel becomes the Ash Vase in an identical 790 px circle at one hard-cut frame",
+  "Circle-to-rectangle mask morph: WIDTH/HEIGHT/CORNER_RADIUS plus translation on the mask, counter-translation on the content",
+  "Push-through zoom cut: SCALE plus an anchor-compensating TRANSLATION_Y into the vase belly, velocity-matched by an expo-out arrival",
+  "Lateral truck with snap-stops: strip whips peak on beats 16 and 17, with blur spikes, window SCALE_X smear and in-window parallax",
+  "Stacked colour iris as a colour match cut: terracotta, then ink, ellipses scaled 0.05 to 21 with a 4-frame offset, starting on the bowl's clay wall",
+  "Kinetic type: per-letter and per-word mask rises with 2-frame staggers and 3-frame rise blur; a slow curve on the word 'slow.'",
+  "Animated tracking: STACK_SPACING on the Moku letter row locking shut on beat 4",
+  "Trim-path draw-ons: swash under 'slow.', wheel ring, technical dimension line with ticks, price rule",
+  "Overshoot-and-settle accents: the $48 punch, then the final CTA pulse with an expanding ripple ring and arrow nudges",
+  "Rising arch mask reveal (kiln door) with 85 percent counter-move parallax",
+  "Boiling film grain: a NOISE effect on a #808080 rect with OVERLAY blend, jittered every 3 frames with HOLD keys"
+ ],
+ "riskiest": [
+  "Size-animated masks with counter-translated content (S3 circle-to-window morph, S5 arch, CTA pill, text wipes). Children may follow constraints or drift. Set LEFT/TOP constraints first and copy the curves exactly. Fallback: a static window under a thick-stroked ellipse iris scaled 1 to 3.2; for the arch, rise only its photo inside an ink-filled arch; for the CTA, a pop-only pill.",
+  "Full-scene container transforms with LAYER_BLUR on 1080x1920 frames (T1 whip, T3 push-through, S4 arrival). Risks are render cost, blur clipping, a seam during the SCALE_Y smear, or a refused radius 0. Fallback: move the blur tracks onto the inner image layers, drop SCALE_Y, and use a rest radius of 0.1.",
+  "Kinetic type rows: letter and word masks inside auto-layout rows with measured widths, italic padding, negative itemSpacing and STACK_SPACING tracking. Fallback: plain frames with absolute x from measured widths, and per-letter TRANSLATION_X tracks in place of the tracking animation."
+ ]
+}

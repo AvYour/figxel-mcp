@@ -1,0 +1,67 @@
+role proxy, file "Untitled", build {"plugin":"1cf1e6aca699","dist":"1cf1e6aca699","server":"1cf1e6aca699","matches":true}
+
+-- sandbox
+  ok    create sandbox frame                                 {"id":"30:13434","name":"figma-mcp WP-F probe (delete me)","type":"FRAME","width":480,"height":720,"idempotencyKey":"k-bf80c94d-c8d4-4833-a847-df7eaa5…
+
+-- motion: set_keyframes
+  ok    set_keyframes OPACITY 0 → 1 (EASE_OUT)               {"nodeId":"30:13435","name":"Card","tracks":[{"field":"OPACITY","keyframes":[{"t":0,"value":"0","easing":"cubic:0.5,0,0.5,1"},{"t":0.4,"value":"1","ea…
+  ok    OPACITY track is in the document                     keyframes [{"t":0,"v":0,"e":"CUSTOM_CUBIC_BEZIER"},{"t":0.4,"v":1,"e":"EASE_OUT"}], timeline {"id":"30:13434","duration":2}
+  ok    set_keyframes colour, vector, cubic and spring       tracks fill:0, TRANSLATION_XY, timeline {"id":"30:13434","duration":2}, extended false
+  ok    fill and XY tracks are in the document               {"fill":2,"xy":{"type":"VECTOR","value":{"x":0,"y":24}},"easing":{"type":"CUSTOM_CUBIC_BEZIER","easingFunctionCubicBezier":{"x1":0.4000000059604645,"y1":0,"x2":0.20000000298023224,"y2":1}}}
+  ok    set_keyframes tracks: [] + timelineDuration 1.2      timeline {"id":"30:13434","duration":1.2}
+  ok    timeline is 1.2 s in the document                    {"id":"30:13434","duration":1.2}
+  ok    EASE_IN_OUT is refused with the right name           INVALID_PARAM: `tracks[0].keyframes[0].easing` "EASE_IN_OUT" is not Figma's name for it.
+  ok    the top-level frame itself is refused                INVALID_PARAM: "figma-mcp WP-F probe (delete me)" is a top-level frame; Figma animates the layers inside a top-level frame, not the frame itself.
+
+-- motion: get_motion_context
+  ok    get_motion_context round-trips the tracks            tracks OPACITY, TRANSLATION_XY, fill:0; styleTracks 0; cohort 30:13434 1200 ms
+  ok    get_motion_context maxNodes 1 pages                  count 0, truncated
+  ok    get_motion_context continues from the cursor         the card comes back on page 2
+
+-- export_video [C-116]
+  ok    an fps the format does not offer is refused before rendering INVALID_PARAM: `fps` 15 is not offered for MP4.
+  ok    GIF: fps 12, loopCount 0, width 240, saveTo, frames [0, 0.4] file 14262 B (GIF8), 2 frames that differ, exported 30:13434
+  ok    MP4: fps 24, quality LOW, scale 0.5                  file 3614 B (ftyp), 1.2 s
+  ok    WEBM: height 160, quality MEDIUM                     file 17696 B (EBML)
+
+-- motion: remove_keyframes
+  ok    remove OPACITY; SCALE_X reported as not animated     remaining TRANSLATION_XY, fill:0
+  ok    OPACITY is gone from the document                    left: TRANSLATION_XY, fills
+  ok    remove every remaining track                         removed TRANSLATION_XY, fill:0
+
+-- set_scroll_behavior [C-117] [C-118]
+  ok    a nav still in the auto-layout flow is refused, with the fix INVALID_PARAM: `fixedNodeIds[0]` "Nav" is in the auto-layout flow; fixing it would reorder the layout.
+  ok    move the nav out of the flow (positioning absolute)  {"moved":1,"items":[{"id":"30:13452","ok":true,"positioning":"absolute"}],"idempotencyKey":"k-06da9c83-61b2-4079-811a-7d06bc4f08f0"}
+  ok    overflow vertical + fixed nav                        order ends with the nav, fixedChildren 1
+  ok    [C-118] the document: VERTICAL, 1 fixed, nav is the last child {"overflow":"VERTICAL","fixed":1,"last":"30:13452","first":"30:13453"} — with KEEP=1 the layers panel must show Nav under "Fixed"
+  ok    get_reactions { scope: page } sees the scroller      {"nodeId":"30:13451","name":"Scroller","overflow":"vertical","fixedChildren":1}
+  ok    fixedNodeIds [] fixes nothing again                  {"nodeId":"30:13451","overflow":"vertical","fixedChildren":0,"order":["30:13453","30:13454","30:13455","30:13456","30:13457","30:13458","30:13452"]}
+
+-- set_prototype_flows [C-117]
+  ok    a nested frame cannot start a flow                   INVALID_PARAM: `flows[0].nodeId` "Scroller" is not a top-level frame on page "Page 1".
+  ok    one flow on the sandbox + background                 {"pageId":"0:1","flows":[{"nodeId":"30:13434","name":"WP-F probe flow"}],"background":"#111111"}
+  ok    the page's flows and prototype background            {"flows":[{"nodeId":"30:13434","name":"WP-F probe flow"}],"bg":{"type":"SOLID","visible":true,"opacity":1,"blendMode":"NORMAL","color":{"r":0.06666667…
+
+-- guides and prompts
+  ok    figma_get_guide library                              3862 chars
+  ok    figma_get_guide prototype                            4093 chars
+  ok    figma_get_guide motion                               2664 chars
+  ok    figma_get_guide rules                                2006 chars
+  ok    figma_get_guide code-to-design                       2511 chars
+  ok    figma_get_guide design-to-code                       3635 chars
+  ok    prompt code_to_design                                7377 chars
+  ok    prompt create_design_system_rules                    1960 chars
+  ok    prompt design_to_code                                3592 chars
+
+-- look
+  saved spikes\results\live-wpF-motion.png
+  ok    check_layout on the sandbox                          ok=false errors=0
+
+-- restore and cleanup
+  ok    original flows and background restored               0 flow(s)
+  ok    delete sandbox                                       {"deleted":1,"items":[{"id":"30:13434","ok":true}],"note":"This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z …
+
+====================================================================================================
+  steps: 40   failed: 0   skipped: 0
+  WP-F tools registered but not exercised: []
+====================================================================================================

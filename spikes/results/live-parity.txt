@@ -1,0 +1,38 @@
+role proxy, file "Untitled", build {"plugin":"1cf1e6aca699","dist":"1cf1e6aca699","server":"1cf1e6aca699","matches":true}
+
+-- sandbox
+  ok    create sandbox frame                         {"id":"30:12662","name":"figma-mcp parity probe (delete me)","type":"FRAME","width":80,"height":80,"idempotencyKey":"k-49e8dd3f-0312-4fa0-957f-233d2fd…
+
+-- shapes
+  ok    create_line with arrow cap                   {"id":"30:12664","name":"Arrow","type":"LINE","length":160,"angle":0}
+  ok    line is 160 wide and 0 tall                  w=160 h=0 cap=ARROW_LINES
+  ok    create_polygon (hexagon)                     {"id":"30:12665","name":"Hexagon","type":"POLYGON","pointCount":6,"width":80,"height":80}
+  ok    create_star                                  {"id":"30:12666","name":"Star","type":"STAR","pointCount":5,"width":80,"height":80}
+  ok    create_vector from SVG path (relative cmds)  {"id":"30:12668","name":"Wave","type":"VECTOR","width":160,"height":60}
+
+-- boolean, flatten, mask
+  ok    boolean_nodes subtract                       {"id":"30:12673","name":"Crescent","type":"BOOLEAN_OPERATION","operation":"SUBTRACT","childCount":2,"paintFrom":"30:12671","items":[]}
+  ok    flatten_nodes                                {"id":"30:12678","name":"Flat","type":"VECTOR","items":[]}
+  ok    set_mask on the lowest shape                 {"id":"30:12680","name":"Mask shape","isMask":true,"maskType":"ALPHA","note":"A mask clips the layers ABOVE it in the same parent; put it below what i…
+
+-- layout grids
+  ok    set_layout_grids 12 columns                  {"updated":1,"items":[{"id":"30:12662","ok":true}]}
+
+-- variants and component properties
+  ok    combine_as_variants                          {"id":"30:12689","name":"Button","type":"COMPONENT_SET","variants":[{"id":"30:12685","name":"Variant=Primary"},{"id":"30:12688","name":"Variant=Second…
+  ok    add_component_property TEXT bound to label   {"componentId":"30:12689","key":"Label#30:19","type":"TEXT","defaultValue":"Button","bound":["30:12684","30:12687"]}
+  ok    create_instance of the set                   {"id":"30:12690","name":"Button","type":"INSTANCE","componentId":"30:12685","componentSetId":"30:12689","idempotencyKey":"k-c8cf0946-1a9c-418d-8659-e7…
+  ok    set_instance_properties variant + label      {"id":"30:12690","name":"Button","properties":{"Variant":"Secondary","Label#30:19":"Continue"}}
+  ok    instance shows Secondary + Continue          variant=Secondary text=Continue
+
+-- look
+  saved spikes\results\live-parity.png
+  ok    check_layout on the sandbox                  ok=true errors=0
+
+-- cleanup
+  ok    delete sandbox                               {"deleted":1,"items":[{"id":"30:12662","ok":true}],"note":"This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z …
+
+================================================================================================
+  steps: 17   failed: 0
+  parity tools registered but not exercised: ["figma_edit_component_property","figma_delete_component_property"]
+================================================================================================

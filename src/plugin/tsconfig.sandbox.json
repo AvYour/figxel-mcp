@@ -1,0 +1,17 @@
+{
+  "//": "The plugin sandbox (code.js): figma.* plus plain JavaScript — no DOM, no Node. NOTE: @figma/plugin-typings declares global setTimeout/setInterval/fetch, so the compiler does NOT stop sandbox code from using them, although their availability is a contradiction (C-012) until spike 1 runs. The rule is enforced by test/sandbox-globals.test.ts (source) and test/plugin-bundle.test.ts (the built bundle runs in a realm with no timers).",
+  "compilerOptions": {
+    "target": "ES2017",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2020"],
+    "types": ["@figma/plugin-typings"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["code.ts", "chunk.ts", "idempotency.ts", "events.ts", "read.ts", "write.ts", "guard.ts", "pages.ts", "dialect.ts", "gradient.ts", "modes.ts", "motion-fields.ts", "sandbox-globals.d.ts", "ops/**/*.ts", "messages.ts", "safe.ts", "sublayer.ts", "spec-types.ts", "../shared/protocol.ts", "../shared/errors.ts", "../shared/editors.ts", "../shared/figjam.ts", "../shared/grid-layout.ts"]
+}

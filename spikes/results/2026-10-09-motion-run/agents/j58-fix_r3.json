@@ -1,0 +1,58 @@
+{
+ "applied": [
+  "MAJOR, push-through white flash (motion craft). Applied the critic's full fix. The tonal bridge alone could not pass: measured on r2, f179's spread around #b2aea4 is 27.5. (a) S3/BG (42:15253): replaced the paint with raw #f4efe7 to unbind color/bg/subtle, then keyed fill:0 @0 #b2aea4 · @6.0 #b2aea4 L · @6.3 #f4efe7 SOFT. (b) S3 · Collection (42:15042) OPACITY @0 0 · @5.9667 0 L · @6.0667 1 SOFT · @9.6083 1 L · @9.6283 0 L. (c) S2/Content (42:15363): appended SCALE_XY @6.0667 4.5,4.5 L, TRANSLATION_XY @6.0667 546,-770 L and effect:0:RADIUS @6.0667 18 L; the earlier keys are unchanged. (d) S2 · Ash Vase (42:15041): the off pair moved to @6.075 1 L · @6.095 0 L.",
+  "Push-through, addition needed by the band move. Lowering the band (next item) left a 243 px cream strip above the band on f179. Covering it on f180 alone added 9.3 to that frame's diff. So S2/BG (42:15361) is now raw #fbf9f6, unbound from its variable, keyed @0 #fbf9f6 · @5.8 #fbf9f6 L · @5.9667 #c1bcb7 SOFT. During the dive the page dims to the seamless tone, mirroring the S3 bridge on the other side of the cut. Result on the final render: luma f176-f188 = 197, 185, 176, 169, 165, 171, 179, 187, 196, 207, 217, 224, 228. The largest luma step across f178-f183 is 9.2; r2 had 58.8 on f180. Mean frame diff on f180 is 16.8 (r2: 60.9) and changed pixels are 54.6 % (r2: 97.7 %). That is still above the critic's < 15 target, but f177-f181 now run 14.1-16.3, so f180 is the push's velocity peak, not an outlier. The remaining diff is S2's own 1.735× → 2.6× zoom on that frame.",
+  "MAJOR, headline cut by the band edge (design and QA). The two critics conflicted, so I merged them: the design critic's 40 px band drop plus QA's rule that the clip line sits on the band edge. S2/Band window (42:15364): rest y 600 → 640; HEIGHT key @4.0333 980 → 940; TRANSLATION_XY @0/@3.6 336,532 → 336,492. S2/Push (42:15365): rest y -60 → -100; TRANSLATION_XY @0/@3.6 -336,-532 → -336,-492. S2/Plate clay (42:15376) and S2/Plate terracotta (42:15377): height 980 → 940, rest y -980 → -940, first two TRANSLATION_Y keys 980 → 940.",
+  "Headline masks. All five (S2/Ash-mask 42:15427 and the Vase V/a/s/e masks 42:15429/31/33/35): height 276 → 240, so each mask bottom is y 640, the new band top. Each also got a HEIGHT track @0 240 · @4.1 240 L · @5.6 252 L · @6 255 L that follows S2/Type's drift exactly, so the clip line stays on the band edge through the exit as well. The text TRANSLATION_Y keys and S2/Type's drift are untouched.",
+  "Headline result, measured at full resolution on f110-f178. There are 0 glyph pixels below the band top on f114-f174; f175 has 3 anti-aliased pixels on the edge row itself. Letters rise out of the band edge and sink into it on the exit (Ash ink bottom 658 against band top 659 on f171). Once landed, the type stays clear on cream: Ash is 30 px clear on f130, and every letter is at least 30 px clear from f134 (Vase lands on f137). The gap grows to 39 px by f165-f166; the critic estimated 42.",
+  "Checked that nothing else moved. The f103-f108 dot handoff is pixel-identical to r2: a Ø 79 dot with bbox 344,1140-423,1219 on f108. The timeline is still 14.4 s. Each track I changed was read with figma_get_motion_context first, and every other track was left as it was.",
+  "Rendered through the repo's stdio MCP client with figma_export_video, MP4, 30 fps, quality HIGH (31.7 s). The output is ~/.figma-mcp/exports/moku-ig-story-ad-v2-r3.mp4, 433 frames. As in earlier rounds it was trimmed to ~/.figma-mcp/exports/moku-ig-story-ad-v2-r3-432f.mp4 (432 frames, 14.400 s), and every sheet and still was cut from that trimmed file. I looked at the contact sheet, the push-through, headline-rise and headline-exit close-ups, and the S2 stills myself."
+ ],
+ "skipped": [
+  "Design critic's one-write fallback (S2/Headline rest y 400 → 372): not needed, because the band could be moved.",
+  "QA critic's literal values (S2/Headline y 400 → 384, mask HEIGHT 216, clip line at y 600): replaced by the merged fix. With the band top at 640 and the masks at 240, the clip line is the band edge, and the type keeps about 30-39 px of cream below it instead of the 3 px tangent the design critic flagged.",
+  "S2/Band window node was not resized to 940. Its HEIGHT track starts at t=0 and sets the height for the whole timeline. Writing width or height on a node with WIDTH/HEIGHT tracks risks overwriting a keyframe, and the two ids already report different sizes (42:15364 shows 1080×1040, 52:776 shows 1160×980).",
+  "S2/Band window CORNER_RADIUS key @3.9 = 520 left as is, though H/2 is now 470. No finding asked for it, and the band is near full width and height by then, so the radius was already being clamped in r2.",
+  "No further retiming of S2/Content's dive curve to get f180's diff from 16.8 under 15. That would slow the velocity-matched zoom (×1.32 into the cut) that the motion critic called matched."
+ ],
+ "mp4": "~/.figma-mcp/exports/moku-ig-story-ad-v2-r3.mp4",
+ "durationS": 14.4,
+ "images": [
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/sheet-full.png",
+   "what": "Contact sheet of the whole 14.4 s at 6 fps (9×10 tiles, 180 px wide)."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/closeup-5.767-push-through-cut.png",
+   "what": "Push-through, f174-f197 at 30 fps. The page dims into the photo tone, the vase blows past at 2.6× on f180 with the arch ghosting in, the arch sits on the #b2aea4 field on f182, and the field warms to linen by f188. No white blink."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/closeup-5.800-cut-f174-f181.png",
+   "what": "The 8 frames f174-f181 across the cut, in a single row."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/closeup-3.733-headline-rise-band-edge.png",
+   "what": "Headline entry, f112-f135: 'Ash Vase' rises out of the band's top edge (clip line = y 640) and lands clear on cream; it never sits over the terracotta dome or the photo."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/closeup-5.467-dive-anticipation-headline-exit.png",
+   "what": "Headline exit and dive anticipation, f165-f188: the letters sink exactly into the band edge, then the page dims and the dive runs into the cut."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/check-4.333.png",
+   "what": "Full-size f130: the band squared at y 640-1580, 'Ash Vase' clear on cream about 30 px above the band edge."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/check-5.500.png",
+   "what": "Full-size f165, the full product frame: headline 39 px clear of the band, $48, specs, dimension line and 32 cm."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/check-6.033.png",
+   "what": "Full-size f181: the arch over a fading vase ghost on the clay-grey bridge field."
+  },
+  {
+   "path": "<tmp>/claude/<session>/scratchpad/motion/r3/",
+   "what": "Folder with all 30 section-E stills (check-<t>.png) and 24 close-ups, one per transition and beat hit (closeup-<t0>-<name>.png). A 25th close-up, closeup-5.800-cut-f174-f181.png, is the 8-frame strip listed above."
+  }
+ ]
+}

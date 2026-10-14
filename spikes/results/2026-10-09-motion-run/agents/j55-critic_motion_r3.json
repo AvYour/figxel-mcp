@@ -1,0 +1,42 @@
+{
+ "lens": "MOTION CRAFT (senior After Effects motion designer)",
+ "verdict": "fix",
+ "score": 8,
+ "findings": [
+  {
+   "severity": "major",
+   "time": "5.967 -> 6.000 (f179 -> f180)",
+   "layer": "S3/BG (42:15253), S3 · Collection (42:15042), S2/Content (42:15363), S2 · Ash Vase (42:15041)",
+   "problem": "The push-through cut flashes white. This is the ad's only camera move. The whole-frame mean goes from RGB 178,174,164 on f179 to 242,236,226 on f180, a luma jump of about 59/255, with 97.7 % of pixels changing by more than 8 levels (frame diff 60.9). That is the largest single-frame discontinuity in the spot; every other big jump is a spatially continuous wipe. The zoom rate is matched (S2 x1.32 per frame into the cut, S3 x1.27 out), but the picture mass and tone are not. The IN curve back-loads S2's 2.6x key onto f180, which is never shown, so the last S2 frame is the vase at 1.735x, blurred, filling about 85 % of the frame. The next frame is a 260 px arch on flat linen. It reads as a hard cut plus a blink, not as a push through the vase belly.",
+   "fix": "Primary fix, a tonal bridge with no cross-fade: on S3/BG (42:15253), unbind color/bg/subtle (keyframed fills stay raw hex, spec 3.6) and key fill:0 @0 #b2aea4 · @6.0 #b2aea4 L · @6.3 #f4efe7 SOFT. #b2aea4 is f179's blurred average, so S3 rises out of the vase tone into linen while S3/Content's blur decays from 18 to 0 over the same 9 frames. If the size jump still reads after that, add a 3-frame overlap under the blur. (1) S3 · Collection OPACITY: @0 0 · @5.9667 0 L · @6.0667 1 SOFT · @9.6083 1 L · @9.6283 0 L, replacing the 5.975/5.995 cut pair. (2) S2/Content: append SCALE_XY @6.0667 4.5,4.5 L, TRANSLATION_XY @6.0667 546,-770 L (T = (1-s)(-156,220), so the pivot stays on (384,1180)) and effect:0:RADIUS @6.0667 18 L. (3) Move the S2 · Ash Vase OPACITY off-pair to @6.075 1 L · @6.095 0 L. Acceptance: mean frame diff on f180 below 15, and no frame luma step above 20 across f178-f183."
+  },
+  {
+   "severity": "minor",
+   "time": "1.133-1.533 (peak f36) and 10.133-10.533 (peak f306)",
+   "layer": "S1/Down (42:15097), S5/Ten (42:15274)",
+   "problem": "Both on-beat type punches are isosceles spikes, not punches with weight. Measured 'down.' width: 732, 754, 776 (f36), 755, 743, 737. The scale arrives at 1.06 on SWELL with zero velocity and leaves on OUT at maximum velocity, so the peak is a cusp and the move reads as a twitch. '10%' has the same keys.",
+   "fix": "Use a fast attack and a slower release that hangs at the peak. S1/Down SCALE_XY: @0 1,1 · @1.1333 1,1 L · @1.2 1.06,1.06 cubic:0.2,0.7,0.4,1 · @1.5333 1,1 SOFT. S5/Ten SCALE_XY: @0 1,1 · @10.1333 1,1 L · @10.2 1.06,1.06 cubic:0.2,0.7,0.4,1 · @10.5333 1,1 SOFT. Expected: about 1.048 on the attack frame, 1.06 on the beat, then 1.059, 1.055, 1.047 and a 10-frame settle."
+  },
+  {
+   "severity": "minor",
+   "time": "7.2 (f216) and 8.1 (f243)",
+   "layer": "S3/Plates (42:15266), S3/Bowl (42:15267)",
+   "problem": "The stop-motion cuts are bare photo swaps. The cut frame changes (diff 5.0 and 8.7), then the image holds on sub-pixel drift for 0.57 s (f225-242) and 0.67 s (f251-270), at diff 0.28-0.32. The cut lands on the beat but carries no impact, so the list device reads as a slideshow. The pointer's 3-frame lag is the only follow-through.",
+   "fix": "Give each incoming photo a camera settle on the cut, then the existing push. S3/Plates SCALE_XY: @0 1.06,1.06 · @7.2 1.06,1.06 L · @7.4667 1,1 OUT · @8.1 1.025,1.025 L. S3/Bowl SCALE_XY: @0 1.06,1.06 · @8.1 1.06,1.06 L · @8.3667 1,1 OUT · @9.6 1.04,1.04 L. The bowl is at about 1.027 at the 9.2 bloom seed, so the seed point moves by only a few px."
+  },
+  {
+   "severity": "minor",
+   "time": "11.43-11.97 (f344-f359)",
+   "layer": "S5/CTA label (42:15312)",
+   "problem": "The label rises into the pill 30 px left of centre (x 103 in the 640 mask, laid out for an arrow that is not there yet). It sits visibly off-centre with an empty right side until the arrow head finishes drawing at 11.9667.",
+   "fix": "Have the label make room for the arrow. Add TRANSLATION_X to S5/CTA label: @0 30 · @11.6333 30 L · @11.9667 0 SOFT. It slides left as the shaft draws, and its existing TRANSLATION_Y rise is unchanged. Alternative: start the S5/Arrow shaft draw at 11.4333 so the lockup completes with the label landing."
+  },
+  {
+   "severity": "minor",
+   "time": "11.533-14.4",
+   "layer": "S4/Bowl arc (50:380) vs S4/Logo (42:15091)",
+   "problem": "The logo lockup splits apart. S4/Logo drifts TRANSLATION_Y -22 while the rule under it stays put, so the logo-to-rule gap grows from about 58 px (f378) to about 70 px (f431). Inside a lockup this reads as drift error, not parallax.",
+   "fix": "Let the rule travel with the wordmark. S4/Bowl arc TRANSLATION_Y: @0 0 · @11.6 0 L · @14.4 -18 L. The parallax then sits between the lockup and the tagline, offer and URL, where it reads as depth."
+  }
+ ]
+}

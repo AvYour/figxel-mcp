@@ -1,0 +1,69 @@
+{
+ "mp4": "~/.figma-mcp/exports/moku-ig-story-ad-v2.mp4",
+ "poster": "~/.figma-mcp/exports/moku-ig-story-ad-v2-poster.png",
+ "sheet": "~/.figma-mcp/exports/moku-ig-story-ad-v2-sheet.png",
+ "durationS": 14.433,
+ "bytes": 22582717,
+ "breakdown": [
+  {
+   "time": "0.0 – 1.5 s",
+   "scene": "Hook, \"Slow down.\" The frame is already moving on frame 0. The 400 px \"S l o w\" closes up its letter spacing, an image slit opens from its centre (240 to 480 px wide) onto the hand-built vessels, and \"M o k u\" sits widely spaced at the top. From 0.6 s the terracotta italic \"down.\" drops in letter by letter, then gets a scale punch on beat 1.2.",
+   "technique": "The \"Slow\" letter spacing is animated (STACK_SPACING) on a deliberately soft ease. The photo is counter-translated so it stays fixed on screen while the slit opens. Each letter of \"down.\" drops inside its own clipping mask, 2 frames apart, with motion blur only on its fastest frames. The punch is a 2-frame 1.06x swell."
+  },
+  {
+   "time": "1.5 – 2.4 s",
+   "scene": "The clay circle is born. A terracotta dot pops into the counter of the \"o\" in \"Slow\" (overshoot accent 1 of 3). \"Moku\" locks its spacing tight on beat 1.8. The dot pulls back, then swells into an 880 px disc on the 2.4 downbeat, sucking \"Slow\" in while \"down.\" falls out and the slit shuts like a blind.",
+   "technique": "A hand-keyed overshoot and settle (0 to 90 to 68 to 72 px), a small pull-back before the move, and the growth on a strong ease-in-out. The type is cut out on an exact frame while the disc fully covers it, so the cut is never seen."
+  },
+  {
+   "time": "2.4 – 3.6 s",
+   "scene": "The wheel beat. Inside the disc, a clay ring, a cream ring and then a hands-on-the-wheel photo burst open from the centre, each 2 frames after the last. A thin terracotta ring draws itself around the wheel and spins, and \"By hand.\" rises word by word. Everything then closes, the disc swells 5% and collapses into a 96 px dot on the vase belly at (384, 1180).",
+   "technique": "A stacked concentric reveal, with the photo counter-translated so it stays fixed on screen and pushed in 6%. The ring is drawn with a trim path, lags behind the disc's landing, overshoots and settles. The collapse is a match cut: S2 starts on an identical dot on the same frame."
+  },
+  {
+   "time": "3.6 – 4.8 s",
+   "scene": "Ash Vase. The dot bursts open as a circle into the full image band and snaps square on beat 4.2. Terracotta and clay colour plates wipe up and off to reveal the vase. The 230 px \"Ash Vase\" rises, the specs land, and a terracotta dimension line draws up the vase from its base, with ticks and a \"32 cm\" label.",
+   "technique": "Match cut from the dot. The band stays a circle (radius = height/2) and then snaps square on the beat. A stacked plate wipe hides the photo, the headline rises letter by letter inside masks, the dimension line is a trim-path draw, and \"32 cm\" lags slightly behind the line (follow-through)."
+  },
+  {
+   "time": "4.8 – 6.0 s",
+   "scene": "\"$48\" lands on the bar-3 downbeat, one character at a time. The product frame then holds (poster frame, 5.5 s) while the type drifts slowly against the photo. From 5.6 s the camera dives through the vase belly, to 2.6x with blur rising to 18 px.",
+   "technique": "Overshoot accent 2 of 3, hand-keyed per glyph (-18 / +5 / 0). Slow parallax drift between the type and the photo. The push-through is the ad's only camera move: it accelerates on an ease-in and is anchored on the vase belly."
+  },
+  {
+   "time": "6.0 – 7.2 s",
+   "scene": "The Kiln collection arrives on linen. S3 enters at 0.82x with the same 18 px blur and slows to rest. The \"AUTUMN 2026\" kicker opens its letter spacing, \"The Kiln collection\" rises word by word, and the mugs sit in a kiln-arch window. \"Kiln Mug / $32\" lands with the terracotta pointer dot beside it.",
+   "technique": "The cut is velocity-matched, so the blur and motion carry straight across it. Animated letter spacing on the kicker, and a per-word rise inside masks."
+  },
+  {
+   "time": "7.2 – 9.2 s",
+   "scene": "Stop-motion run through the collection: the arch hard-cuts from mug to plates on 7.2 and from plates to bowl on 8.1. The list builds (Dinner Plates $110, Serving Bowl $58), earlier entries dim, and the clay pointer dot steps down to each new entry.",
+   "technique": "Hard cuts on the beat and the 8th, timed to the exact frame (cut pairs, no HOLD keys). The pointer follows each cut 3 frames late, overshoots and settles."
+  },
+  {
+   "time": "9.2 – 9.6 s",
+   "scene": "The bloom. A cream circle and then a terracotta circle start from the bowl's terracotta wall and race outward until they fill the frame on the 9.6 downbeat. On the frame the terracotta edge passes the wordmark (frame 283), \"Moku\" flips from ink to white.",
+   "technique": "A two-layer iris bloom (2 frames apart) on a slow-start, fast-spread, soft-landing ease, with blur that ramps up and back down. The colour flip happens on one exact frame. S5 starts on a pixel-identical full terracotta field."
+  },
+  {
+   "time": "9.6 – 11.0 s",
+   "scene": "The offer. On the full terracotta field, the cream \"10%\" rises one character at a time, a hand-drawn loop draws itself around it, and \"off your first order.\" follows word by word. The scale punch lands on beat 10.2. From 10.4 to 10.9 s is a breath: nothing new arrives and only slow drifts move.",
+   "technique": "Per-character rises with blur on the fastest frames, a 2-frame 1.06x punch, slowly opening letter spacing, a trim-path loop that overshoots its own start, and a deliberate hold with drift so the frame never freezes."
+  },
+  {
+   "time": "11.0 – 11.53 s",
+   "scene": "Offer to button. The offer type falls toward the bottom of the frame while the full terracotta field shrinks into the 640 x 120 \"Shop the collection\" pill, revealing the ink end card behind it. At the same time the \"Moku\" wordmark flies down and scales 3x into the end-card logo.",
+   "technique": "Match cut: the field animates its width, height, corner radius and position into the pill on a strong ease-in-out, with a little blur. The wordmark's flight lands exactly on the logo's position, size and colour, and the two swap on one frame (346), so the swap is invisible."
+  },
+  {
+   "time": "11.53 – 13.2 s",
+   "scene": "The end card builds. A terracotta bowl arc draws under the logo, then \"Objects for slow living.\" rises word by word. \"10% off your first order\" follows, the CTA label rises inside the pill, the arrow draws shaft first, and \"moku.store\" and the footer arrive. The logo slowly widens its letter spacing and grows 3%.",
+   "technique": "Staggered rises inside masks, timed to the beat, and trim-path draws (the arc from the centre out, the arrow shaft before its head). Slow, luxury drift on the logo."
+  },
+  {
+   "time": "13.2 – 14.4 s (file ends 14.433)",
+   "scene": "Final CTA pulse. The pill and its label punch to 1.08, dip to 0.985 and settle (overshoot accent 3 of 3). A terracotta ripple ring expands 50 px around the pill, thins and fades, and the arrow nudges right twice (13.27, with an echo at 13.8). The last frame is clean and settled.",
+   "technique": "A hand-keyed pulse with settle, shared by the field and the label's mask. The ripple grows by animating its size, not scale, so the stroke can thin from 3 to 1 px. The arrow nudges are follow-through on the pulse."
+  }
+ ]
+}

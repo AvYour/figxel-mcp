@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 12px; font: 12px/1.4 Inter, system-ui, sans-serif;
+    color: var(--figma-color-text, #222); background: var(--figma-color-bg, #fff);
+  }
+  .status { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .status.ok { color: var(--figma-color-text-success, #14ae5c); }
+  .status.wait { color: var(--figma-color-text-warning, #b86200); }
+  .status.error { color: var(--figma-color-text-danger, #f24822); }
+  #detail { color: var(--figma-color-text-secondary, #666); margin: 4px 0 10px; min-height: 16px; word-break: break-word; }
+  form { display: flex; gap: 6px; margin-bottom: 10px; }
+  input {
+    flex: 1; min-width: 0; padding: 6px; font: inherit; border-radius: 4px;
+    border: 1px solid var(--figma-color-border, #ccc); background: transparent; color: inherit;
+  }
+  button {
+    padding: 6px 10px; font: inherit; border-radius: 4px; border: 0; cursor: pointer;
+    background: var(--figma-color-bg-brand, #0d99ff); color: var(--figma-color-text-onbrand, #fff);
+  }
+  button.link { background: none; color: var(--figma-color-text-brand, #0d99ff); padding: 0; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px;
+       color: var(--figma-color-text-secondary, #666); }
+  ol { list-style: none; margin: 0; padding: 0; font-family: ui-monospace, monospace; font-size: 11px; }
+  li { padding: 1px 0; color: var(--figma-color-text-secondary, #555); }
+</style>
+</head>
+<body>
+  <div id="status" class="status wait">Starting…</div>
+  <div id="detail"></div>
+  <form id="token-form" hidden>
+    <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="64-character token">
+    <button type="submit">Save</button>
+  </form>
+  <button id="change-token" class="link" hidden>Change token</button>
+  <h2>Activity</h2>
+  <ol id="log"></ol>
+  <!-- SCRIPT -->
+</body>
+</html>

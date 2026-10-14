@@ -1,0 +1,101 @@
+role proxy, file "Untitled", build {"plugin":"1cf1e6aca699","dist":"1cf1e6aca699","server":"1cf1e6aca699","matches":true}
+
+-- collection and modes
+  ok    create_variable_collection (no modes)                first mode "Default"
+  ok    collection's first mode reads Default                ["Default"]
+  info  second mode on this file: accepted (paid plan)
+
+-- create_variables
+  ok    create_variables: primitives + semantic alias        created 7
+  ok    scopes, code syntax and the alias as Figma stores them {"blueScopes":[],"bgScopes":["ALL_FILLS"],"web":"var(--color-bg-brand)","first":{"type":"VARIABLE_ALIAS","id":"VariableID:30:13371"}}
+  ok    create_variables ifExists skip keeps all             {"collectionId":"VariableCollectionId:30:13370","created":0,"skipped":1,"updated":0,"items":[{"name":"color/blue/500","id":"VariableID:30:13371","ok":true,"skip…
+  ok    skip left the value alone                            246
+  ok    create_variables refuses a COLOR scoped GAP          INVALID_PARAM: A COLOR variable cannot be scoped GAP.
+
+-- create_variable
+  ok    create_variable scopes/codeSyntax/description/hidden {"id":"VariableID:30:13378","name":"space/gap","resolvedType":"FLOAT","collectionId":"VariableCollectionId:30:13370","modeId":"30:19","properties":["scopes","co…
+  ok    space/gap as stored                                  {"s":["GAP"],"w":"var(--space-gap)","d":"Gap between items","h":true}
+  ok    create_variable value alias:                         {"id":"VariableID:30:13379","name":"color/text/default","resolvedType":"COLOR","collectionId":"VariableCollectionId:30:13370","modeId":"30:19","properties":["sc…
+  ok    color/text/default aliases gray/900                  {"type":"VARIABLE_ALIAS","id":"VariableID:30:13372"}
+  ok    create_variable refuses a duplicate name             INVALID_PARAM: The collection "mcp-parity tokens mv0b66zq" already has a variable named "space/gap" (VariableID:30:13378).
+
+-- figma_get_variable_defs
+  ok    file-wide: values per mode, alias names, scopes, codeSyntax bg = {"Default":"alias:color/blue/500","Dark":"alias:color/gray/900"}
+  ok    file-wide limit 1 paginates                          {"collections":[{"id":"VariableCollectionId:30:13370","name":"mcp-parity tokens mv0b66zq","key":"1d53481525e6fd54a7845652790723ce8eaf53d4","defaultMode":"Defaul…
+  ok    cursor continues                                     {"collections":[{"id":"VariableCollectionId:30:13370","name":"mcp-parity tokens mv0b66zq","key":"1d53481525e6fd54a7845652790723ce8eaf53d4","defaultMode":"Defaul…
+
+-- sandbox and bindings
+  ok    create sandbox frame                                 {"id":"30:13380","name":"figma-mcp WP-D probe (delete me)","type":"FRAME","width":80,"height":80,"idempotencyKey":"k-b9ece2a6-4ba7-4447-97f5-0fb0d06cf8e4"}
+  ok    bind color/bg/brand to the card fill                 {"updated":1,"items":[{"id":"30:13381","ok":true}],"variable":{"id":"VariableID:30:13373","name":"color/bg/brand","type":"COLOR"},"field":"fill","idempotencyKey…
+  ok    card fill bound to color/bg/brand                    VariableID:30:13373
+  ok    get_variable_defs { nodeId } on the card             variables {"color/bg/brand":"#3b82f6"}
+  ok    get_variable_defs { nodeId, maxNodes }               {"scope":{"id":"30:13380","name":"figma-mcp WP-D probe (delete me)","type":"FRAME"},"variables":{},"styles":{},"details":{"variables":[],"styles":[]},"nodeCount…
+  ok    bind effect.color                                    {"updated":1,"items":[{"id":"30:13381","ok":true}],"variable":{"id":"VariableID:30:13374","name":"color/shadow","type":"COLOR"},"field":"effect.color","idempote…
+  ok    effect 0 colour bound                                VariableID:30:13374
+  ok    bind fill index 0 (a gradient) is refused per item   {"updated":0,"items":[{"id":"30:13382","ok":false,"error":"paint 0 is a GRADIENT_LINEAR; only SOLID paints bind a colour"}],"variable":{"id":"VariableID:30:1337…
+  ok    the gradient is still there                          GRADIENT_LINEAR
+  ok    bind fill index 1                                    {"updated":1,"items":[{"id":"30:13382","ok":true}],"variable":{"id":"VariableID:30:13371","name":"color/blue/500","type":"COLOR"},"field":"fill","index":1,"idem…
+  ok    paint 1 bound, paint 0 untouched                     ["GRADIENT_LINEAR","VariableID:30:13371"]
+  ok    bind grid.count                                      {"updated":1,"items":[{"id":"30:13380","ok":true}],"variable":{"id":"VariableID:30:13375","name":"grid/columns","type":"FLOAT"},"field":"grid.count","idempotenc…
+  ok    grid count bound and resolved to 12                  count=12
+  info  TEXT node fontSize bound to a FLOAT variable [C-109]: accepted, read back bound (fontSize 18, font {"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}})
+  ok    bind fontSize on a TEXT answers per item             {"id":"30:13383","ok":true}
+  info  TEXT node fontFamily bound to a STRING variable [C-109]: accepted, read back bound (fontSize 18, font {"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}})
+  ok    bind fontFamily on a TEXT answers per item           {"id":"30:13383","ok":true}
+
+-- figma_set_variable_mode
+  ok    set_variable_mode Dark on the card                   {"updated":1,"items":[{"id":"30:13381","ok":true}],"collection":{"id":"VariableCollectionId:30:13370","name":"mcp-parity tokens mv0b66zq"},"mode":{"modeId":"30:…
+  ok    explicitVariableModes pins the mode (object overload under dynamic-page) resolved blue channel 39
+  ok    get_variable_defs { nodeId } reads the Dark value    {"scope":{"id":"30:13381","name":"Card","type":"FRAME"},"variables":{"color/bg/brand":"#111827","color/shadow":"#00000066","font/family/body":"Inter","font/size…
+  ok    set_variable_mode clear                              {"updated":1,"items":[{"id":"30:13381","ok":true}],"collection":{"id":"VariableCollectionId:30:13370","name":"mcp-parity tokens mv0b66zq"},"cleared":true}
+  ok    the pin is gone                                      null
+
+-- styles
+  ok    create_text_style "150%", "-2%", upper, paragraph, description {"id":"S:ab4e1f879852cdc541d828e635f62bc8eba2f696,","name":"wpD mv0b66zq/Label","kind":"TEXT","font":{"family":"Inter","style":"Semi Bold","fellBack":false},"id…
+  ok    text style as stored                                 {"lh":{"unit":"PERCENT","value":150},"ls":{"unit":"PERCENT","value":-2},"c":"UPPER","p":8,"d":"Overline labels"}
+  ok    get_styles TEXT shows the value line                 Inter Semi Bold 14/150% -2% upper paragraph 8
+  ok    get_styles limit 1 paginates                         {"filter":null,"styles":{"PAINT":[],"TEXT":[{"id":"S:ab4e1f879852cdc541d828e635f62bc8eba2f696,","name":"wpD mv0b66zq/Label","key":"ab4e1f879852cdc541d828e635f62…
+  ok    update_style fontSize in place                       {"id":"S:ab4e1f879852cdc541d828e635f62bc8eba2f696,","name":"wpD mv0b66zq/Label","kind":"TEXT","changed":["fontSize"],"value":"Inter Semi Bold 20/150% -2% upper …
+  ok    the consumer followed (still linked, 20 px)          [true,20]
+  ok    update_style binds font size inside the style        {"id":"S:ab4e1f879852cdc541d828e635f62bc8eba2f696,","name":"wpD mv0b66zq/Label","kind":"TEXT","changed":["variables.fontSize"],"value":"Inter Semi Bold 18/150% …
+  ok    text style fontSize bound                            VariableID:30:13376
+  ok    update_style refuses a field of another kind         INVALID_PARAM: `color` belongs to a paint style; "wpD mv0b66zq/Label" is a TEXT style.
+  ok    create_paint_style fills + variableName + description {"id":"S:aada44739d38c15541d85c39abc0de08287b0b72,","name":"wpD mv0b66zq/Brand","kind":"PAINT","variable":{"id":"VariableID:30:13373","name":"color/bg/brand"},"…
+  ok    paint style colour bound                             ["VariableID:30:13373","Brand surface"]
+  ok    update_style paint: rename + colour                  {"id":"S:aada44739d38c15541d85c39abc0de08287b0b72,","name":"wpD mv0b66zq/Brand 2","kind":"PAINT","changed":["name","paints"],"value":"#2563eb"}
+  ok    create_effect_style + description                    {"id":"S:bf248fb18339fb5693accdcdca7c205cf633bcc5,","name":"wpD mv0b66zq/Elevation","kind":"EFFECT","effectCount":1,"idempotencyKey":"k-6b400253-a11f-4b00-92a6-…
+  ok    update_style binds effect.color inside the style     {"id":"S:bf248fb18339fb5693accdcdca7c205cf633bcc5,","name":"wpD mv0b66zq/Elevation","kind":"EFFECT","changed":["effects"],"value":"drop-shadow 0 4 12 0 #000000 …
+  ok    effect style colour bound                            ["VariableID:30:13374","Card shadow"]
+  ok    create_grid_style                                    {"id":"S:17b18be2392c0c29f800dbca6a169b33dcfffe81,","name":"wpD mv0b66zq/Grid 12","kind":"GRID","gridCount":1}
+  ok    grid style as stored                                 ["COLUMNS",12,24,64,"Desktop grid"]
+  ok    update_style grid count                              {"id":"S:17b18be2392c0c29f800dbca6a169b33dcfffe81,","name":"wpD mv0b66zq/Grid 12","kind":"GRID","changed":["layoutGrids"],"value":"columns 8, gutter 16, margin …
+
+-- set_variable_properties / update_variable_collection
+  ok    set_variable_properties rename + hidden + codeSyntax {"updated":1,"items":[{"id":"VariableID:30:13378","name":"space/gap/md","ok":true,"changed":["name","codeSyntax.WEB","codeSyntax.ANDROID","hiddenFromPublishing"…
+  ok    renamed, published, WEB removed, ANDROID set         {"n":"space/gap/md","h":false,"c":{"ANDROID":"spaceGapMd"}}
+  ok    set_variable_properties scopes per type (one refused per item) {"updated":1,"items":[{"id":"VariableID:30:13378","name":"space/gap/md","ok":true,"changed":["scopes"]},{"id":"VariableID:30:13379","name":"color/text/default",…
+  ok    update_variable_collection renameModes               {"id":"VariableCollectionId:30:13370","name":"mcp-parity tokens mv0b66zq","modes":[{"modeId":"30:19","name":"Light"},{"modeId":"30:20","name":"Dark"}],"changed"…
+  ok    mode renamed in the document                         ["Light","Dark"]
+  ok    update_variable_collection never removes the last mode INVALID_PARAM: A collection keeps at least one mode; "mcp-parity tokens mv0b66zq" has 2.
+
+-- figma_get_library_variables
+  ok    get_library_variables answers (list or a clear UNSUPPORTED) teamLibrary under this manifest [C-107]: listed 0 collection(s)
+
+-- look
+  saved spikes\results\live-wpD-tokens.png
+  ok    check_layout on the sandbox                          ok=true errors=0
+
+-- cleanup
+  ok    delete the styles                                    {"deleted":4,"items":[{"id":"S:ab4e1f879852cdc541d828e635f62bc8eba2f696,","ok":true},{"id":"S:aada44739d38c15541d85c39abc0de08287b0b72,","ok":true},{"id":"S:bf2…
+  ok    delete the collection                                {"deleted":"VariableCollectionId:30:13370","name":"mcp-parity tokens mv0b66zq","variableCount":9,"idempotencyKey":"k-d3442d6b-9982-4032-b089-212b3029731c"}
+  ok    delete sandbox                                       {"deleted":1,"items":[{"id":"30:13380","ok":true}],"note":"This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z reverts th…
+
+====================================================================================================
+  measured:
+    - second mode on this file: accepted (paid plan)
+    - TEXT node fontSize bound to a FLOAT variable [C-109]: accepted, read back bound (fontSize 18, font {"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}})
+    - TEXT node fontFamily bound to a STRING variable [C-109]: accepted, read back bound (fontSize 18, font {"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}})
+    - teamLibrary under this manifest [C-107]: listed 0 collection(s)
+  steps: 64   failed: 0
+  WP-D tools registered but not exercised: []
+====================================================================================================

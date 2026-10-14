@@ -1,0 +1,104 @@
+role proxy, file "Untitled", build {"plugin":"1cf1e6aca699","dist":"1cf1e6aca699","server":"1cf1e6aca699","matches":true}
+
+-- sandbox
+  ok    create sandbox frame                                 {"id":"30:13330","name":"figma-mcp WP-C probe (delete me)","type":"FRAME","width":80,"height":80,"idempotencyKey":"k-bc7392de-e90f-4f77-9e81-419f1ba9a17e"}
+
+-- gradients — measured on Figma's own SVG export [C-100]
+  ok    set_fills linear angle 180 on 400×240                {"updated":1,"items":[{"id":"30:13332","ok":true}],"idempotencyKey":"k-e28aa554-f944-4986-8b02-00886b878e96"}
+  ok    MEASURE 180deg handles where CSS puts them           export (200, 0) → (200, 240); CSS (200.0, -0.0) → (200.0, 240.0)
+  ok    set_fills linear angle 135 on 400×240                {"updated":1,"items":[{"id":"30:13333","ok":true}],"idempotencyKey":"k-b4d1346e-61f1-42f5-bd38-48bcd4555c2e"}
+  ok    MEASURE 135deg handles where CSS puts them           export (40, -40) → (360, 280); CSS (40.0, -40.0) → (360.0, 280.0)
+  ok    set_fills radial center { 0.25, 0.25 }               {"updated":1,"items":[{"id":"30:13334","ok":true}],"idempotencyKey":"k-0ac24fab-fb8b-45c8-b4a4-b32f2749bd63"}
+  ok    MEASURE radial centre at (100, 60)                   centre (100, 60) from <radialGradient id="paint0_radial_30_13334" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(100 60) scale(200 120)">
+  ok    set_fills angular centre + diamond radius            {"updated":1,"items":[{"id":"30:13335","ok":true}],"idempotencyKey":"k-89c166a3-c4ce-4816-b867-5d561af783c0"}
+  ok    angular / diamond read back                          types GRADIENT_ANGULAR, GRADIENT_DIAMOND
+  ok    set_fills radial with a raw transform                {"updated":1,"items":[{"id":"30:13336","ok":true}],"idempotencyKey":"k-67ad6a7f-f77e-499d-b56b-f8954b69512b"}
+  ok    raw transform read back                              [[0.7099999785423279,0,0.1899999976158142],[0,0.5699999928474426,0.20999999344348907]]
+  ok    angle + transform refused, nothing changed           refused, nothing changed: INVALID_PARAM: `fills[0].gradient.transform` is the whole matrix — give it alone, without `angle`.
+
+-- images by hash [C-104]
+  ok    import_image from the rendered PNG                   hash c4e95b67993ab6da9fd5982884f0ed2722fd1522
+  ok    set_fills [image, gradient scrim] on one node        {"updated":1,"items":[{"id":"30:13339","ok":true}],"idempotencyKey":"k-0c8085bf-ffa3-4a5a-8a3d-5e896a5c41f8"}
+  ok    photo + scrim read back                              [{"type":"IMAGE","hash":"c4e95b67993ab6da9fd5982884f0ed2722fd1522","mode":"FILL"},{"type":"GRADIENT_LINEAR"}]
+  ok    set_fills image fit, rotation 90, filters            {"updated":1,"items":[{"id":"30:13340","ok":true}],"idempotencyKey":"k-1556f5e5-90a5-4a96-b881-1684be23145b"}
+  ok    image filters read back                              {"mode":"FIT","rotation":90,"filters":{"exposure":0.30000001192092896,"contrast":0,"saturation":-0.5,"temperature":0,"tint":0,"highlights":0,"shadows":0}}
+  ok    unknown hash refused, nothing changed                refused, nothing changed: INVALID_PARAM: `fills[0].image.hash` names no image in this file: "0000000000000000000000000000000000000000".
+
+-- strokes [C-101]
+  ok    set_strokes sides { bottom: 1 }                      {"updated":1,"items":[{"id":"30:13342","ok":true}],"idempotencyKey":"k-840beb64-0737-4989-84ff-6e238ac41100"}
+  ok    bottom border only                                   [0,0,1,0]
+  ok    set_strokes cap arrow, join round                    {"updated":1,"items":[{"id":"30:13344","ok":true}],"idempotencyKey":"k-feb7c3cb-32fd-4c27-9eed-275d9402de4c"}
+  ok    cap / join read back                                 ["ARROW_LINES","ROUND",4]
+  ok    set_strokes gradient                                 {"updated":1,"items":[{"id":"30:13345","ok":true}],"idempotencyKey":"k-be704ff5-4056-46b1-a607-a3169200087a"}
+  ok    gradient stroke read back                            ["GRADIENT_LINEAR",6]
+  ok    sides on an ellipse is a per-item error              item: a ELLIPSE takes one stroke weight — per-side weights are for frames, rectangles, components and instances
+
+-- corner smoothing [C-101]
+  ok    set_corner_radius radius 24 + smoothing 0.6          {"updated":1,"items":[{"id":"30:13347","ok":true}],"idempotencyKey":"k-19b2c76d-6470-4879-b2e4-ca0bd55f0cc3"}
+  ok    radius / smoothing read back                         [24,0.6000000238418579]
+
+-- noise, texture, glass, progressive blur — the claim gate [C-102]
+  ok    set_effects NOISE monotone                           {"updated":1,"items":[{"id":"30:13351","ok":true}],"idempotencyKey":"k-bdf19ddf-8ccd-4841-b6f6-ddeb57cbc867"}
+  ok    NOISE monotone read back                             ["NOISE","MONOTONE",0.5]
+  ok    set_effects NOISE duotone                            {"updated":1,"items":[{"id":"30:13352","ok":true}],"idempotencyKey":"k-1b0c1a82-a1c9-44f8-bfcf-1fad9a1c10fc"}
+  ok    NOISE duotone read back                              ["NOISE","DUOTONE",true]
+  ok    set_effects TEXTURE                                  {"updated":1,"items":[{"id":"30:13353","ok":true}],"idempotencyKey":"k-0e60bb79-c7b3-47c4-a22a-520d5b4373f8"}
+  ok    TEXTURE read back                                    ["TEXTURE",2,true]
+  ok    set_effects GLASS                                    {"updated":1,"items":[{"id":"30:13350","ok":true}],"idempotencyKey":"k-b5f7e9b5-4036-4b49-98a4-38c261a0e5d0"}
+  ok    GLASS read back                                      ["GLASS",16,0.6000000238418579]
+  ok    set_effects progressive LAYER_BLUR                   {"updated":1,"items":[{"id":"30:13354","ok":true}],"idempotencyKey":"k-3d655f6a-87e0-4e39-9d6f-4afe439e99b8"}
+  ok    progressive LAYER_BLUR read back                     ["LAYER_BLUR","PROGRESSIVE",0]
+  ok    create_effect_style with a progressive blur          {"id":"S:c4283527966d684007fea6ef4612dbddf56f4d9a,","name":"WP-C probe mv0b63zz/Ramp","kind":"EFFECT","effectCount":1,"idempotencyKey":"k-e45363e0-af60-4c90-bed…
+  ok    effect style read back                               ["PROGRESSIVE"]
+
+-- text paragraph features [C-103]
+  ok    set_text_properties maxLines 2                       {"updated":1,"items":[{"id":"30:13357","ok":true,"font":{"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}}}],"idempotencyKey":"k-3ee…
+  ok    truncation read back                                 ["ENDING",2]
+  ok    set_text_properties autoResize "truncate" + alignVertical, leadingTrim, wrapStyle {"updated":1,"items":[{"id":"30:13358","ok":true,"font":{"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}}}],"idempotencyKey":"k-8f1…
+  ok    fixed + truncating + aligned read back               ["TRUNCATE","ENDING","CENTER","CAP_HEIGHT","BALANCE"]
+  ok    set_text_properties truncate: false                  {"updated":1,"items":[{"id":"30:13358","ok":true,"font":{"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}}}],"idempotencyKey":"k-461…
+  ok    truncation off read back                             DISABLED
+  ok    set_text_range list ordered + paragraph spacing / indent {"id":"30:13359","ranges":[{"start":17,"end":21,"text":"step"},{"start":29,"end":33,"text":"step"}],"idempotencyKey":"k-676c47f2-d9a8-46ba-9e5c-512797020a2a"}
+  ok    list / spacing read back                             [{"type":"ORDERED"},8,12,{"type":"NONE"}]
+  ok    set_text_properties paragraphSpacing on the whole text {"updated":1,"items":[{"id":"30:13359","ok":true,"font":{"family":"Inter","style":"Regular","variationSettings":{"slnt":0,"wght":400}}}],"idempotencyKey":"k-dfe…
+  ok    whole-text paragraph spacing read back               4
+  ok    set_text_range link "node:<id>"                      {"id":"30:13360","ranges":[{"start":12,"end":18,"text":"header"}],"link":{"type":"NODE","value":"30:13342"},"idempotencyKey":"k-bfd15e04-3c57-4615-b08f-e84b3b7e…
+  ok    in-file link read back                               {"type":"NODE","value":"30:13342"}
+  ok    a link to a missing node is refused                  refused, nothing changed: NODE_NOT_FOUND: `link` points at node `999999:999999`, which does not exist.
+
+-- text range bound to styles and variables [C-103]
+  ok    create_variable_collection                           {"id":"VariableCollectionId:30:13361","name":"WP-C probe mv0b63zz","modes":[{"modeId":"30:18","name":"Default"}],"idempotencyKey":"k-23b08fd9-e463-4e24-b24a-014…
+  ok    create_variable FLOAT 28                             {"id":"VariableID:30:13362","name":"wpcmv0b63zz/size","resolvedType":"FLOAT","collectionId":"VariableCollectionId:30:13361","modeId":"30:18","idempotencyKey":"k…
+  ok    create_variable COLOR                                {"id":"VariableID:30:13363","name":"wpcmv0b63zz/icon","resolvedType":"COLOR","collectionId":"VariableCollectionId:30:13361","modeId":"30:18","idempotencyKey":"k…
+  ok    create_text_style                                    {"id":"S:1f2e5147353d7fc20cb82d2fc4ddc13d37029202,","name":"WP-C probe mv0b63zz/Strong","kind":"TEXT","font":{"family":"Inter","style":"Bold","fellBack":false},…
+  ok    create_paint_style                                   {"id":"S:e638793122007c43afd8914e15a297427893ff05,","name":"WP-C probe mv0b63zz/Accent","kind":"PAINT","idempotencyKey":"k-ea897d50-bcde-4318-a09a-ce057fc3a0c7"…
+  ok    set_text_range variables { fontSize }                {"id":"30:13366","ranges":[{"start":6,"end":11,"text":"sized"}],"bound":{"fontSize":"wpcmv0b63zz/size"},"idempotencyKey":"k-17bd7214-c0cb-4fde-a5b2-95c37381c611…
+  ok    bound font size read back                            [{"type":"VARIABLE_ALIAS","id":"VariableID:30:13362"},28]
+  ok    set_text_range textStyle by name                     {"id":"30:13366","ranges":[{"start":13,"end":19,"text":"styled"}],"textStyle":{"id":"S:1f2e5147353d7fc20cb82d2fc4ddc13d37029202,","name":"WP-C probe mv0b63zz/St…
+  ok    range text style read back                           S:1f2e5147353d7fc20cb82d2fc4ddc13d37029202,
+  ok    set_text_range fillStyle by id                       {"id":"30:13366","ranges":[{"start":21,"end":28,"text":"painted"}],"fillStyle":{"id":"S:e638793122007c43afd8914e15a297427893ff05,","name":"WP-C probe mv0b63zz/A…
+  ok    range fill style read back                           S:e638793122007c43afd8914e15a297427893ff05,
+  ok    set_text_range colorVariable                         {"id":"30:13366","ranges":[{"start":33,"end":39,"text":"linked"}],"idempotencyKey":"k-7e92ab40-d649-4e04-8610-6445a0fa711d"}
+  ok    range bound colour read back                         VariableID:30:13363
+  ok    an unknown variable is refused, text untouched       refused, nothing changed: INVALID_PARAM: `variables.fontSize`: No variable named "wpcmv0b63zz/nope".
+
+-- import_svg colorVariable
+  ok    import_svg with colorVariable                        vectorIds 30:13368, 30:13369
+  ok    every painted vector is bound; stroke-only stays stroke-only [{"fills":1,"strokes":0,"bound":["VariableID:30:13363"],"r":0.14509804546833038},{"fills":0,"strokes":1,"bound":["VariableID:30:13363"],"r":0.14509804546833038}…
+  ok    set_variable_value recolours the icon                {"variableId":"VariableID:30:13363","name":"wpcmv0b63zz/icon","modeId":"30:18","mode":"Default","type":"COLOR","idempotencyKey":"k-7d05e997-a096-487b-bf9d-856e7…
+  ok    icon follows the variable (red channel ≈ 0.86)       [{"fills":1,"strokes":0,"bound":["VariableID:30:13363"],"r":0.8627451062202454},{"fills":0,"strokes":1,"bound":["VariableID:30:13363"],"r":0.8627451062202454}]
+  ok    color + colorVariable refused before anything exists refused, nothing changed: INVALID_PARAM: Give `color` or `colorVariable`, not both.
+
+-- look
+  saved spikes\results\live-wpC-paint.png
+  ok    check_layout on the sandbox                          ok=true errors=0
+
+-- cleanup
+  ok    delete sandbox                                       {"deleted":1,"items":[{"id":"30:13330","ok":true}],"note":"This is the way to undo agent work: delete by the ids the create call returned. One Ctrl+Z reverts th…
+  ok    delete probe styles                                  {"deleted":3,"items":[{"id":"S:c4283527966d684007fea6ef4612dbddf56f4d9a,","ok":true},{"id":"S:1f2e5147353d7fc20cb82d2fc4ddc13d37029202,","ok":true},{"id":"S:e63…
+  ok    delete probe variable collection                     {"deleted":"VariableCollectionId:30:13361","name":"WP-C probe mv0b63zz","variableCount":2,"idempotencyKey":"k-8f26f30a-601b-471b-bb8d-d6454fbfd20c"}
+
+====================================================================================================
+  steps: 75   failed: 0
+  WP-C tools registered but not exercised: []
+====================================================================================================

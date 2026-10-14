@@ -1,0 +1,56 @@
+{
+ "lens": "MOTION CRAFT (senior After Effects motion designer)",
+ "verdict": "fix",
+ "score": 8,
+ "findings": [
+  {
+   "severity": "minor",
+   "time": "1.2 s (f36, peak f38); 10.2 s (f306, peak f308); 13.2 s (f396, first change f397)",
+   "layer": "S1/Down (47:2177), S5/Ten (47:2316), S5/Field (47:2314) + S5/CTA mask (47:2334), S5/Ripple (47:2313), S5/Arrow (47:2336)",
+   "problem": "All three accent punches start on the beat, so the beat frame itself shows no change. 'down.' and '10%' use a symmetric 2-frame SWELL attack. Measured 'down.' width is 730 / 752 / 776 px on f36 / f37 / f38, so the peak lands 66 ms late. The '10%' white area also peaks on f308, not f306. The CTA pill first moves on f397. The hits read late against the grid, and the bar asks for punches on the beat.",
+   "fix": "Move each attack 2 frames earlier so the peak lands on the beat frame. S1/Down SCALE_XY: @0 1,1 L · @1.1333 1,1 L · @1.2 1.06,1.06 SWELL · @1.5333 1,1 OUT. S5/Ten SCALE_XY: @0 1,1 L · @10.1333 1,1 L · @10.2 1.06,1.06 SWELL · @10.5333 1,1 OUT. S5/Field and S5/CTA mask SCALE_XY: @13.1333 1,1 L · @13.2 1.08,1.08 OUT · @13.3667 0.985,0.985 SOFT · @13.5333 1,1 SOFT. Shift every S5/Ripple key (including its 13.2417/13.2617 opacity guard) and the first S5/Arrow nudge (13.2667/13.4/13.6) by -0.0667 s, so the ripple is still born at the pulse peak."
+  },
+  {
+   "severity": "minor",
+   "time": "3.567-3.633 s (f107-f109)",
+   "layer": "S2 · Ash Vase (47:2201) OPACITY, S1/Wheel (47:2188) SCALE_XY",
+   "problem": "The squeeze reverses for one frame right before the burst. Measured dot diameters: Ø96 (f105), Ø90 (f106), Ø84 (f107), Ø96 (f108), then a 432 px disc (f109). S2 switches on at f108 and draws its 96 px band window over S1's 84 px dot. So the dot grows 14 % for one frame when it should be at its tightest as it bursts. This is a small tick at the hero match cut.",
+   "fix": "Swap the scenes on the burst frame. S2 · Ash Vase OPACITY: @0 0 L · @3.6083 0 L · @3.6283 1 L · @6.0083 1 L · @6.0283 0 L, which is the same frame S1 · Hook switches off. Then continue the squeeze through f108 by appending @3.6 0.0909,0.0909 SOFT to S1/Wheel SCALE_XY (Ø80). The result is Ø 96 → 90 → 84 → 80 → 432."
+  },
+  {
+   "severity": "minor",
+   "time": "5.633-5.833 s (f169-f175)",
+   "layer": "S2/Headline (47:2219), S2/Ash (47:2221), S2/Vase/V (47:2223), /a (47:2225), /s (47:2227), /e (47:2229)",
+   "problem": "'Ash Vase' is the scene's 230 px hero type, and it leaves on a 6-frame OPACITY cross-fade. It is the only fade in the piece. Every other word ('down.', 'By hand.', '10% off') exits through its mask on IN with blur. The fade happens during the camera's wind-up and reads as a prototype fade.",
+   "fix": "Delete the S2/Headline OPACITY track and exit through the existing masks. S2/Ash TRANSLATION_Y: append @5.6 0 L · @5.7333 276 IN. S2/Ash effect:0:RADIUS: append @5.6 0 L · @5.6667 8 SOFT · @5.7333 0 L. Give S2/Vase/V, a, s and e the same keys, staggered +0.0333 s each: V 5.6333→5.7667, a 5.6667→5.8, s 5.7→5.8333, e 5.7333→5.8667. Everything clears by f176, as the fade does now, so nothing reaches the bug during the dive."
+  },
+  {
+   "severity": "minor",
+   "time": "9.367-9.533 s (f281-f286)",
+   "layer": "S3/Cream circle (47:2283), S3/Terracotta circle (47:2284), S5/Ten/1 (47:2318)",
+   "problem": "Both 3000 px circles scale to 1.35 (Ø4050), but the frame is already covered at Ø2900. The terracotta fills the frame on f283 while still accelerating (Ø 223 / 658 / 1684 / 2855 on f280-f283). The IRIS soft landing therefore happens entirely off-screen, so the bloom slams instead of landing, 5 frames before the 9.6 downbeat. After it, f284-f286 are a flat, dead field (frame diff 0.05 / 0.00 / 0.02) until the '1' shows on f287.",
+   "fix": "Set the last S3/Cream circle SCALE_XY key @9.5333 from 1.35 to 1.06,1.06, and the last S3/Terracotta circle SCALE_XY key @9.6 from 1.35 to 1.06,1.06. Computed terracotta diameters are then Ø 2242 / 2716 / 2964 on f283-f285, so the last corner closes while decelerating, on f285. The Brand bug flip on f283 stays covered (the bug needs about Ø2000). To leave no empty frame, start the '1' one frame earlier: S5/Ten/1 TRANSLATION_Y @9.5 480 L · @9.9 0 OUT, and move its blur keys by -0.0333 s (@9.5 0 · @9.5333 10 · @9.6333 0)."
+  },
+  {
+   "severity": "minor",
+   "time": "4.933-5.3 s (f148-f159)",
+   "layer": "S2/Price/$ (47:2232), S2/Price/4 (47:2234), S2/Price/8 (47:2236)",
+   "problem": "Each glyph reaches its -18 overshoot key on OUT over 0.3 s. Expo-out leaves a long tail at the apex: the '$' top sits at 872 / 872 / 871 / 874 px on f150-f153, then sinks 19-22 px over 3 frames. The overshoot reads as rise, stop, second drop, not as a spring settle.",
+   "fix": "Use a shorter, less front-loaded approach and a quicker return. S2/Price/$ TRANSLATION_Y: @0 264 L · @4.7667 264 L · @4.9667 -16 cubic:0.25,0.75,0.4,1 · @5.0667 4 SOFT · @5.1667 0 SOFT. Apply the same curve to S2/Price/4 shifted +0.0667 s (4.8333 / 5.0333 / 5.1333 / 5.2333) and to S2/Price/8 shifted +0.1333 s (4.9 / 5.1 / 5.2 / 5.3). Leave the blur keys unchanged."
+  },
+  {
+   "severity": "minor",
+   "time": "11.267-11.433 s (f338-f343)",
+   "layer": "Brand bug (47:2339)",
+   "problem": "The brand's flight into the logo is the hero move: TRANSLATION_Y 0→272 and SCALE_XY 1→3 over 11.1-11.5333 on cubic:0.7,0,0.3,1. At peak, the glyph edges travel 70-110 px per frame with no faked motion blur. Every other fast move in the piece has blur, so the logo strobes in crisp steps.",
+   "fix": "First run figma_set_effects on Brand bug to add one LAYER_BLUR with radius 0. Then key effect:0:RADIUS: @0 0 L · @11.2333 0 L · @11.3 4 SOFT · @11.3667 5 SOFT · @11.4667 0 SOFT. The peak falls on f340-f341 and the blur is back to 0 before the logo swap at 11.5083. Keep the values low, because the blur may render larger under the 3× scale."
+  },
+  {
+   "severity": "minor",
+   "time": "12.4-13.2 s and 13.667-14.4 s (f372-f396, f410-f431)",
+   "layer": "S4 · End card (47:2285), S4/Logo (47:2287), S4/URL (47:2309), S4/Footer (47:2311)",
+   "problem": "After the build, the end card's only motion is a uniform SCALE_XY 1→1.035 LINEAR over 2.87 s (about 0.2 px per frame at the edges) plus the 12→20 logo tracking drift. Mean frame diff is 0.10, half of the breath's 0.22. With one uniform push there is no parallax, so the 0.8 s before the pulse and the last 0.73 s read as a freeze frame.",
+   "fix": "Add differential drift and keep the CTA anchored. S4/Logo TRANSLATION_Y: @0 0 L · @11.5333 0 L · @14.4 -22 LINEAR. On S4/URL and S4/Footer TRANSLATION_Y, append @14.4 8 LINEAR after their landing keys (12.4667 and 12.5333). The logo and footer then separate by about 30 px over 2.9 s (about 0.3 px per frame), on top of the 1.035 push, which keeps it restrained."
+  }
+ ]
+}

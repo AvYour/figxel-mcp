@@ -1,0 +1,33 @@
+Run 2026-10-07 ~05:51 UTC, Figma desktop 126.9.11, plugin bundle advertising 48 ops (commit 3dc716e).
+Command: PYTHONIOENCODING=utf-8 <hermes venv>/python.exe spikes/live-write-probe.py   (exit 0)
+
+==============================================================================
+PHASE 2 WRITE TOOLS, LIVE ON THE OPERATOR'S CANVAS
+==============================================================================
+  create_from_spec (6-node tree): rootId=8:10019, created=6, nodeCount=6
+      built 6 nodes; paths: ['spec', 'spec.children[0]', 'spec.children[1]', 'spec.children[2]', 'spec.children[2].children[0]', 'spec.children[2].children[1]']
+      created[0] is the root: True  <- pre-order since the audit fix
+  read-back: 'figma-mcp write probe (delete me)' type=FRAME children=3 childCount=3
+      names: ['Title', 'Body', 'Row']
+  set_fills (linear gradient): updated=1, items=[{"id": "8:10019", "ok": true}]
+  set_strokes: updated=1, items=[{"id": "8:10019", "ok": true}]
+  set_corner_radius (1 real + 1 missing): updated=1, items=[{"id": "8:10019", "ok": true}, {"id": "999:999999", "ok": false, "error": "not found"}]
+  export_node PNG inline: image block=True, real PNG bytes=True
+  export_node SVG: linearGradient x1=0.0 y1=120.0 x2=400.0 y2=120.0 -> left-to-right: True  <- identity transform, measured
+  export_node saveTo: path=~\.figma-mcp\exports\probe\write-probe.png written=True
+  move_nodes (1 real + 1 missing): items=[{"id": "8:10019", "ok": true}, {"id": "999:999999", "ok": false, "error": "not found"}]
+      1 moved, 1 reported: ['not found']
+  idempotency replay: rootId same=True, replayed flag=True  <- must not have built twice
+  scan_text_nodes: 2 TEXT node(s) inside the new frame
+  set_text: id=8:10020, characters=19
+  rename_node: id=8:10020, name=Renamed Title, previousName=Title
+  delete_nodes (cleanup): deleted=1, items=[{"id": "8:10019", "ok": true}]
+      gone afterwards: True  <- canvas must look as it did before
+  partial failure: code=NODE_NOT_FOUND failedAt=spec.children[1] reported=2
+      roots on canvas: 1; unreported: 0  <- must be 0
+  delete_nodes (partial cleanup): deleted=1, items=[{"id": "8:10025", "ok": true}]
+
+==============================================================================
+  probe finished; created ids were cleaned up
+  If anything is left behind, one Ctrl+Z per call reverts it.
+==============================================================================

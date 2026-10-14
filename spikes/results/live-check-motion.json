@@ -1,0 +1,1343 @@
+{
+ "ranAt": "2026-10-13T07:25:02.623Z",
+ "frames": {
+  "probes": "82:892",
+  "stillness": "82:928",
+  "control": "82:930"
+ },
+ "rules": {
+  "vanish_mid_move": {
+   "fired": true,
+   "issue": {
+    "nodeId": "82:898",
+    "name": "vanish_mid_move",
+    "frame": 28,
+    "frames": [
+     27,
+     28
+    ],
+    "rule": "vanish_mid_move",
+    "severity": "warning",
+    "field": "SCALE_XY",
+    "detail": "visible extent 0.75 on f27, gone on f28: it pops off while still moving instead of finishing.",
+    "fix": "Change the easing of the SCALE_XY key at 1 s from cubic:0.7,0,0.84,0 to cubic:0.45,0,0.55,1: the last visible frame then shows 0.08.",
+    "t": 0.9333
+   }
+  },
+  "pop_in": {
+   "fired": true,
+   "issue": {
+    "rule": "pop_in",
+    "severity": "warning",
+    "nodeId": "82:899",
+    "name": "pop_in",
+    "field": "PATH_TRIM_END",
+    "frame": 31,
+    "frames": [
+     30,
+     31
+    ],
+    "detail": "appears on f31 already at 75 % of its size (75 px in one frame) instead of growing in.",
+    "fix": "Change the easing of the PATH_TRIM_END key at 1.1667 s from cubic:0.16,1,0.3,1 to cubic:0.65,0,0.35,1: its first visible frame then shows 4 %.",
+    "t": 1.0333
+   }
+  },
+  "concentrated_step": {
+   "fired": true,
+   "issue": {
+    "rule": "concentrated_step",
+    "severity": "warning",
+    "nodeId": "82:900",
+    "name": "concentrated_step",
+    "field": "TRANSLATION_Y",
+    "frame": 46,
+    "frames": [
+     45,
+     46
+    ],
+    "detail": "69 % of a 6-frame move (cubic:0.7,0,0.84,0) lands in one frame: 137 of 200 px, with blur 0.",
+    "fix": "Change the easing of the key at 1.5333 s from cubic:0.7,0,0.84,0 to cubic:0.45,0,0.55,1: its largest frame then carries 28 %.",
+    "t": 1.5333
+   }
+  },
+  "strobe": {
+   "fired": true,
+   "issue": {
+    "rule": "strobe",
+    "severity": "warning",
+    "nodeId": "82:901",
+    "name": "strobe",
+    "frame": 62,
+    "frames": [
+     61,
+     65
+    ],
+    "detail": "moves 200 px in one frame on f62 with blur 0 (fast from f61 to f65).",
+    "fix": "Blur the fast frames: effect:0:RADIUS (first give it a LAYER_BLUR of radius 0 with figma_set_effects) peaking at about 13 on f62, back to 0 before it must read sharp [C-243].",
+    "t": 2.0667
+   }
+  },
+  "blur_off_speed": {
+   "fired": true,
+   "issue": {
+    "rule": "blur_off_speed",
+    "severity": "warning",
+    "nodeId": "82:902",
+    "name": "blur_off_speed",
+    "frame": 80,
+    "frames": [
+     78,
+     80
+    ],
+    "detail": "its fastest frame f80 (148 px) has blur 0, but the blur peaks at 8 on f78: the blur is out of phase with the speed.",
+    "fix": "Key effect:0:RADIUS to peak on f80: @2.6 0 · @2.6667 10 · @2.7333 0 (cubic:0.45,0,0.55,1).",
+    "t": 2.6667
+   }
+  },
+  "one_frame_extreme": {
+   "fired": true,
+   "issue": {
+    "rule": "one_frame_extreme",
+    "severity": "warning",
+    "nodeId": "82:903",
+    "name": "one_frame_extreme",
+    "field": "SCALE_XY",
+    "frame": 39,
+    "frames": [
+     38,
+     40
+    ],
+    "detail": "SCALE_XY goes 1.05,1.05 → 1.1,1.1 → 1.0506,1.0506 on f38–f40: the extreme is on screen for one frame, a cusp instead of an accent.",
+    "fix": "Hold the extreme for 2–3 frames (repeat its value in a key at 1.3667 s), or ease into and out of it.",
+    "t": 1.3
+   }
+  },
+  "arrival_not_held": {
+   "fired": true,
+   "issue": {
+    "rule": "arrival_not_held",
+    "severity": "warning",
+    "nodeId": "82:904",
+    "name": "arrival_not_held",
+    "field": "SCALE_XY",
+    "frame": 20,
+    "frames": [
+     19,
+     20
+    ],
+    "detail": "arrives on f20 with 49 % of its travel in the last frame, and the arrived state is on screen 1 frame.",
+    "fix": "Land 3 frames early and hold (the 0.1,0.1 key at 0.5667 s), or decelerate into it (cubic:0.45,0,0.55,1: 2 % in the last frame).",
+    "t": 0.6667
+   }
+  },
+  "template_move": {
+   "fired": false,
+   "issue": null
+  },
+  "no_stagger": {
+   "fired": true,
+   "issue": {
+    "rule": "no_stagger",
+    "severity": "info",
+    "nodeId": "82:908",
+    "name": "no_stagger 1",
+    "field": "TRANSLATION_Y",
+    "frame": 30,
+    "detail": "3 siblings start the same TRANSLATION_Y move on f30: \"no_stagger 1\", \"no_stagger 2\", \"no_stagger 3\". They read as one block.",
+    "fix": "Stagger them by 2 frames or more each, in reading order [C-242].",
+    "t": 1
+   }
+  },
+  "unrendered_extreme": {
+   "fired": true,
+   "issue": {
+    "rule": "unrendered_extreme",
+    "severity": "warning",
+    "nodeId": "82:911",
+    "name": "unrendered_extreme",
+    "field": "SCALE_XY",
+    "frame": 31,
+    "detail": "the SCALE_XY extreme 1.3,1.3 at 1.0167 s sits 0.5 of a frame off the grid, so no frame shows it.",
+    "fix": "Move the key to 1.0333 s, a whole frame.",
+    "t": 1.0333
+   }
+  },
+  "easing_census": {
+   "fired": true,
+   "issue": {
+    "rule": "easing_census",
+    "severity": "info",
+    "nodeId": "82:912",
+    "name": "easing_census 1",
+    "frame": 0,
+    "detail": "2 layers overshoot on a stock back or spring easing: \"easing_census 1\", \"easing_census 2\". Stock overshoot reads as a preset.",
+    "fix": "Key the overshoot by hand on the one accent that earns it (a key past the target, then a settle).",
+    "t": 0
+   }
+  },
+  "hold_easing": {
+   "fired": true,
+   "issue": {
+    "rule": "hold_easing",
+    "severity": "info",
+    "nodeId": "82:914",
+    "name": "hold_easing",
+    "field": "OPACITY",
+    "frame": 30,
+    "detail": "HOLD into 0 at 1 s: Figma's own sources disagree on which side of the segment the jump lands [C-189].",
+    "fix": "Use a cut pair: @0.975 1 LINEAR · @0.995 0 LINEAR switches on f30 exactly [C-240].",
+    "t": 1
+   }
+  },
+  "beat_offset": {
+   "fired": true,
+   "issue": {
+    "rule": "beat_offset",
+    "severity": "warning",
+    "nodeId": "82:915",
+    "name": "beat_offset",
+    "field": "SCALE_XY",
+    "frame": 72,
+    "frames": [
+     72,
+     74
+    ],
+    "detail": "the punch starts on the beat (f72), so the beat frame shows nothing and its peak lands 2 frames late (f74).",
+    "fix": "Start it 2 frames earlier so the peak lands on f72: move its keys by −0.0667 s.",
+    "t": 2.4
+   }
+  },
+  "read_time": {
+   "fired": true,
+   "issue": {
+    "rule": "read_time",
+    "severity": "warning",
+    "nodeId": "82:916",
+    "name": "read_time",
+    "frame": 30,
+    "detail": "\"three little words here\" (4 words) is fully readable for 0.5 s in all; it needs 1.2 s.",
+    "fix": "Hold it opaque, still and sharp for 36 frames or more, or cut words.",
+    "t": 1
+   }
+  },
+  "rest_state_hidden": {
+   "fired": true,
+   "issue": {
+    "rule": "rest_state_hidden",
+    "severity": "info",
+    "nodeId": "82:917",
+    "name": "rest_state_hidden",
+    "frame": 0,
+    "detail": "its resting opacity is 0, so figma_export_node renders nothing for it.",
+    "fix": "Check it with figma_export_video frames, or rest it visible and hide it with keys.",
+    "t": 0
+   }
+  },
+  "timeline_end": {
+   "fired": true,
+   "issue": {
+    "rule": "timeline_end",
+    "severity": "info",
+    "nodeId": "82:918",
+    "name": "timeline_end",
+    "frame": 120,
+    "detail": "1 key after the timeline's end (4 s) never play: TRANSLATION_X @4.5.",
+    "fix": "Lengthen the timeline (figma_set_keyframes timelineDuration) or move the keys inside it.",
+    "t": 4
+   }
+  },
+  "roundcap_zero_trim": {
+   "fired": true,
+   "issue": {
+    "rule": "roundcap_zero_trim",
+    "severity": "warning",
+    "nodeId": "82:919",
+    "name": "roundcap_zero_trim",
+    "frame": 0,
+    "frames": [
+     0,
+     60
+    ],
+    "detail": "a round-capped stroke at zero length is visible on f0–f60: the caps paint a 8 px dot.",
+    "fix": "Guard it with OPACITY: 0 while its length is 0, switched on by a cut pair on the frame the draw starts [C-240].",
+    "t": 0
+   }
+  },
+  "brand_late": {
+   "fired": true,
+   "issue": {
+    "rule": "brand_late",
+    "severity": "warning",
+    "nodeId": "82:920",
+    "name": "brand_late",
+    "frame": 105,
+    "detail": "\"brand_late\" is first fully visible at 3.5 s (f105); the brief wants it by 3 s.",
+    "fix": "Show the brand fully by 3 s, even small, and let it grow later [C-235].",
+    "t": 3.5
+   }
+  },
+  "cta_short": {
+   "fired": true,
+   "issue": {
+    "rule": "cta_short",
+    "severity": "warning",
+    "nodeId": "82:921",
+    "name": "cta_short",
+    "frame": 60,
+    "frames": [
+     60,
+     89
+    ],
+    "detail": "\"cta_short\" is readable for 1 s at a stretch; a call to action needs 2.5 s.",
+    "fix": "Land the call to action earlier and hold it still for 75 frames or more [C-241].",
+    "t": 2
+   }
+  },
+  "first_key_late": {
+   "fired": true,
+   "issue": {
+    "rule": "first_key_late",
+    "severity": "warning",
+    "nodeId": "82:922",
+    "name": "first_key_late",
+    "field": "OPACITY",
+    "frame": 0,
+    "frames": [
+     0,
+     30
+    ],
+    "detail": "OPACITY has no key before 1 s, where it starts at 0 while the layer rests at 1: what Figma shows before a first key is undocumented [C-191].",
+    "fix": "Add a key at t = 0 with the value it should show there (0 to start as keyed).",
+    "t": 0
+   }
+  },
+  "clamped_morph": {
+   "fired": true,
+   "issue": {
+    "rule": "clamped_morph",
+    "severity": "info",
+    "nodeId": "82:923",
+    "name": "clamped_morph",
+    "frame": 1,
+    "frames": [
+     1,
+     120
+    ],
+    "detail": "WIDTH and HEIGHT move on different curves while the corner radius is at least half the short side: on f1 it is 64.5 × 48.8, a stadium rather than a circle [C-196].",
+    "fix": "Key WIDTH and HEIGHT with the same times and easing (or animate SCALE) while it must read as round.",
+    "t": 0.0333
+   }
+  },
+  "dead_span": {
+   "fired": true,
+   "issue": {
+    "rule": "dead_span",
+    "severity": "warning",
+    "nodeId": "82:928",
+    "name": "figma-mcp check_motion stillness (delete me)",
+    "frame": 21,
+    "frames": [
+     21,
+     50
+    ],
+    "detail": "nothing on screen moves faster than 1 px per frame on f21–f50 (1 s); the fastest is \"mover\" at 0 px per frame.",
+    "fix": "Keep something alive through it (a drift of 2 px per frame or more, or a staggered settle), or pass the span in `holds` if the stillness is the point.",
+    "t": 0.7
+   }
+  },
+  "cold_open": {
+   "fired": true,
+   "issue": {
+    "rule": "cold_open",
+    "severity": "warning",
+    "nodeId": "82:928",
+    "name": "figma-mcp check_motion stillness (delete me)",
+    "frame": 0,
+    "frames": [
+     0,
+     3
+    ],
+    "detail": "frame 0 shows only the background: every layer is hidden or at zero size.",
+    "fix": "Open on something already on screen and already moving: start the first move at t = 0, or put the first layer in place at frame 0.",
+    "t": 0
+   }
+  }
+ },
+ "control": {
+  "root": {
+   "id": "82:930",
+   "name": "figma-mcp check_motion control (delete me)",
+   "durationS": 2
+  },
+  "fps": 30,
+  "expectedFrames": 61,
+  "checked": {
+   "layers": 2,
+   "tracks": 3,
+   "keys": 6
+  },
+  "ok": true,
+  "counts": {
+   "error": 0,
+   "warning": 0,
+   "info": 1
+  },
+  "issues": [
+   {
+    "rule": "easing_census",
+    "severity": "info",
+    "nodeId": "82:931",
+    "name": "card",
+    "field": "TRANSLATION_X",
+    "frame": 0,
+    "frames": [
+     0,
+     60
+    ],
+    "detail": "a LINEAR TRANSLATION_X move of 150 px over 60 frames starts or stops at full speed on screen: it reads as mechanical.",
+    "fix": "Ease it (for example cubic:0.45,0,0.55,1), or keep LINEAR for drifts and cut pairs.",
+    "t": 0
+   }
+  ],
+  "census": {
+   "easings": {
+    "cubic:0.45,0,0.55,1": 2,
+    "LINEAR": 1
+   },
+   "offGrid": 0,
+   "cutPairs": 0,
+   "approximated": []
+  },
+  "limits": [
+   "a track is held at its first value before its first key, which is undocumented [C-191]",
+   "layout over time is not checked: base versus playhead geometry is unmeasured [C-192]",
+   "a layer covered by another layer is not detected"
+  ]
+ },
+ "stillness": {
+  "root": {
+   "id": "82:928",
+   "name": "figma-mcp check_motion stillness (delete me)",
+   "durationS": 2
+  },
+  "fps": 30,
+  "expectedFrames": 61,
+  "checked": {
+   "layers": 1,
+   "tracks": 2,
+   "keys": 8
+  },
+  "ok": false,
+  "counts": {
+   "error": 0,
+   "warning": 2,
+   "info": 0
+  },
+  "issues": [
+   {
+    "rule": "cold_open",
+    "severity": "warning",
+    "nodeId": "82:928",
+    "name": "figma-mcp check_motion stillness (delete me)",
+    "frame": 0,
+    "frames": [
+     0,
+     3
+    ],
+    "detail": "frame 0 shows only the background: every layer is hidden or at zero size.",
+    "fix": "Open on something already on screen and already moving: start the first move at t = 0, or put the first layer in place at frame 0.",
+    "t": 0
+   },
+   {
+    "rule": "dead_span",
+    "severity": "warning",
+    "nodeId": "82:928",
+    "name": "figma-mcp check_motion stillness (delete me)",
+    "frame": 21,
+    "frames": [
+     21,
+     50
+    ],
+    "detail": "nothing on screen moves faster than 1 px per frame on f21–f50 (1 s); the fastest is \"mover\" at 0 px per frame.",
+    "fix": "Keep something alive through it (a drift of 2 px per frame or more, or a staggered settle), or pass the span in `holds` if the stillness is the point.",
+    "t": 0.7
+   }
+  ],
+  "census": {
+   "easings": {
+    "cubic:0.45,0,0.55,1": 2
+   },
+   "offGrid": 0,
+   "cutPairs": 1,
+   "approximated": []
+  },
+  "limits": [
+   "a track is held at its first value before its first key, which is undocumented [C-191]",
+   "layout over time is not checked: base versus playhead geometry is unmeasured [C-192]",
+   "a layer covered by another layer is not detected"
+  ]
+ },
+ "render": {
+  "path": "~\\.figma-mcp\\exports\\wp4-check-motion.mp4",
+  "bytes": 98129,
+  "format": "MP4",
+  "mime": "video/mp4",
+  "nodeId": "82:892",
+  "exportedNodeId": "82:892",
+  "name": "figma-mcp check_motion probes (delete me)",
+  "durationS": 4,
+  "status": "done",
+  "jobId": "wp4-check-1791876306595",
+  "renderS": 135.7,
+  "fps": 30,
+  "frameCount": 121,
+  "expectedFrames": 121
+ },
+ "review": {
+  "path": "~\\.figma-mcp\\exports\\wp4-check-motion.mp4",
+  "video": {
+   "width": 540,
+   "height": 960,
+   "fps": 30,
+   "frames": 121,
+   "durationS": 4.033
+  },
+  "frameCountNote": "121 frames, as expected.",
+  "sheet": {
+   "path": "~\\.figma-mcp\\exports\\wp4-check-motion-sheet.png",
+   "every": 2,
+   "columns": 9,
+   "tiles": [
+    {
+     "index": 0,
+     "frame": 0,
+     "t": 0
+    },
+    {
+     "index": 1,
+     "frame": 2,
+     "t": 0.0667
+    },
+    {
+     "index": 2,
+     "frame": 4,
+     "t": 0.1333
+    },
+    {
+     "index": 3,
+     "frame": 6,
+     "t": 0.2
+    },
+    {
+     "index": 4,
+     "frame": 8,
+     "t": 0.2667
+    },
+    {
+     "index": 5,
+     "frame": 10,
+     "t": 0.3333
+    },
+    {
+     "index": 6,
+     "frame": 12,
+     "t": 0.4
+    },
+    {
+     "index": 7,
+     "frame": 14,
+     "t": 0.4667
+    },
+    {
+     "index": 8,
+     "frame": 16,
+     "t": 0.5333
+    },
+    {
+     "index": 9,
+     "frame": 18,
+     "t": 0.6
+    },
+    {
+     "index": 10,
+     "frame": 20,
+     "t": 0.6667
+    },
+    {
+     "index": 11,
+     "frame": 22,
+     "t": 0.7333
+    },
+    {
+     "index": 12,
+     "frame": 24,
+     "t": 0.8
+    },
+    {
+     "index": 13,
+     "frame": 26,
+     "t": 0.8667
+    },
+    {
+     "index": 14,
+     "frame": 28,
+     "t": 0.9333
+    },
+    {
+     "index": 15,
+     "frame": 30,
+     "t": 1
+    },
+    {
+     "index": 16,
+     "frame": 32,
+     "t": 1.0667
+    },
+    {
+     "index": 17,
+     "frame": 34,
+     "t": 1.1333
+    },
+    {
+     "index": 18,
+     "frame": 36,
+     "t": 1.2
+    },
+    {
+     "index": 19,
+     "frame": 38,
+     "t": 1.2667
+    },
+    {
+     "index": 20,
+     "frame": 40,
+     "t": 1.3333
+    },
+    {
+     "index": 21,
+     "frame": 42,
+     "t": 1.4
+    },
+    {
+     "index": 22,
+     "frame": 44,
+     "t": 1.4667
+    },
+    {
+     "index": 23,
+     "frame": 46,
+     "t": 1.5333
+    },
+    {
+     "index": 24,
+     "frame": 48,
+     "t": 1.6
+    },
+    {
+     "index": 25,
+     "frame": 50,
+     "t": 1.6667
+    },
+    {
+     "index": 26,
+     "frame": 52,
+     "t": 1.7333
+    },
+    {
+     "index": 27,
+     "frame": 54,
+     "t": 1.8
+    },
+    {
+     "index": 28,
+     "frame": 56,
+     "t": 1.8667
+    },
+    {
+     "index": 29,
+     "frame": 58,
+     "t": 1.9333
+    },
+    {
+     "index": 30,
+     "frame": 60,
+     "t": 2
+    },
+    {
+     "index": 31,
+     "frame": 62,
+     "t": 2.0667
+    },
+    {
+     "index": 32,
+     "frame": 64,
+     "t": 2.1333
+    },
+    {
+     "index": 33,
+     "frame": 66,
+     "t": 2.2
+    },
+    {
+     "index": 34,
+     "frame": 68,
+     "t": 2.2667
+    },
+    {
+     "index": 35,
+     "frame": 70,
+     "t": 2.3333
+    },
+    {
+     "index": 36,
+     "frame": 72,
+     "t": 2.4
+    },
+    {
+     "index": 37,
+     "frame": 74,
+     "t": 2.4667
+    },
+    {
+     "index": 38,
+     "frame": 76,
+     "t": 2.5333
+    },
+    {
+     "index": 39,
+     "frame": 78,
+     "t": 2.6
+    },
+    {
+     "index": 40,
+     "frame": 80,
+     "t": 2.6667
+    },
+    {
+     "index": 41,
+     "frame": 82,
+     "t": 2.7333
+    },
+    {
+     "index": 42,
+     "frame": 84,
+     "t": 2.8
+    },
+    {
+     "index": 43,
+     "frame": 86,
+     "t": 2.8667
+    },
+    {
+     "index": 44,
+     "frame": 88,
+     "t": 2.9333
+    },
+    {
+     "index": 45,
+     "frame": 90,
+     "t": 3
+    },
+    {
+     "index": 46,
+     "frame": 92,
+     "t": 3.0667
+    },
+    {
+     "index": 47,
+     "frame": 94,
+     "t": 3.1333
+    },
+    {
+     "index": 48,
+     "frame": 96,
+     "t": 3.2
+    },
+    {
+     "index": 49,
+     "frame": 98,
+     "t": 3.2667
+    },
+    {
+     "index": 50,
+     "frame": 100,
+     "t": 3.3333
+    },
+    {
+     "index": 51,
+     "frame": 102,
+     "t": 3.4
+    },
+    {
+     "index": 52,
+     "frame": 104,
+     "t": 3.4667
+    },
+    {
+     "index": 53,
+     "frame": 106,
+     "t": 3.5333
+    },
+    {
+     "index": 54,
+     "frame": 108,
+     "t": 3.6
+    },
+    {
+     "index": 55,
+     "frame": 110,
+     "t": 3.6667
+    },
+    {
+     "index": 56,
+     "frame": 112,
+     "t": 3.7333
+    },
+    {
+     "index": 57,
+     "frame": 114,
+     "t": 3.8
+    },
+    {
+     "index": 58,
+     "frame": 116,
+     "t": 3.8667
+    },
+    {
+     "index": 59,
+     "frame": 118,
+     "t": 3.9333
+    },
+    {
+     "index": 60,
+     "frame": 120,
+     "t": 4
+    }
+   ],
+   "labelled": true
+  },
+  "closeups": [
+   {
+    "frames": [
+     88,
+     99
+    ],
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-closeup-88-99.png"
+   },
+   {
+    "frames": [
+     100,
+     107
+    ],
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-closeup-100-107.png"
+   }
+  ],
+  "stills": [
+   {
+    "frame": 0,
+    "t": 0,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f0.png"
+   },
+   {
+    "frame": 1,
+    "t": 0.0333,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f1.png"
+   },
+   {
+    "frame": 20,
+    "t": 0.6667,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f20.png"
+   },
+   {
+    "frame": 28,
+    "t": 0.9333,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f28.png"
+   },
+   {
+    "frame": 30,
+    "t": 1,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f30.png"
+   },
+   {
+    "frame": 31,
+    "t": 1.0333,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f31.png"
+   },
+   {
+    "frame": 39,
+    "t": 1.3,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f39.png"
+   },
+   {
+    "frame": 46,
+    "t": 1.5333,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f46.png"
+   },
+   {
+    "frame": 60,
+    "t": 2,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f60.png"
+   },
+   {
+    "frame": 62,
+    "t": 2.0667,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f62.png"
+   },
+   {
+    "frame": 72,
+    "t": 2.4,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f72.png"
+   },
+   {
+    "frame": 80,
+    "t": 2.6667,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f80.png"
+   },
+   {
+    "frame": 92,
+    "t": 3.0667,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f92.png"
+   },
+   {
+    "frame": 105,
+    "t": 3.5,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f105.png"
+   },
+   {
+    "frame": 106,
+    "t": 3.5333,
+    "path": "~\\.figma-mcp\\exports\\wp4-check-motion-f106.png"
+   }
+  ],
+  "metrics": {
+   "analysisWidth": 270,
+   "diff": [
+    0,
+    1.4,
+    1.44,
+    1.08,
+    0.77,
+    0.6,
+    0.46,
+    0.4,
+    0.33,
+    0.33,
+    0.28,
+    0.28,
+    0.26,
+    0.29,
+    0.27,
+    0.36,
+    0.34,
+    0.56,
+    0.92,
+    1.44,
+    1.36,
+    0.13,
+    0.1,
+    0.14,
+    0.2,
+    0.27,
+    0.38,
+    0.55,
+    2.03,
+    0.05,
+    2.12,
+    3.13,
+    1.7,
+    1.01,
+    0.59,
+    0.38,
+    0.25,
+    0.2,
+    0.46,
+    0.46,
+    0.43,
+    0.3,
+    0.27,
+    0.39,
+    0.87,
+    2.2,
+    3.88,
+    0.75,
+    0.37,
+    0.2,
+    0.11,
+    0.06,
+    0.05,
+    0.03,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.34,
+    2.87,
+    2.19,
+    1.1,
+    0.21,
+    0.13,
+    0.1,
+    0.1,
+    0.09,
+    0.07,
+    0.06,
+    0.04,
+    0.05,
+    0.39,
+    0.47,
+    0.6,
+    0.69,
+    1.11,
+    2.07,
+    3.23,
+    2.03,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.34,
+    3.02,
+    2.15,
+    2.21,
+    1.97,
+    0.54,
+    0.02,
+    0.02,
+    0.04,
+    0.06,
+    0.1,
+    0.18,
+    0.33,
+    0.59,
+    1.08,
+    3,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02,
+    0.02
+   ],
+   "summary": {
+    "mean": 0.59,
+    "p95": 2.21,
+    "max": 3.88,
+    "maxFrame": 46
+   },
+   "freezes": [
+    {
+     "from": 105,
+     "to": 120,
+     "s": 0.53,
+     "meanDiff": 0.02
+    }
+   ],
+   "flickers": [],
+   "flashes": [],
+   "spikes": [],
+   "cuts": []
+  },
+  "findings": [
+   {
+    "kind": "freeze",
+    "severity": "warning",
+    "frames": [
+     105,
+     120
+    ],
+    "detail": "frames 105–120 (0.53 s) barely change (mean diff 0.02): a still picture past 0.5 s reads as a stall. Give it a drift, or list it in `holds` if it is meant."
+   }
+  ]
+ },
+ "steps": [
+  {
+   "label": "frames built",
+   "ok": true,
+   "why": "30 probes, 3 frames"
+  },
+  {
+   "label": "keys written",
+   "ok": true,
+   "why": "33 layers"
+  },
+  {
+   "label": "fires: vanish_mid_move",
+   "ok": true,
+   "why": "warning f28: visible extent 0.75 on f27, gone on f28: it pops off while still moving instead of finishing."
+  },
+  {
+   "label": "fires: pop_in",
+   "ok": true,
+   "why": "warning f31: appears on f31 already at 75 % of its size (75 px in one frame) instead of growing in."
+  },
+  {
+   "label": "fires: concentrated_step",
+   "ok": true,
+   "why": "warning f46: 69 % of a 6-frame move (cubic:0.7,0,0.84,0) lands in one frame: 137 of 200 px, with blur 0."
+  },
+  {
+   "label": "fires: strobe",
+   "ok": true,
+   "why": "warning f62: moves 200 px in one frame on f62 with blur 0 (fast from f61 to f65)."
+  },
+  {
+   "label": "fires: blur_off_speed",
+   "ok": true,
+   "why": "warning f80: its fastest frame f80 (148 px) has blur 0, but the blur peaks at 8 on f78: the blur is out of phase with the speed."
+  },
+  {
+   "label": "fires: one_frame_extreme",
+   "ok": true,
+   "why": "warning f39: SCALE_XY goes 1.05,1.05 → 1.1,1.1 → 1.0506,1.0506 on f38–f40: the extreme is on screen for one frame, a cusp instead of an accent."
+  },
+  {
+   "label": "fires: arrival_not_held",
+   "ok": true,
+   "why": "warning f20: arrives on f20 with 49 % of its travel in the last frame, and the arrived state is on screen 1 frame."
+  },
+  {
+   "label": "fires: template_move",
+   "ok": false,
+   "why": "no finding on its probe"
+  },
+  {
+   "label": "fires: no_stagger",
+   "ok": true,
+   "why": "info f30: 3 siblings start the same TRANSLATION_Y move on f30: \"no_stagger 1\", \"no_stagger 2\", \"no_stagger 3\". They read as one block."
+  },
+  {
+   "label": "fires: unrendered_extreme",
+   "ok": true,
+   "why": "warning f31: the SCALE_XY extreme 1.3,1.3 at 1.0167 s sits 0.5 of a frame off the grid, so no frame shows it."
+  },
+  {
+   "label": "fires: easing_census",
+   "ok": true,
+   "why": "info f0: 2 layers overshoot on a stock back or spring easing: \"easing_census 1\", \"easing_census 2\". Stock overshoot reads as a preset."
+  },
+  {
+   "label": "fires: hold_easing",
+   "ok": true,
+   "why": "info f30: HOLD into 0 at 1 s: Figma's own sources disagree on which side of the segment the jump lands [C-189]."
+  },
+  {
+   "label": "fires: beat_offset",
+   "ok": true,
+   "why": "warning f72: the punch starts on the beat (f72), so the beat frame shows nothing and its peak lands 2 frames late (f74)."
+  },
+  {
+   "label": "fires: read_time",
+   "ok": true,
+   "why": "warning f30: \"three little words here\" (4 words) is fully readable for 0.5 s in all; it needs 1.2 s."
+  },
+  {
+   "label": "fires: rest_state_hidden",
+   "ok": true,
+   "why": "info f0: its resting opacity is 0, so figma_export_node renders nothing for it."
+  },
+  {
+   "label": "fires: timeline_end",
+   "ok": true,
+   "why": "info f120: 1 key after the timeline's end (4 s) never play: TRANSLATION_X @4.5."
+  },
+  {
+   "label": "fires: roundcap_zero_trim",
+   "ok": true,
+   "why": "warning f0: a round-capped stroke at zero length is visible on f0–f60: the caps paint a 8 px dot."
+  },
+  {
+   "label": "fires: brand_late",
+   "ok": true,
+   "why": "warning f105: \"brand_late\" is first fully visible at 3.5 s (f105); the brief wants it by 3 s."
+  },
+  {
+   "label": "fires: cta_short",
+   "ok": true,
+   "why": "warning f60: \"cta_short\" is readable for 1 s at a stretch; a call to action needs 2.5 s."
+  },
+  {
+   "label": "fires: first_key_late",
+   "ok": true,
+   "why": "warning f0: OPACITY has no key before 1 s, where it starts at 0 while the layer rests at 1: what Figma shows before a first key is undocumented [C-191]."
+  },
+  {
+   "label": "fires: clamped_morph",
+   "ok": true,
+   "why": "info f1: WIDTH and HEIGHT move on different curves while the corner radius is at least half the short side: on f1 it is 64.5 × 48.8, a stadium rather than a circle [C-19…"
+  },
+  {
+   "label": "fires: dead_span",
+   "ok": true,
+   "why": "warning f21: nothing on screen moves faster than 1 px per frame on f21–f50 (1 s); the fastest is \"mover\" at 0 px per frame."
+  },
+  {
+   "label": "fires: cold_open",
+   "ok": true,
+   "why": "warning f0: frame 0 shows only the background: every layer is hidden or at zero size."
+  },
+  {
+   "label": "control frame is ok",
+   "ok": true,
+   "why": "{\"error\":0,\"warning\":0,\"info\":1}"
+  },
+  {
+   "label": "a brandId outside the frame is refused",
+   "ok": true,
+   "why": "INVALID_PARAM: `brandId` 82:929 is not inside \"figma-mcp check_motion probes (delete me)\".\nPass a layer of the audited frame; figma_get_motion_context lists the…"
+  },
+  {
+   "label": "render the probes",
+   "ok": true,
+   "why": "~\\.figma-mcp\\exports\\wp4-check-motion.mp4"
+  },
+  {
+   "label": "figma_review_video on the render",
+   "ok": true,
+   "why": "{\"mean\":0.59,\"p95\":2.21,\"max\":3.88,\"maxFrame\":46}"
+  },
+  {
+   "label": "[C-194] the render holds expectedFrames",
+   "ok": true,
+   "why": "121 frames, audit expects 121"
+  },
+  {
+   "label": "delete the probe frames",
+   "ok": true,
+   "why": "82:892, 82:928, 82:930"
+  }
+ ],
+ "audit": {
+  "counts": {
+   "error": 0,
+   "warning": 20,
+   "info": 23
+  },
+  "checked": {
+   "layers": 35,
+   "tracks": 38,
+   "keys": 112
+  },
+  "expectedFrames": 121,
+  "limits": [
+   "easings evaluated approximately: EASE_OUT_BACK [C-190]",
+   "HOLD is evaluated as keeping the old value until its key; Figma's sources disagree [C-189]",
+   "a track is held at its first value before its first key, which is undocumented [C-191]",
+   "layout over time is not checked: base versus playhead geometry is unmeasured [C-192]",
+   "a layer covered by another layer is not detected"
+  ],
+  "census": {
+   "easings": {
+    "cubic:0.7,0,0.84,0": 5,
+    "cubic:0.16,1,0.3,1": 14,
+    "LINEAR": 8,
+    "cubic:0.45,0,0.55,1": 2,
+    "cubic:0.33,0,0.67,1": 2,
+    "EASE_OUT_BACK": 2,
+    "cubic:0.65,0,0.35,1": 1
+   },
+   "offGrid": 1,
+   "cutPairs": 9,
+   "approximated": [
+    "EASE_OUT_BACK"
+   ]
+  }
+ },
+ "calibration": {
+  "strobe 60px": [
+   {
+    "rule": "easing_census",
+    "severity": "info",
+    "nodeId": "82:924",
+    "name": "strobe 60px",
+    "field": "TRANSLATION_X",
+    "frame": 90,
+    "frames": [
+     90,
+     95
+    ],
+    "detail": "a LINEAR TRANSLATION_X move of 300 px over 5 frames starts or stops at full speed on screen: it reads as mechanical.",
+    "fix": "Ease it (for example cubic:0.45,0,0.55,1), or keep LINEAR for drifts and cut pairs.",
+    "t": 3
+   }
+  ],
+  "strobe 150px": [
+   {
+    "rule": "strobe",
+    "severity": "warning",
+    "nodeId": "82:925",
+    "name": "strobe 150px",
+    "frame": 92,
+    "frames": [
+     91,
+     94
+    ],
+    "detail": "moves 150 px in one frame on f92 with blur 0 (fast from f91 to f94).",
+    "fix": "Blur the fast frames: effect:0:RADIUS (first give it a LAYER_BLUR of radius 0 with figma_set_effects) peaking at about 10 on f92, back to 0 before it must read sharp [C-243].",
+    "t": 3.0667
+   },
+   {
+    "rule": "easing_census",
+    "severity": "info",
+    "nodeId": "82:925",
+    "name": "strobe 150px",
+    "field": "TRANSLATION_X",
+    "frame": 90,
+    "frames": [
+     90,
+     94
+    ],
+    "detail": "a LINEAR TRANSLATION_X move of 600 px over 4 frames starts or stops at full speed on screen: it reads as mechanical.",
+    "fix": "Ease it (for example cubic:0.45,0,0.55,1), or keep LINEAR for drifts and cut pairs.",
+    "t": 3
+   }
+  ],
+  "strobe 400px blur 12": [],
+  "wheel collapse": [
+   {
+    "rule": "concentrated_step",
+    "severity": "warning",
+    "nodeId": "82:927",
+    "name": "wheel collapse",
+    "field": "SCALE_XY",
+    "frame": 105,
+    "frames": [
+     104,
+     105
+    ],
+    "detail": "49 % of a 10-frame move (cubic:0.7,0,0.84,0) lands in one frame: 24 of 50 px, with blur 0.",
+    "fix": "Change the easing of the key at 3.5 s from cubic:0.7,0,0.84,0 to cubic:0.45,0,0.55,1: its largest frame then carries 18 %.",
+    "t": 3.5
+   },
+   {
+    "rule": "blur_off_speed",
+    "severity": "warning",
+    "nodeId": "82:927",
+    "name": "wheel collapse",
+    "frame": 105,
+    "frames": [
+     104,
+     105
+    ],
+    "detail": "its fastest frame f105 (35 px) has blur 0, but the blur peaks at 8 on f104: the blur is out of phase with the speed.",
+    "fix": "Key effect:0:RADIUS to peak on f105: @3.4333 0 · @3.5 8 · @3.5667 0 (cubic:0.45,0,0.55,1).",
+    "t": 3.5
+   }
+  ]
+ }
+}

@@ -1,0 +1,105 @@
+{
+ "lens": "Technical QA (finishing editor): frame-by-frame defects, leaks, overlaps, z-order, mask edges, flicker, keyframe jumps, first and last frames, timeline length, render artefacts",
+ "verdict": "fix",
+ "score": 7,
+ "findings": [
+  {
+   "severity": "major",
+   "time": "3.367-3.533 s (f101-f106)",
+   "layer": "S1/Iris, S1/Hands, S1/Cream band, S1/Clay band",
+   "problem": "The reverse stacked iris does not close. It strobes. Each close is a 5-frame IN (cubic:0.7,0,0.84,0), so on its last visible frame each layer is still 60-75% of full size, and it vanishes on the next frame. Measured against the keys and the render: Iris WIDTH is 602 at f103 and 3 at f104; Cream band scale is 0.753 at f104 and 0.003 at f105; Clay band scale is 0.753 at f105 and 0.003 at f106. The centre of the wheel changes colour every frame: dark photo (f103), a page-cream hole that reads as a white donut flash (f104, mean frame diff 27.5, the largest spike in the piece outside the f180 cut and the bloom), a beige disc (f105), then solid terracotta (f106). The open at f72-f79 reads as concentric growth. The close reads as four 1-frame pops.",
+   "fix": "Close each layer with SOFT (cubic:0.45,0,0.55,1) over 7 frames and keep the 1-frame offsets, so each layer is at 5-7% size on its last visible frame. The OPACITY guards stay as they are. S1/Iris WIDTH and HEIGHT: @3.2333 800 L, then @3.4667 2 SOFT (replaces @3.3 800 L, @3.4667 2 IN). S1/Iris CORNER_RADIUS: @3.2333 400 L, then @3.4667 1 SOFT. S1/Iris TRANSLATION_XY: @3.2333 0,0 L, then @3.4667 399,399 SOFT. S1/Hands TRANSLATION_XY: @3.2333 0,0 L, then @3.4667 -399,-399 SOFT. S1/Iris effect:0:RADIUS: @3.3 0 L, then @3.4 8 SOFT. S1/Cream band SCALE_XY: @3.3 1,1 L, then @3.5 0.0025,0.0025 SOFT (was @3.3333 L, @3.5 IN). S1/Clay band SCALE_XY: @3.3333 1,1 L, then @3.5333 0.0025,0.0025 SOFT (was @3.3667 L, @3.5333 IN). Expected result: three concentric discs shrinking into the centre, mirroring the f72-f79 burst."
+  },
+  {
+   "severity": "major",
+   "time": "3.567-3.633 s (f107-f109)",
+   "layer": "S1/Wheel to S2/Band window (dot handoff)",
+   "problem": "The match-cut dot is on screen for exactly one frame, and the circle's path kinks. S1/Wheel collapses on IN (fastest at the end), and S2/Band window bursts on OUT (fastest at the start). Diameter goes 505, 96, 450 across f107-f109, and the centre x goes 454, 384, 439, so the circle shrinks and jolts left, then grows and jolts back right. That reads as a 1-frame blink, not 'collapses to a dot on the vase belly'. The f108 frame itself is pixel-clean.",
+   "fix": "Decelerate into the dot and hold it for 2 frames. S1/Wheel: change the easing of the last SCALE_XY key (@3.6 0.1091,0.1091) and the last TRANSLATION_XY key (@3.6 -156,110) from IN to cubic:0.6,0,0.3,1. Move its blur to the middle of the move: effect:0:RADIUS @3.3667 0 L, @3.4667 8 SOFT, @3.5667 0 SOFT, @3.6 0 L. S2/Band window: WIDTH @3.6 96 L, @3.6667 88 QOUT, @4.1667 1080 OUT. HEIGHT @3.6 96 L, @3.6667 88 QOUT, @4.1667 1040 OUT. TRANSLATION_XY @3.6 336,592 L, @3.6667 340,596 QOUT, @4.1667 0,0 OUT. CORNER_RADIUS @3.6 48 L, @3.6667 44 QOUT, @4.1667 520 OUT, @4.3667 0 QOUT. effect:0:RADIUS @3.6667 0 L, @3.7 10 L, @3.8333 0 SOFT. S2/Push TRANSLATION_XY: @3.6 -336,-592 L, @3.6667 -340,-596 QOUT, @4.1667 0,0 OUT. Shift every key of S2/Plate terracotta, S2/Plate clay, S2/Ash and S2/Vase/V, a, s and e by +0.0667 s. The container cut pairs stay at f108 and f109."
+  },
+  {
+   "severity": "minor",
+   "time": "3.333-3.367 s (f100-f101)",
+   "layer": "S1/Ring path",
+   "problem": "The ring pops off. PATH_TRIM_START runs on IN from 3.1333 to 3.3667, so at f100 the ring is still about 63% long (trim start 0.372). The OPACITY guard then cuts it at f101 (3.3417 to 3.3617). A 3 px stroke round a Ø956 circle vanishes in one frame.",
+   "fix": "S1/Ring path PATH_TRIM_START: change the easing of the @3.3667 1 key from IN to DRAW (cubic:0.65,0,0.35,1). At f100 the tail is then at about 0.96, so the guard cut at f101 is invisible. Keep the OPACITY guard as it is."
+  },
+  {
+   "severity": "minor",
+   "time": "11.133-11.167 s (f334-f335)",
+   "layer": "S5/Loop path",
+   "problem": "Same mechanism as the ring. The loop's PATH_TRIM_START runs on IN, so at f334 a 6 px cream stroke covering about 63% of the ellipse is still on screen. The OPACITY guard (11.1417 to 11.1617) removes it whole at f335. Confirmed in the render: f334 shows the arc from 9 o'clock to 5 o'clock, and f335 shows nothing.",
+   "fix": "S5/Loop path PATH_TRIM_START: change the easing of the @11.1667 1 key from IN to DRAW (cubic:0.65,0,0.35,1), which gives about 0.96 at f334. Keep the guard."
+  },
+  {
+   "severity": "minor",
+   "time": "2.167-2.2 s (f65-f66)",
+   "layer": "S1/Window",
+   "problem": "The image slit snaps shut in one frame instead of closing. HEIGHT runs 560 to 0 on IN, so it is about 298 px tall at f65 and 0 at f66, where the OPACITY guard also cuts. The last frame of the close carries 53% of the travel.",
+   "fix": "S1/Window HEIGHT: change the easing of the @2.2 0 key from IN to SOFT (cubic:0.45,0,0.55,1), which gives about 40 px at f65. The blur ramp (@2.1 0 L, @2.1667 10 SOFT) and the guard at f66 stay."
+  },
+  {
+   "severity": "minor",
+   "time": "5.867-5.967 s (f176-f179)",
+   "layer": "S2/Headline vs Brand bug",
+   "problem": "An overlap during the dive. As S2/Content scales up round the vase, the 230 px 'Ash Vase' headline rises into the band where the topmost Brand bug sits. At f177 the sharp ink 'Moku' sits between 'Ash' and 'Vase' and overlaps the 'V' ('Ash Moku Vase'). At f178 it sits on the cut-off headline. The z-order is as specified, but two wordmarks collide for 3 frames.",
+   "fix": "Fade the headline out before the collision. Add OPACITY to S2/Headline (a FRAME with resting opacity 1, currently unkeyed): @0 1, @5.6333 1 L, @5.8333 0 SOFT. The headline is gone by f175, and the vase photo carries the push alone."
+  },
+  {
+   "severity": "minor",
+   "time": "5.967-6.033 s (f179-f181)",
+   "layer": "S2/Content to S3/Content (push-through)",
+   "problem": "The push-through brakes at the cut. It is not velocity-matched as the spec claims. S2's last visible step is x1.27 per frame (1.50 at f178, 1.91 at f179). S3's first step is x1.08 (0.82 at f180, 0.885 at f181). The blur drops from 18 to about 7 one frame after the cut. The forward motion visibly decelerates by about 3x across the cut.",
+   "fix": "Start S3 further back and drain its blur more slowly. S3/Content SCALE_XY: @0 0.66,0.66, @6 0.66,0.66 L, @6.5 1,1 OUT; the first step becomes x1.18, then x1.11. S3/Content effect:0:RADIUS: @0 18, @6 18 L, @6.3 0 OUT. S3/BG is not scaled, so no border appears."
+  },
+  {
+   "severity": "minor",
+   "time": "11.3-11.333 s (f339-f340)",
+   "layer": "Brand bug",
+   "problem": "The logo flight jumps mid-move. WHIP (cubic:0.83,0,0.17,1) over 13 frames puts a scale step from 1.63 to 2.37 and 102 px of TRANSLATION_Y into the single frame f339 to f340, with no blur. The sharpest element in the frame visibly pops halfway through its flight. The landing and the f346 logo swap are clean.",
+   "fix": "Spread the move: change the easing of the @11.5333 keys of Brand bug SCALE_XY (3,3) and TRANSLATION_Y (272) from WHIP to cubic:0.7,0,0.3,1. Alternatively, keep WHIP and fake the blur: figma_set_effects LAYER_BLUR radius 0 on Brand bug, then effect:0:RADIUS @0 0, @11.2667 0 L, @11.3333 6 SOFT, @11.4 0 SOFT (it returns to 0 well before the f346 swap)."
+  },
+  {
+   "severity": "minor",
+   "time": "13.233-13.833 s (f397-f415)",
+   "layer": "S5/Ripple",
+   "problem": "The ripple is hidden, then too thin. S5/Ripple sits beneath S5/Field and starts at the pill's rest size (640 x 120). At f397 and f398 it is 640 and 671 wide while the punched pill is 686 and 691, so it is covered. It only clears the pill from f400, when its stroke has already thinned to 1.6, then 1.0 px and is fading. On ink, a 1-2 px terracotta hairline breaks into crawling dots after Instagram's re-encode. The CTA's final pulse loses its ring.",
+   "fix": "Start the ripple outside the punched pill, and thicker. WIDTH: @0 700, @13.2667 700 L, @13.8333 800 OUT. HEIGHT: @0 180, @13.2667 180 L, @13.8333 280 OUT. TRANSLATION_XY: @0 -30,-30, @13.2667 -30,-30 L, @13.8333 -80,-80 OUT. CORNER_RADIUS: @0 90, @13.2667 90 L, @13.8333 140 OUT. STROKE_WEIGHT: @0 6, @13.2667 6 L, @13.8333 2 OUT. OPACITY: @0 0, @13.2417 0 L, @13.2617 1 L, @13.4 1 L, @13.8333 0 FADE."
+  },
+  {
+   "severity": "minor",
+   "time": "13.267-13.3 s (f398-f399) and 13.8-13.833 s (f414-f415)",
+   "layer": "S5/Arrow",
+   "problem": "Both arrow nudges are 1-frame jumps. A 3-frame expo-out puts about 90% of the travel in the first frame: 0 to 12.6 px at f398 to f399, and 0 to 9 px at f414 to f415. They read as a twitch, not a nudge.",
+   "fix": "S5/Arrow TRANSLATION_X: @0 0, @13.2667 0 L, @13.4 14 QOUT (cubic:0.3,0,0.2,1), @13.6 0 SOFT, @13.8 0 L, @13.9333 10 QOUT, @14.1333 0 SOFT."
+  },
+  {
+   "severity": "minor",
+   "time": "11.633-11.8 s (f350-f354)",
+   "layer": "S5/Arrow shaft, S5/Arrow head",
+   "problem": "The arrow pops on instead of drawing. The shaft's OPACITY guard turns on at f350, when PATH_TRIM_END is already 0.75 (a 5-frame OUT). The head turns on at f353 already at 0.83. For three frames the label reads 'Shop the collection -' (a dash), then the head appears whole.",
+   "fix": "S5/Arrow shaft PATH_TRIM_END: @11.6333 0 L, @11.8667 1 DRAW (the guard stays at f350, where the shaft is then about 2% long). S5/Arrow head PATH_TRIM_END: @0 0, @11.8 0 L, @11.9667 1 DRAW. Move the head's OPACITY guard to @11.8083 0 L, @11.8283 1 L (on at f355)."
+  },
+  {
+   "severity": "minor",
+   "time": "2.533 s (f76)",
+   "layer": "S1/Iris",
+   "problem": "A 1-frame speck. The Iris OPACITY guard turns on at f76 (2.5083 to 2.5283), while WIDTH and HEIGHT are still 2. A 2 x 2 px dark photo dot sits dead centre on the cream disc for one frame, before the iris jumps to about 287 px at f77.",
+   "fix": "Move the S1/Iris OPACITY guard one frame later: @0 0, @2.5417 0 L, @2.5617 1 L (on at f77). The close guard (@3.4417, @3.4617) stays."
+  },
+  {
+   "severity": "minor",
+   "time": "5.6-5.7 s (f168-f171)",
+   "layer": "S2/Push, S2/Type",
+   "problem": "The S2 drifts stop dead at 5.6, the same moment S2/Content's IN dive starts from zero velocity, so f168-f171 are nearly frozen. f169 is the stillest frame in the whole render (mean diff 0.04, max 6). The 'anticipation' is a stall.",
+   "fix": "Carry the drift through the start of the dive. S2/Push SCALE_XY: add @6.0 1.05,1.05 L after @5.6 1.04,1.04. S2/Type TRANSLATION_Y: add @6.0 -15 L after @5.6 -12."
+  },
+  {
+   "severity": "minor",
+   "time": "14.4 s (f432)",
+   "layer": "Moku — IG Story Ad v2 (motion) (export)",
+   "problem": "The export is one frame longer than the timeline. The MP4 has 433 frames (f0-f432, 14.433 s) because Figma renders the t = 14.4 endpoint; the spec calls for 432 frames (f0-f431). f432 is only the logo drift continuing (diff 0.03 against f431), so it is clean but off-spec.",
+   "fix": "No keyframe change. Trim at delivery with ffmpeg -frames:v 432 (re-encode), or accept 14.433 s and correct the frame count in the spec's tempo and E.1 sections."
+  }
+ ]
+}

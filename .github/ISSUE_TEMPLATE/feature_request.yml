@@ -1,0 +1,52 @@
+name: Feature request
+description: A new tool, a skill improvement, support for an AI app, or anything else Figxel should do.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. The tool catalog ([tools.md](https://github.com/AvYour/figxel-mcp/blob/main/docs/reference/tools.md)) lists what exists, what is out of a plugin's reach, and the candidates already considered; please check it first.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you or your agent are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: The behaviour you would like. For a new tool, its parameters and what it returns, if you have an idea.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - A new or changed tool
+        - Agent skills or prompts
+        - Setup and AI app support
+        - FigJam or Figma Slides
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Other tools, workarounds, or how the official Figma MCP server or another project handles it.
+  - type: textarea
+    id: sources
+    attributes:
+      label: Figma API references
+      description: If the idea depends on a Figma Plugin API capability, link the page that documents it. New external facts get an entry in the claim registry before the docs rely on them.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I would like to work on this myself (see CONTRIBUTING.md).

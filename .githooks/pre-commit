@@ -1,0 +1,43 @@
+#!/bin/sh
+# Pre-commit gate. Runs three checks; any failure blocks the commit.
+#
+#   node scripts/check-docs.mjs    links, anchors, tool counts, figma_* names
+#   node scripts/check-claims.mjs  claim IDs, statuses, sources, dates
+#   node scripts/check-language.mjs  everything is English (AGENTS.md § Language)
+#   node scripts/lock-docs.mjs     the documentation surface is unchanged
+#
+# The point of the third one: once these documents are agreed, they must not
+# drift. If a change is intentional, re-lock it first:
+#
+#   node scripts/lock-docs.mjs --update
+#
+# Escape hatch, if you really need it: git commit --no-verify
+# (Nothing can prevent that — a lock that lies about being unbreakable is
+# worse than one that admits the door.)
+
+set -e
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found on PATH — skipping doc checks"
+  exit 0
+fi
+
+run() {
+  printf 'pre-commit: %s ... ' "$1"
+  if node "$2" >/tmp/pre-commit-out 2>&1; then
+    echo "ok"
+  else
+    echo "FAILED"
+    echo
+    cat /tmp/pre-commit-out
+    echo
+    echo "Commit blocked. Fix the problem above, re-lock if the change was intentional,"
+    echo "or bypass once with: git commit --no-verify"
+    exit 1
+  fi
+}
+
+run "check-docs"     "scripts/check-docs.mjs"
+run "check-claims"   "scripts/check-claims.mjs"
+run "check-language" "scripts/check-language.mjs"
+run "lock-docs"      "scripts/lock-docs.mjs"

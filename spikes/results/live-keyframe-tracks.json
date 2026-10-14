@@ -1,0 +1,977 @@
+{
+  "startedAt": "2026-10-13T07:49:33.723Z",
+  "phases": [
+    {
+      "label": "A: fresh frame",
+      "map": {
+        "sameSync": "82:1870",
+        "sameYield": "82:1871",
+        "freshHandle": "82:1872",
+        "realHandle": "82:1873",
+        "keepIds": "82:1874",
+        "setter": "82:1875",
+        "adds": "82:1876",
+        "tool": "82:1877",
+        "removeSync": "82:1878",
+        "toolRemove": "82:1879"
+      },
+      "notes": {
+        "sameSync": {
+          "handleId": "82:1870",
+          "seq": [
+            {
+              "step": "before",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "OPACITY",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                10,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "TRANSLATION_X",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "ROTATION",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                33.000000918308665
+              ]
+            }
+          ],
+          "ids": [
+            "82:2326",
+            "82:2336"
+          ]
+        },
+        "sameYield": {
+          "handleId": "82:1871",
+          "seq": [
+            {
+              "step": "before",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "OPACITY",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                10,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "TRANSLATION_X",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "ROTATION",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                33.000000918308665
+              ]
+            }
+          ]
+        },
+        "freshHandle": {
+          "seq": [
+            {
+              "step": "OPACITY",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "TRANSLATION_X",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "ROTATION",
+              "tl": "82:1869/1"
+            }
+          ]
+        },
+        "realHandle": {
+          "handleId": "82:1873",
+          "realId": "82:1873",
+          "sameObject": true
+        },
+        "keepIds": {
+          "errors": []
+        },
+        "setter": {
+          "error": null
+        },
+        "adds": {
+          "before": {
+            "cornerRadius": 0,
+            "opacity": 1
+          },
+          "after": {
+            "cornerRadius": 0,
+            "opacity": 1
+          },
+          "echo": [
+            12,
+            21,
+            1.5
+          ]
+        },
+        "tool": {
+          "ok": true,
+          "timeline": {
+            "id": "82:1869",
+            "duration": 1,
+            "topLevelFrameId": "82:1869"
+          },
+          "tracks": [
+            {
+              "field": "OPACITY",
+              "status": "written",
+              "last": "0.25"
+            },
+            {
+              "field": "TRANSLATION_X",
+              "status": "written",
+              "last": "77"
+            },
+            {
+              "field": "ROTATION",
+              "status": "written",
+              "last": "33"
+            }
+          ]
+        },
+        "removeSync": {
+          "echo": [
+            "ROTATION"
+          ]
+        },
+        "toolRemove": {
+          "ok": true,
+          "removed": [
+            "OPACITY",
+            "TRANSLATION_X"
+          ],
+          "remaining": [
+            "ROTATION"
+          ]
+        }
+      },
+      "rows": {
+        "sameSync": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "sameYield": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "freshHandle": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "realHandle": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "keepIds": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "setter": {
+          "tl": "82:1869/1",
+          "verdict": "OPACITY=old TRANSLATION_X=old ROTATION=old",
+          "values": {
+            "OPACITY": 0.5,
+            "TRANSLATION_X": 10,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "adds": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.5,
+            "TRANSLATION_X": 10,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": 12,
+            "TRANSLATION_Y": 21,
+            "SCALE_X": 1.5
+          },
+          "kept": "OPACITY=old TRANSLATION_X=old ROTATION=old"
+        },
+        "tool": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "removeSync": {
+          "tl": "82:1869/1",
+          "verdict": "all-removed",
+          "values": {
+            "OPACITY": null,
+            "TRANSLATION_X": null,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "toolRemove": {
+          "tl": "82:1869/1",
+          "verdict": "all-removed",
+          "values": {
+            "OPACITY": null,
+            "TRANSLATION_X": null,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        }
+      },
+      "rekey": {
+        "session": 82,
+        "frameHandleId": "82:1869",
+        "frameRestId": "82:1869",
+        "childTimeline": "82:1869/1",
+        "childTopLevelFrame": "82:1869",
+        "playhead": "none",
+        "firstOpacity": 1,
+        "rekeyed": 0,
+        "of": 24,
+        "sample": []
+      }
+    },
+    {
+      "label": "B: after png + layer + video + play",
+      "map": {
+        "sameSync": "82:1884",
+        "sameYield": "82:1885",
+        "freshHandle": "82:1886",
+        "realHandle": "82:1887",
+        "keepIds": "82:1888",
+        "setter": "82:1889",
+        "adds": "82:1890",
+        "tool": "82:1891",
+        "removeSync": "82:1892",
+        "toolRemove": "82:1893"
+      },
+      "notes": {
+        "sameSync": {
+          "handleId": "82:1884",
+          "seq": [
+            {
+              "step": "before",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "OPACITY",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                10,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "TRANSLATION_X",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "ROTATION",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                33.000000918308665
+              ]
+            }
+          ],
+          "ids": [
+            "82:2453",
+            "82:2463"
+          ]
+        },
+        "sameYield": {
+          "handleId": "82:1885",
+          "seq": [
+            {
+              "step": "before",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "OPACITY",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                10,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "TRANSLATION_X",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                4.99999985454646
+              ]
+            },
+            {
+              "step": "ROTATION",
+              "tl": "82:1869/1",
+              "echo": [
+                0.25,
+                77,
+                33.000000918308665
+              ]
+            }
+          ]
+        },
+        "freshHandle": {
+          "seq": [
+            {
+              "step": "OPACITY",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "TRANSLATION_X",
+              "tl": "82:1869/1"
+            },
+            {
+              "step": "ROTATION",
+              "tl": "82:1869/1"
+            }
+          ]
+        },
+        "realHandle": {
+          "handleId": "82:1887",
+          "realId": "82:1887",
+          "sameObject": true
+        },
+        "keepIds": {
+          "errors": []
+        },
+        "setter": {
+          "error": null
+        },
+        "adds": {
+          "before": {
+            "cornerRadius": 0,
+            "opacity": 1
+          },
+          "after": {
+            "cornerRadius": 0,
+            "opacity": 1
+          },
+          "echo": [
+            12,
+            21,
+            1.5
+          ]
+        },
+        "tool": {
+          "ok": true,
+          "timeline": {
+            "id": "82:1869",
+            "duration": 1,
+            "topLevelFrameId": "82:1869"
+          },
+          "tracks": [
+            {
+              "field": "OPACITY",
+              "status": "written",
+              "last": "0.25"
+            },
+            {
+              "field": "TRANSLATION_X",
+              "status": "written",
+              "last": "77"
+            },
+            {
+              "field": "ROTATION",
+              "status": "written",
+              "last": "33"
+            }
+          ]
+        },
+        "removeSync": {
+          "echo": [
+            "ROTATION"
+          ]
+        },
+        "toolRemove": {
+          "ok": true,
+          "removed": [
+            "OPACITY",
+            "TRANSLATION_X"
+          ],
+          "remaining": [
+            "ROTATION"
+          ]
+        }
+      },
+      "rows": {
+        "sameSync": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "sameYield": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "freshHandle": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "realHandle": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "keepIds": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "setter": {
+          "tl": "82:1869/1",
+          "verdict": "OPACITY=old TRANSLATION_X=old ROTATION=old",
+          "values": {
+            "OPACITY": 0.5,
+            "TRANSLATION_X": 10,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "adds": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.5,
+            "TRANSLATION_X": 10,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": 12,
+            "TRANSLATION_Y": 21,
+            "SCALE_X": 1.5
+          },
+          "kept": "OPACITY=old TRANSLATION_X=old ROTATION=old"
+        },
+        "tool": {
+          "tl": "82:1869/1",
+          "verdict": "all-new",
+          "values": {
+            "OPACITY": 0.25,
+            "TRANSLATION_X": 77,
+            "ROTATION": 33.000000918308665,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "removeSync": {
+          "tl": "82:1869/1",
+          "verdict": "all-removed",
+          "values": {
+            "OPACITY": null,
+            "TRANSLATION_X": null,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        },
+        "toolRemove": {
+          "tl": "82:1869/1",
+          "verdict": "all-removed",
+          "values": {
+            "OPACITY": null,
+            "TRANSLATION_X": null,
+            "ROTATION": 4.99999985454646,
+            "CORNER_RADIUS": null,
+            "TRANSLATION_Y": null,
+            "SCALE_X": null
+          }
+        }
+      },
+      "rekey": {
+        "session": 82,
+        "frameHandleId": "82:1869",
+        "frameRestId": "82:1869",
+        "childTimeline": "82:1869/1",
+        "childTopLevelFrame": "82:1869",
+        "playhead": "none",
+        "firstOpacity": 1,
+        "rekeyed": 0,
+        "of": 24,
+        "sample": []
+      }
+    }
+  ],
+  "triggers": [
+    {
+      "trigger": "png",
+      "ok": true,
+      "ms": 269,
+      "rekey": {
+        "session": 82,
+        "frameHandleId": "82:1869",
+        "frameRestId": "82:1869",
+        "childTimeline": "82:1869/1",
+        "childTopLevelFrame": "82:1869",
+        "playhead": "none",
+        "firstOpacity": 1,
+        "rekeyed": 0,
+        "of": 24,
+        "sample": []
+      },
+      "sameSync": {
+        "tl": "82:1869/1",
+        "verdict": "all-new",
+        "values": {
+          "OPACITY": 0.25,
+          "TRANSLATION_X": 77,
+          "ROTATION": 33.000000918308665,
+          "CORNER_RADIUS": null,
+          "TRANSLATION_Y": null,
+          "SCALE_X": null
+        }
+      },
+      "note": {
+        "handleId": "82:1880",
+        "seq": [
+          {
+            "step": "before",
+            "tl": "82:1869/1"
+          },
+          {
+            "step": "OPACITY",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              10,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "TRANSLATION_X",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "ROTATION",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              33.000000918308665
+            ]
+          }
+        ],
+        "ids": [
+          "82:2382",
+          "82:2392"
+        ]
+      }
+    },
+    {
+      "trigger": "layer",
+      "ok": true,
+      "ms": 373,
+      "rekey": {
+        "session": 82,
+        "frameHandleId": "82:1869",
+        "frameRestId": "82:1869",
+        "childTimeline": "82:1869/1",
+        "childTopLevelFrame": "82:1869",
+        "playhead": "none",
+        "firstOpacity": 1,
+        "rekeyed": 0,
+        "of": 24,
+        "sample": []
+      },
+      "sameSync": {
+        "tl": "82:1869/1",
+        "verdict": "all-new",
+        "values": {
+          "OPACITY": 0.25,
+          "TRANSLATION_X": 77,
+          "ROTATION": 33.000000918308665,
+          "CORNER_RADIUS": null,
+          "TRANSLATION_Y": null,
+          "SCALE_X": null
+        }
+      },
+      "note": {
+        "handleId": "82:1881",
+        "seq": [
+          {
+            "step": "before",
+            "tl": "82:1869/1"
+          },
+          {
+            "step": "OPACITY",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              10,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "TRANSLATION_X",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "ROTATION",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              33.000000918308665
+            ]
+          }
+        ],
+        "ids": [
+          "82:2394",
+          "82:2404"
+        ]
+      }
+    },
+    {
+      "trigger": "video",
+      "ok": true,
+      "ms": 18801,
+      "rekey": {
+        "session": 82,
+        "frameHandleId": "82:1869",
+        "frameRestId": "82:1869",
+        "childTimeline": "82:1869/1",
+        "childTopLevelFrame": "82:1869",
+        "playhead": "none",
+        "firstOpacity": 1,
+        "rekeyed": 0,
+        "of": 24,
+        "sample": []
+      },
+      "sameSync": {
+        "tl": "82:1869/1",
+        "verdict": "all-new",
+        "values": {
+          "OPACITY": 0.25,
+          "TRANSLATION_X": 77,
+          "ROTATION": 33.000000918308665,
+          "CORNER_RADIUS": null,
+          "TRANSLATION_Y": null,
+          "SCALE_X": null
+        }
+      },
+      "note": {
+        "handleId": "82:1882",
+        "seq": [
+          {
+            "step": "before",
+            "tl": "82:1869/1"
+          },
+          {
+            "step": "OPACITY",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              10,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "TRANSLATION_X",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "ROTATION",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              33.000000918308665
+            ]
+          }
+        ],
+        "ids": [
+          "82:2431",
+          "82:2441"
+        ]
+      }
+    },
+    {
+      "trigger": "play",
+      "ok": false,
+      "ms": 300780,
+      "rekey": {
+        "session": 82,
+        "frameHandleId": "82:1869",
+        "frameRestId": "82:1869",
+        "childTimeline": "82:1869/1",
+        "childTopLevelFrame": "82:1869",
+        "playhead": "none",
+        "firstOpacity": 1,
+        "rekeyed": 0,
+        "of": 24,
+        "sample": []
+      },
+      "sameSync": {
+        "tl": "82:1869/1",
+        "verdict": "all-new",
+        "values": {
+          "OPACITY": 0.25,
+          "TRANSLATION_X": 77,
+          "ROTATION": 33.000000918308665,
+          "CORNER_RADIUS": null,
+          "TRANSLATION_Y": null,
+          "SCALE_X": null
+        }
+      },
+      "note": {
+        "handleId": "82:1883",
+        "seq": [
+          {
+            "step": "before",
+            "tl": "82:1869/1"
+          },
+          {
+            "step": "OPACITY",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              10,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "TRANSLATION_X",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              4.99999985454646
+            ]
+          },
+          {
+            "step": "ROTATION",
+            "tl": "82:1869/1",
+            "echo": [
+              0.25,
+              77,
+              33.000000918308665
+            ]
+          }
+        ],
+        "ids": [
+          "82:2442",
+          "82:2452"
+        ]
+      }
+    }
+  ],
+  "build": {
+    "plugin": "43fdb67e716f",
+    "dist": "43fdb67e716f",
+    "server": "43fdb67e716f",
+    "matches": true
+  },
+  "sandbox": {
+    "frame": "82:1869",
+    "ids": {
+      "P0": "82:1870",
+      "P1": "82:1871",
+      "P2": "82:1872",
+      "P3": "82:1873",
+      "P4": "82:1874",
+      "P5": "82:1875",
+      "P6": "82:1876",
+      "P7": "82:1877",
+      "P8": "82:1878",
+      "P9": "82:1879",
+      "P10": "82:1880",
+      "P11": "82:1881",
+      "P12": "82:1882",
+      "P13": "82:1883",
+      "P14": "82:1884",
+      "P15": "82:1885",
+      "P16": "82:1886",
+      "P17": "82:1887",
+      "P18": "82:1888",
+      "P19": "82:1889",
+      "P20": "82:1890",
+      "P21": "82:1891",
+      "P22": "82:1892",
+      "P23": "82:1893"
+    }
+  },
+  "seedingMissed": [
+    "82:1870 ROTATION",
+    "82:1871 ROTATION",
+    "82:1872 ROTATION",
+    "82:1873 ROTATION",
+    "82:1874 ROTATION",
+    "82:1875 ROTATION",
+    "82:1876 ROTATION",
+    "82:1877 ROTATION",
+    "82:1878 ROTATION",
+    "82:1879 ROTATION",
+    "82:1880 ROTATION",
+    "82:1881 ROTATION",
+    "82:1882 ROTATION",
+    "82:1883 ROTATION",
+    "82:1884 ROTATION",
+    "82:1885 ROTATION",
+    "82:1886 ROTATION",
+    "82:1887 ROTATION",
+    "82:1888 ROTATION",
+    "82:1889 ROTATION",
+    "82:1890 ROTATION",
+    "82:1891 ROTATION",
+    "82:1892 ROTATION",
+    "82:1893 ROTATION"
+  ],
+  "gate": {
+    "tool": [
+      "all-new",
+      "all-new"
+    ],
+    "toolRemove": [
+      "all-removed",
+      "all-removed"
+    ],
+    "pass": true,
+    "reproduced": false
+  },
+  "finishedAt": "2026-10-13T07:55:20.560Z"
+}

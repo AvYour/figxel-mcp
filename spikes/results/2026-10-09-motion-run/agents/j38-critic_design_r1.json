@@ -1,0 +1,84 @@
+{
+ "lens": "DESIGN & TYPE (art director)",
+ "verdict": "fix",
+ "score": 6.5,
+ "findings": [
+  {
+   "severity": "major",
+   "time": "4.80-6.00 (f144-f180); settled read 4.95-5.70",
+   "layer": "S2/Price 42:15437 with S2/Price/4-mask 42:15440 and S2/Price/8-mask 42:15442; S2/Dim line 42:15368",
+   "problem": "The hero price collides with the dimension line. The build differs from the spec. S2/Price sits at x 600 (spec: 1003 − Σw = 703). The masks sit at x 0/120/240 (spec: x_{i+1} = x_i + w_i = 0/92/192). As a result the terracotta dimension line (screen x ≈ 620–629) runs straight through the vertical bar of the '$' (verified in design/price-dimline-f165.png). '$48' is also tracked loosely: there are 40–50 px gaps, so it reads '$ 4 8'. Its right edge is about 955 when it should be on the 1016 margin, so the price, the specs and '32 cm' share no column edge. This is on the product frame's money line, in the hold where the eye inspects it.",
+   "fix": "No keyframe changes are needed; the TRANSLATION_Y and blur keys live on the text nodes. 1. Move S2/Price (42:15437) x 600 → 703 (y stays 790, width stays 326). 2. Set S2/Price/4-mask (42:15440) x 120 → 92 and S2/Price/8-mask (42:15442) x 240 → 192. The '$' ink then starts at screen x ≈ 716, about 90 px clear of the line, and the '8' text box ends exactly on x 1016, sharing the right margin with 'Hand-thrown'. 3. Re-check f165 and f177 for clearance against '32 cm' (640–724, y 1083), which should keep ≥ 25 px."
+  },
+  {
+   "severity": "major",
+   "time": "9.63-11.10 (f289-f333) hero offer; 12.00-14.40 end card",
+   "layer": "S5/Ten/1 42:15276, S5/Ten/0 42:15278, S5/Ten/% 42:15280, S5/Ten 42:15274; S4/10% off 42:15491",
+   "problem": "The offer reads 'IO%'. Cormorant Garamond SemiBold renders old-style figures: the '1' renders 154 px tall at 400 px, which is x-height, and is an unflagged I-shape with symmetrical serifs. The '0' sits at x-height while the '%' is at full height. The hero therefore reads as small caps 'IO' next to a big '%', and on f290-f292 the '1' rises alone as a bare 'I'. The same thing happens at 60 px on the end card ('ıo% off'). This is the single most important line of the ad. Lining figures cannot be switched on through the tool, because openTypeFeatures is read-only in the Plugin API (plugin-api.d.ts:9774).",
+   "fix": "Set the numerals in the second family, which has lining figures. 1. Set S5/Ten/1, /0 and /% to Inter Semi Bold 300, LH 480 (unchanged, so the masks and the TRANSLATION_Y 480 keys stay valid), LS −4 %. 2. Re-measure and set each mask width to w_i + 52. The row is FIXED 952 CENTER, so it re-centres itself. 3. Nudge S5/Ten y (380 → about 398) so the baseline stays at screen 747, checked with absoluteRenderBounds. 'off' and 'your first order.' stay in Cormorant Medium Italic: a sans numeral against serif italic is a deliberate contrast and still uses only two families. 4. On the end card, set S4/10% off (42:15491) to Inter Semi Bold 50, re-measure w1, then recompute x1 = (952 − (w1 + 16 + w2))/2 − 8 and the 'your first order' mask x. Alternative if Cormorant must stay: replace the '1' and '0' text nodes with hand-drawn lining-figure vectors at cap height (about 225 px), keeping the same keys."
+  },
+  {
+   "severity": "major",
+   "time": "10.23-11.00 (f307-f330), worst at the punch f306-f310 and through the breath",
+   "layer": "S5/Loop 42:16198 / S5/Loop path 42:16199",
+   "problem": "The hand-drawn loop cuts through the lower-right bowl of the '%' at screen (800-830, 705-740). This was verified at the punch peak f308 and in the breath f318 (design/loop-pct-f308.png, design/loop-pct-f318.png). The baked tilt pulls the loop's lower-right in, the 1.06 punch on S5/Ten pushes the '%' into it, and the ROTATION drift 0 → 2° (counter-clockwise) lifts the right side further. Its bottom also sits only about 15-25 px above the 'ff' ascenders. A circled offer has to clear its figures; on a static breath this crossing reads as a mistake.",
+   "fix": "1. Add SCALE_XY on the S5/Loop wrapper (42:16198), pivot = its centre (540, 621): @0 1.10,1 · @14.4 1.10,1 L, or 1.14,1 if the Inter figures are adopted. Widen it, not heighten it, so it does not hit 'off'. 2. Reverse the drift on S5/Loop path (42:16199) ROTATION: @0 0 · @9.8 0 L · @11.1667 −2 L, so it turns clockwise and the right side moves away from the '%'. 3. Re-cut f308 and f318 and confirm ≥ 20 px clearance to the '%' bowl and the 'ff' ascenders."
+  },
+  {
+   "severity": "minor",
+   "time": "6.00-9.60 (f180-f288)",
+   "layer": "S3/Window 42:15264 (S3/Mug 42:15265, S3/Plates 42:15266, S3/Bowl 42:15267)",
+   "problem": "The kiln arch, the scene's signature shape, dissolves at the top. The mug photo's marble whites (about #f2ede7) and the bowl's white top sit on linen #f4efe7 with no visible edge (design/arch-top-f207.png). The plates shot is cool blue-white porcelain on terrazzo, a colour-temperature break from the warm stoneware palette and weaker brand fit.",
+   "fix": "1. Add one RECT 'S3/Warm' 520 × 720 at (0, 0) inside S3/Window, above S3/Bowl, with fill #e9e1d6 and layer blend MULTIPLY (figma_set_blend_mode). This mirrors S2/Warm. It pulls the photo whites to about #e0d6c9, so the arch reads against linen, and it warms the plates. 2. Key it so the bloom seed still lands on a pure terracotta wall: OPACITY @0 1 · @9.0 1 L · @9.1667 0 SOFT."
+  },
+  {
+   "severity": "minor",
+   "time": "9.60-11.00 (f288-f330), including the breath",
+   "layer": "S5/Ten 42:15274, S5/off-mask 42:15281, S5/Line 42:15283, S5/Loop 42:16198",
+   "problem": "The offer composition is top-heavy. The block spans y 413-1145 (centre about 780), while the safe area 250-1580 centres at 915. That leaves about 435 px of empty terracotta under 'your first order.' during the 1.1 s hold, when the frame is most scrutinised.",
+   "fix": "Move the four children of S5/Offer type down 70 px: S5/Ten y 380 → 450, S5/off-mask 800 → 870, S5/Line 1040 → 1110, S5/Loop 391 → 461. Keep every key, since the TRANSLATION_Y values are relative and the masks clip the falls. The block then centres at about 850, optically centred slightly high, and gains clearance from the 'Moku' bug. The S5/Field collapse target is unchanged."
+  },
+  {
+   "severity": "minor",
+   "time": "5.83-5.97 (f175-f179)",
+   "layer": "Brand bug 42:15045 over S2/Headline 42:15426",
+   "problem": "During the push-through the scaled 'Ash Vase' passes through y 300-350. The sharp ink 'Moku' then sits between 'Ash' and the 'V' and overlaps its serif (check-5.900). It is legible but cluttered: a crisp wordmark stuck on a blurred headline.",
+   "fix": "Duck the bug under the deepest dive. Replace the OPACITY track on Brand bug with: @0 1 · @5.7667 1 L · @5.8667 0 SOFT · @6.1667 0 L · @6.3 1 SOFT · @11.5083 1 L · @11.5283 0 L. It is gone only through the blurred frames and returns as S3 settles."
+  },
+  {
+   "severity": "minor",
+   "time": "4.27-6.00 (f128-f180)",
+   "layer": "S2/Spec 2-mask 42:15446",
+   "problem": "'Wood-fired' is placed at x 800 (spec: 1016 − 185 = 831), so it ends at 985 while 'Hand-thrown' ends at 1016. The two-line spec block has neither a common left edge nor a common right edge with the price column.",
+   "fix": "Set S2/Spec 2-mask x 800 → 831. Both specs then sit flush right on 1016 with the corrected '$48'. Keys are unchanged."
+  },
+  {
+   "severity": "minor",
+   "time": "13.23-13.83 (f397-f415)",
+   "layer": "S5/Ripple 42:15090",
+   "problem": "The final CTA ripple is a 3 → 1 px terracotta hairline on ink (contrast about 2.7:1). At f399 it reads as a faint double outline, not as the bold final punctuation the brief asks for. The pulse currently lands only through the pill scale.",
+   "fix": "Change S5/Ripple STROKE_WEIGHT to @0 6 · @13.2333 6 L · @13.8333 1.5 OUT. If it is still weak at f399, set its stroke paint to clay #d6cab8, which is in the palette and has about 10:1 contrast on ink. The OPACITY, WIDTH, HEIGHT, TRANSLATION_XY and CORNER_RADIUS tracks stay as they are."
+  },
+  {
+   "severity": "minor",
+   "time": "1.20-2.10 (f36-f63)",
+   "layer": "S1/Window 42:15082 / S1/Photo 42:15083",
+   "problem": "A tangency: the top terminal of the 400 px 'S' nicks the bottom-left corner of the photo window by about 15 px (x 300-315, y 900-960; design/slow-window-f54.png). The 'l' interlocks deliberately, but the 'S' looks accidental, right on the hook hold.",
+   "fix": "Make the overlap decisive by widening the slit. 1. Move S1/Window rest x 300 → 270. 2. Set WIDTH to @0 240 · @0.5 540 OUT and TRANSLATION_X to @0 150 · @0.5 0 OUT. 3. Move S1/Photo rest x −110 → −80 and set its TRANSLATION_X to @0 −150 · @0.5 0 OUT, which keeps the photo screen-locked. The 'S' then overlaps the plinth by about 45 px, the same way the 'l' does."
+  },
+  {
+   "severity": "minor",
+   "time": "2.62-3.40 (f79-f102)",
+   "layer": "S1/By 42:15213, S1/hand. 42:15215",
+   "problem": "'By hand.' is fully readable for only about 0.63 s, and it competes with the stacked burst and the ring draw in the same window. That meets the 0.3 s/word floor but reads rushed for the line that carries the craft message.",
+   "fix": "Hold it 3 frames longer. S1/By TRANSLATION_Y: @0 158 · @2.4333 158 L · @2.8333 0 OUT · @3.3 0 L · @3.5 −158 IN. S1/hand.: @0 158 · @2.5 158 L · @2.9 0 OUT · @3.3333 0 L · @3.5333 −158 IN. Both have exited before S1 switches off at f109."
+  },
+  {
+   "severity": "minor",
+   "time": "12.03-14.40",
+   "layer": "S4/your first order 42:15493",
+   "problem": "Inconsistent punctuation: the hero line is 'your first order.' with a full stop, while the end-card restatement is 'your first order' with none.",
+   "fix": "Set the S4/your first order text to 'your first order.', re-measure w2, and recompute S4/10% off-mask x1 = (952 − (w1 + 16 + w2))/2 − 8 and the your-first-order mask x = x1 + w1 + 4."
+  }
+ ]
+}

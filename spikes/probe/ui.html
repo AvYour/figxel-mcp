@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 12px; font: 12px/1.45 Inter, system-ui, sans-serif;
+         color: var(--figma-color-text, #222); background: var(--figma-color-bg, #fff); }
+  h1 { font-size: 13px; margin: 0 0 6px; }
+  ol { margin: 4px 0 8px; padding-left: 18px; }
+  button { padding: 5px 9px; margin: 2px 2px 6px 0; font: inherit; border-radius: 4px; border: 0;
+           background: var(--figma-color-bg-secondary, #eee); color: inherit; cursor: pointer; }
+  textarea { width: 100%; height: 330px; box-sizing: border-box; font: 11px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+  <h1>figma-mcp — API probe</h1>
+  <ol>
+    <li>Press <b>Mark: edit</b>, then move any shape on this page.</li>
+    <li>Press <b>Mark: undo</b>, then press <b>Ctrl+Z</b> once.</li>
+    <li>Select all in the box below, copy, and paste it into the Phase 0 log (or the chat).</li>
+  </ol>
+  <button data-mark="edit">Mark: edit</button>
+  <button data-mark="undo">Mark: undo</button>
+  <button id="select">Select all (then Ctrl+C)</button>
+  <p id="collector">Collector: connecting to ws://localhost:38453…</p>
+  <textarea id="out" readonly></textarea>
+<script>
+  var out = document.getElementById("out");
+  var latest = null;
+  function send(m) { parent.postMessage({ pluginMessage: m }, "*"); }
+  // Results flow to spikes/collect.mjs; the text box stays as a fallback.
+  var collector = null;
+  var collectorEl = document.getElementById("collector");
+  function connectCollector() {
+    try {
+      collector = new WebSocket("ws://localhost:38453");
+    } catch (e) {
+      collectorEl.textContent = "Collector: blocked (" + e.message + ") — copy the JSON by hand";
+      return;
+    }
+    collector.onopen = function () { collectorEl.textContent = "Collector: connected — results are sent automatically"; push(); };
+    collector.onclose = function () {
+      collectorEl.textContent = "Collector: not connected (retrying) — is `node spikes/collect.mjs` running?";
+      setTimeout(connectCollector, 2000);
+    };
+    collector.onerror = function () {};
+  }
+  function push() {
+    if (latest && collector && collector.readyState === 1) collector.send(JSON.stringify({ spike: "probe", report: latest }));
+  }
+  connectCollector();
+  window.onmessage = function (ev) {
+    var m = ev.data && ev.data.pluginMessage;
+    if (m && m.kind === "report") {
+      latest = m.report;
+      out.value = JSON.stringify(m.report, null, 2);
+      push();
+    }
+  };
+  Array.prototype.forEach.call(document.querySelectorAll("button[data-mark]"), function (b) {
+    b.onclick = function () { send({ kind: "mark", label: b.getAttribute("data-mark") }); };
+  });
+  document.getElementById("select").onclick = function () { out.focus(); out.select(); };
+</script>
+</body>
+</html>

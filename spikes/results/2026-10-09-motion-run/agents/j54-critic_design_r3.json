@@ -1,0 +1,35 @@
+{
+ "lens": "DESIGN & TYPE (art director)",
+ "verdict": "fix",
+ "score": 8,
+ "findings": [
+  {
+   "severity": "major",
+   "time": "4.33–5.60 s (f130–f168), the hero product hold",
+   "layer": "S2/Headline (52:791 / 42:15426) against the top edge of S2/Band window (52:776 / 42:15364)",
+   "problem": "The edge of the band slices through the 'Ash Vase' baseline for the whole product hold. The band top is fixed at y 600, but S2/Type drifts up 15 px, so the headline crosses the edge. Measured lowest headline ink against the band top: 11 px into the grey on f130, 9 on f140, 5 on f155 and 3 on f160, then tangent at f165 (serifs on y 598–601). It never reads as either 'standing on the shelf' or 'clear of it': it reads as type being cut by a moving line. This is the ad's highest-value frame (product, name, price), and r2's F9 intended the headline to sit fully on cream. See design/f135-headline-edge.png and design/headline-band-5.5.png.",
+   "fix": "Lower the band's top edge by 40 px so the type stays clear on cream for the whole hold: at least 30 px at f130, rising to 42 px by 5.6. The band bottom stays at 1580, and the f108 dot does not change.\n\n1. S2/Band window (52:776 / 42:15364):\n   - rest y 600 → 640;\n   - HEIGHT key @4.0333: 980 → 940;\n   - TRANSLATION_XY keys @0 and @3.6: 336,532 → 336,492 (top-left stays 336,1132 on f108, so the Ø 96 dot is still centred on 384,1180).\n2. S2/Push (52:777 / 42:15365):\n   - rest y −60 → −100;\n   - TRANSLATION_XY keys @0 and @3.6: −336,−532 → −336,−492 (the photo stays screen-locked; the vase rim is still at y 800).\n3. S2/Plate clay (52:788 / 42:15376) and S2/Plate terracotta (52:789 / 42:15377):\n   - height 980 → 940;\n   - rest y −980 → −940;\n   - first two TRANSLATION_Y keys 980 → 940 (clay @0/@3.8, terracotta @0/@3.7333).\n\nOne-write fallback, if the band cannot be touched: S2/Headline rest y 400 → 372. This clears the edge by 18 px at f130 and 29 px by f165, but the gap from the bug to the headline drops from 85 to 57 px."
+  },
+  {
+   "severity": "minor",
+   "time": "6.0–7.2 s (f180–f215)",
+   "layer": "S3/Mug (52:817)",
+   "problem": "The mug stack is too tall for the kiln arch. On f207 the top cup's rim corner sits only about 7 px under the arch curve at about (475, 815), and its handle runs into the curve. The upward pan (TRANSLATION_Y 0 → −24 by 7.2) drives the rim further into the curve until the cut. The result is a near-tangent at the most visible point of the arch. See design/arch-mug-6.9.png.",
+   "fix": "Replace the pan with a slow push from a smaller start, the same device the plates use:\n\n- delete the TRANSLATION_Y track (@0 0 · @6 0 L · @7.2 −24 L);\n- add SCALE_XY @0 0.94,0.94 · @6 0.94,0.94 L · @7.2 0.97,0.97 L.\n\nThe pivot is the rect centre, screen (344, 1108). Expected clearance at 7.2: rim about 35 px under the arch curve, base about 40 px above the window bottom (1480), left handles about 60 px inside the left edge."
+  },
+  {
+   "severity": "minor",
+   "time": "7.2–8.1 s (f216–f242)",
+   "layer": "S3/Plates (52:818)",
+   "problem": "The dinner plate's rim is tangent to both straight sides of the arch: x ≈ 66–68 against the left edge at 64, and x ≈ 590 against the right edge at about 592 (f237, design/plates-edges.png). The SCALE_XY push 1 → 1.03 then carries both rims across the edges. The plate is neither cleanly inside nor decisively cropped, so the frame looks accidental.",
+   "fix": "Pull the stack decisively inside the arch:\n\n- S3/Plates SCALE_XY @0 0.9,0.9 · @7.2 0.9,0.9 L · @8.1 0.93,0.93 L, replacing 1 → 1.03. The pivot is the rect centre, screen about (314, 1027).\n- Expected result: rims about 20–29 px inside each side through 8.1, and the bottom plate about 90 px above the window bottom.\n- Keep the OPACITY cut pairs unchanged."
+  },
+  {
+   "severity": "minor",
+   "time": "12.03–14.4 s (end card, from f361)",
+   "layer": "S4/your first order (inside S4/your first order-mask) against S4/Objects, S4/for, S4/slow and S4/living.",
+   "problem": "Two lines on the end card share one style (Cormorant Garamond Medium Italic, clay #d6cab8, stacked 120 px apart) but use near-equal sizes: the tagline is 56 px and 'your first order.' is 60 px. A 7 % difference reads as a mistake rather than a hierarchy. The pair is plainly visible in the end-card stills (check-12.600.png, check-14.367.png).",
+   "fix": "Make them one size: set S4/your first order to font size 56 and keep LH 76 (the baseline moves about 1 px, so it still sits on the '10% off' baseline within ±2 px). Then re-measure w2 and set:\n\n- S4/your first order-mask width = w2 + 40;\n- S4/10% off-mask x1 = (952 − (w1 + 16 + w2))/2 − 8;\n- S4/your first order-mask x = x1 + w1 + 4.\n\nThis re-centres the row on x 540. No keyframe changes: the TRANSLATION_Y rise of 76 still fits the 76 mask."
+  }
+ ]
+}
