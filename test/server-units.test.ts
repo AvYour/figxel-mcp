@@ -14,6 +14,7 @@ describe("config (spec §4.4)", () => {
     const c = loadConfig({});
     expect(c.toolset).toEqual({ kind: "full" });
     expect(c.allowEval).toBe(false);
+    expect(c.enableAudio).toBe(false);
     expect(c.autolaunch).toBe(false);
     expect(c.sessionWaitMs).toBe(5000);
     expect(c.port).toBe(38452);
@@ -35,9 +36,17 @@ describe("config (spec §4.4)", () => {
     expect(d.legacyTokenPath).toBeNull();
   });
 
+  it("BRIDGE_ENABLE_AUDIO, the held-back audio tools' flag, is 0 or 1 like BRIDGE_ALLOW_EVAL", () => {
+    expect(loadConfig({ BRIDGE_ENABLE_AUDIO: "1" }).enableAudio).toBe(true);
+    expect(loadConfig({ BRIDGE_ENABLE_AUDIO: "0" }).enableAudio).toBe(false);
+    expect(loadConfig({ BRIDGE_ENABLE_AUDIO: " " }).enableAudio).toBe(false);
+  });
+
   it("refuses invalid values instead of guessing", () => {
     expect(() => loadConfig({ BRIDGE_TOOLSET: "all" })).toThrow(ConfigError);
     expect(() => loadConfig({ BRIDGE_ALLOW_EVAL: "yes" })).toThrow(/0 or 1/);
+    expect(() => loadConfig({ BRIDGE_ENABLE_AUDIO: "true" })).toThrow(ConfigError);
+    expect(() => loadConfig({ BRIDGE_ENABLE_AUDIO: "2" })).toThrow(/BRIDGE_ENABLE_AUDIO="2" must be 0 or 1/);
     expect(() => loadConfig({ BRIDGE_PORT: "70000" })).toThrow(/BRIDGE_PORT/);
     expect(() => loadConfig({ BRIDGE_SESSION_WAIT_MS: "-1" })).toThrow(/BRIDGE_SESSION_WAIT_MS/);
     expect(() => loadConfig({ BRIDGE_LOG_LEVEL: "loud" })).toThrow(/BRIDGE_LOG_LEVEL/);

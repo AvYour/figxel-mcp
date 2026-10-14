@@ -3,7 +3,8 @@
 //   node scripts/check-docs.mjs
 // Exits 1 on any problem. What is checked:
 //   1. Relative links and anchors in every .md (README + docs/) point at an existing file or heading.
-//   2. tools.md: a group heading's count matches its tool rows; totals match; the core tier is valid.
+//   2. tools.md: a group heading's count matches its tool rows; totals match (the opt-in
+//      groups, eval and audio, are left out of the default); the core tier is valid.
 //   3. Every `figma_*` name in a document exists in the catalog (or in the candidates table).
 //   4. Every op in a protocol example ("op": ..., "ops": [...]) is a catalog tool without its prefix.
 //   5. Any "N tool(s)" (N >= 20) in README/spec equals the catalog total or the default count.
@@ -88,7 +89,10 @@ for (const [file, src] of text) {
 // 2. Tool catalog
 const toolsFile = join(root, "docs/reference/tools.md");
 const toolsSrc = text.get(toolsFile);
-const GROUPS = ["meta", "read", "create", "modify", "style", "export", "eval"];
+const GROUPS = ["meta", "read", "create", "modify", "style", "export", "audio", "eval"];
+// Groups registered only on opt-in: `eval` (BRIDGE_ALLOW_EVAL=1) and the
+// held-back `audio` group (BRIDGE_ENABLE_AUDIO=1). The default count leaves them out.
+const OPT_IN_GROUPS = ["eval", "audio"];
 const catalog = new Map(); // name → group
 const groupCounts = new Map();
 {
@@ -115,8 +119,8 @@ for (const g of GROUPS) {
   if (c.declared !== c.rows) fail(toolsFile, `group ${g}: heading says ${c.declared}, table has ${c.rows}`);
 }
 const total = catalog.size;
-const evalCount = groupCounts.get("eval")?.rows ?? 0;
-const defaultCount = total - evalCount;
+const optInCount = OPT_IN_GROUPS.reduce((n, g) => n + (groupCounts.get(g)?.rows ?? 0), 0);
+const defaultCount = total - optInCount;
 {
   const m = /(?:Count):\s*(\d+) tools? (?:in the catalog) → (\d+) (?:registered) by default/.exec(toolsSrc);
   if (!m) fail(toolsFile, `sentence "Count: N tools in the catalog → M registered by default" not found`);
@@ -141,7 +145,7 @@ const defaultCount = total - evalCount;
 const specFile = join(root, "docs/superpowers/specs/2026-10-06-figma-mcp-design.md");
 for (const f of [toolsFile, specFile]) {
   for (const line of proseLines(text.get(f))) {
-    const m = /^\|\s*\**(meta|read|create|modify|style|export|eval)\**\s*\|\s*(\d+)\s*\|/.exec(line);
+    const m = /^\|\s*\**(meta|read|create|modify|style|export|audio|eval)\**\s*\|\s*(\d+)\s*\|/.exec(line);
     if (m && groupCounts.get(m[1]) && Number(m[2]) !== groupCounts.get(m[1]).rows) {
       fail(f, `summary table: ${m[1]} = ${m[2]}, catalog = ${groupCounts.get(m[1]).rows}`);
     }
@@ -189,5 +193,5 @@ if (errors.length) {
 }
 console.log(
   `check-docs: OK — ${files.length} documents, ${linkCount} relative links, ` +
-  `${total} tool (${defaultCount} default + ${evalCount} opt-in), ${candidates.size} candidates`,
+  `${total} tool (${defaultCount} default + ${optInCount} opt-in), ${candidates.size} candidates`,
 );

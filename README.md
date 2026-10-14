@@ -24,13 +24,12 @@ Ask your agent, in plain words, and it uses these tools:
 - **Work with a design system.** Components, variants, instances and component properties; paint, text, effect and grid styles; variables with modes and scopes; library assets imported by key.
 - **Prototype and animate.** Reactions and prototype flows, keyframe animation (`figma_set_keyframes`), and video export to MP4, GIF or WebM (`figma_export_video`) `[C-026]`. `figma_review_video` cuts a render into contact sheets and stills so the agent can judge it frame by frame (it needs ffmpeg).
 - **Animate like a motion designer, enforced.** By default the tools hold an agent to a motion designer's order: it reads the motion skill and records the piece's brief and beats with `figma_set_motion_plan` before the first keyframe, and the final render waits until `figma_check_motion` passes. Previews always render. `BRIDGE_PROCESS` (see [Configuration](#configuration)) turns the refusals into warnings or off.
-- **Add sound.** Figma's video export has no audio `[C-184]`, so sound is joined after the render. `figma_analyze_audio` reads the tempo, beats and loudness of music you supply, so the motion lands on its real beats. `figma_generate_audio` makes a simple music bed and sound effects offline (no service, no samples), and can take the effects from the frame's own moves and cuts. `figma_add_audio` mixes your tracks onto the render without encoding the picture again. Use only audio you have the rights to.
 - **Storyboard.** `figma_create_storyboard` lays out timed panels for a motion piece. `figma_create_animatic` plays a board back at its planned pace; it is built and unit-tested, and refuses to write until its live run is recorded.
 - **Check its own work.** `figma_check_layout` measures a frame for text that overflows instead of wrapping, clipped or overlapping content, low contrast, placeholder copy, raw colours where the file has styles or variables, and finish defects. `figma_check_motion` checks keyframes against motion rules. Both return numbers and a suggested fix, not opinions.
 - **FigJam and Figma Slides.** Reads run in every editor today. The board and deck tools (stickies, connectors, tables, slides, transitions and more) are built and unit-tested, but their writes stay refused until a live run on a real board or deck verifies them. `figma_status` lists what runs in each open file.
 - **Follow a process, not just call tools.** Eleven skills (workflow, design, storyboard, motion, critique, design system, design to code, code to design, prototype, FigJam and Slides) reach every app through `figma_get_guide`, ten MCP prompts and `skill://` resources.
 
-That is 136 tools by default, plus `figma_eval` (raw Plugin API JavaScript) when you opt in. The full list is in the [tool catalog](docs/reference/tools.md).
+That is 133 tools by default, plus `figma_eval` (raw Plugin API JavaScript) when you opt in. The full list is in the [tool catalog](docs/reference/tools.md).
 
 ### What it does not do
 
@@ -60,21 +59,27 @@ Figxel plugin in Figma desktop: ui.html (WebSocket) ⇄ code.js (Plugin API)
 - **Figma desktop** on macOS 12 or later, or Windows 10 or later (64-bit) or Windows on Arm `[C-273]`. Development plugins run only in the desktop app `[C-274]`.
 - **Node.js 22 or later.** Node 22 is maintained upstream until 2027-04-30 `[C-292]`.
 - **An AI app that runs local (stdio) MCP servers.** Any app works; [docs/clients.md](docs/clients.md) has the setup for the common ones.
-- **Optional: ffmpeg** (it brings ffprobe) on your PATH, or named by `BRIDGE_FFMPEG`, for `figma_review_video`, `figma_analyze_audio`, `figma_add_audio` and the frames `figma_export_video` returns. `figma_generate_audio` does without it. `figma_status` says whether it runs.
+- **Optional: ffmpeg** (it brings ffprobe) on your PATH, or named by `BRIDGE_FFMPEG`, for `figma_review_video` and the frames `figma_export_video` returns. `figma_status` says whether it runs.
 
 ## Quickstart
 
-**1. Run setup** in a terminal:
+**1. Quit Figma desktop, then run setup** in a terminal:
 
 ```bash
-npx -y figxel-mcp@latest setup
+npx -y figxel-mcp@latest setup --register
 ```
 
-It creates a token, copies the plugin into `~/.figxel/plugin`, and prints the token, the manifest path and the entries for your AI app. `-y` skips npx's install prompt `[C-282]`.
+Quit Figma completely first: closing its window leaves it running in the background on Windows, so quit it from its icon in the notification area too `[C-341]`. Setup then:
 
-**2. Import the plugin in Figma desktop.** Open or create a file, then in the Figma menu choose **Plugins → Development → Import plugin from manifest…** (Figma's Help Center calls it "Import new plugin from manifest...") and pick the manifest setup printed: `~/.figxel/plugin/manifest.json`, or `C:\Users\<you>\.figxel\plugin\manifest.json` on Windows `[C-274]`. Run it from **Plugins → Development → Figxel**, paste the token, and press **Save**. You do this once: the path stays the same across updates `[C-275]`.
+- creates a token and copies the plugin into `~/.figxel/plugin`;
+- **lists the plugin in Figma desktop** by writing into Figma's own settings file the entries an import would write, so there is nothing to import `[C-319]` `[C-323]`;
+- prints the token and the entries for your AI app. `-y` skips npx's install prompt `[C-282]`.
 
-*Optional: let setup do the import.* Quit Figma desktop completely, run `npx -y figxel-mcp@latest setup --register` (add `--dry-run` first to see the change), then open Figma and run **Plugins → Development → Figxel** as above; running the plugin stays a manual step `[C-016]`. `--register` writes into Figma's own settings file (`%APPDATA%\Figma\settings.json` on Windows) the same entries Figma writes when you import the manifest `[C-275]` `[C-319]`. Figxel knows that file's format from one measurement on Windows `[C-319]`, not from Figma documentation, so setup refuses while Figma runs (Figma writes that file itself while it runs `[C-321]`) or when the file is not in the measured form, keeps a backup next to it (`settings.json.figxel-backup-<time>`), and changes only Figxel's entries. If you already imported Figxel from another folder, setup keeps that and says so; `--force` moves it to `~/.figxel/plugin`. `setup --unregister` removes the entries again. Whether Figma lists a plugin registered this way is not yet verified live `[C-323]`, and on macOS the file's location is not yet measured, so it is experimental there `[C-324]`; there is no Linux build of Figma `[C-273]`. If Figxel is not in the menu, import the manifest by hand as above.
+It backs up Figma's settings file first (`settings.json.figxel-backup-<time>`, next to it), refuses while Figma runs because Figma writes that file itself `[C-321]`, refuses a file that is not in the measured form, and changes only Figxel's entries. Add `--dry-run` to see the change without writing. If you already imported Figxel from another folder, setup keeps that registration and says so; `--force` moves it to `~/.figxel/plugin`. `setup --unregister` removes the entries again. This was measured on Windows; on macOS it is experimental `[C-324]`, and there is no Linux build of Figma `[C-273]`.
+
+**2. Run the plugin in Figma desktop.** Open Figma and a file, choose **Plugins → Development → Figxel**, paste the token setup printed, and press **Save** — once: the plugin window then shows the same token fingerprint as setup. Running the plugin stays a manual step, once per Figma session `[C-016]`.
+
+*If Figxel is not in that menu* (or you would rather not let setup touch Figma's settings), run `npx -y figxel-mcp@latest setup` without `--register` and import the plugin by hand: in the Figma menu choose **Plugins → Development → Import plugin from manifest…** (Figma's Help Center calls it "Import new plugin from manifest...") and pick `~/.figxel/plugin/manifest.json`, or `C:\Users\<you>\.figxel\plugin\manifest.json` on Windows `[C-274]`. Either way you do this once: the path stays the same across updates `[C-275]`.
 
 **3. Add the server to your AI app.**
 
@@ -171,12 +176,12 @@ Settings are environment variables, set in the environment your AI app starts th
 
 ## Troubleshooting
 
-- **"No Figma plugin is connected" (`NO_SESSION`).** Run the plugin in Figma: **Plugins → Development → Figxel**. If it is not in that menu, run `npx -y figxel-mcp@latest setup` and import the manifest it prints `[C-274]`.
+- **"No Figma plugin is connected" (`NO_SESSION`).** Run the plugin in Figma: **Plugins → Development → Figxel**. If it is not in that menu, quit Figma completely and run `npx -y figxel-mcp@latest setup --register` `[C-323]`, or run `npx -y figxel-mcp@latest setup` and import the manifest it prints `[C-274]`.
 - **"Its token does not match".** Run setup again, which prints the token and its fingerprint, and paste the token into the Figxel plugin window, then press **Save**. The window shows the fingerprint of the token it saved, and `figma_status` shows the server's (`token.fingerprint`).
 - **The plugin says "Connected" but your app says the token does not match, or `PORT_IN_USE`.** Two servers with different token files are running, and the plugin is connected to the other one. `figma_status` names that server's process and token file. Close the other app, or run setup in the same environment as your app (the same user and the same `BRIDGE_HOME`) and restart both.
 - **`PORT_IN_USE`.** Another program, or an older Figxel, holds port 38452. Close it; Figxel takes over within 5 s.
 - **The server does not start on Windows** (for example `spawn npx ENOENT` in the app's log). Use the `cmd /c npx …` form `[C-281]`. Claude Code does not need it `[C-280]`.
-- **Too many tools.** VS Code refuses a request with more than 128 tools `[C-286]` and Windsurf allows 100 `[C-289]`, and Figxel alone registers 136. Set `BRIDGE_TOOLSET` (see [Configuration](#configuration)) or untick tools in the app.
+- **Too many tools.** VS Code refuses a request with more than 128 tools `[C-286]` and Windsurf allows 100 `[C-289]`, and Figxel alone registers 133. Set `BRIDGE_TOOLSET` (see [Configuration](#configuration)) or untick tools in the app.
 - **Codex times out on the first start.** Codex waits 10 s for a server to start `[C-287]`, and a first `npx` run has to download the package. Run `npx -y figxel-mcp@latest setup` first: npx keeps the package under the same `figxel-mcp@latest` name the client entry uses `[C-283]`. Or raise `startup_timeout_sec` `[C-287]`.
 - **Long calls time out.** Each app has its own tool-call timeout; [docs/clients.md](docs/clients.md) shows how to raise it. A video render answers with a job id before a short timeout and is collected later.
 - **A video export stalls.** Keep the Figma window restored, not minimized, while it renders: a render stalled for about 40 minutes while the window was minimized, and Figma ends a render it has not finished after about 240 s `[C-198]`.

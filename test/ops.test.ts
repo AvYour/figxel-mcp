@@ -42,6 +42,8 @@ describe("op table vs docs/reference/tools.md", () => {
     expect(m).not.toBeNull();
     expect(OPS.size).toBe(Number(m![1]));
     expect(selectOps({ kind: "full" }, false).length).toBe(Number(m![2]));
+    // The catalog total is every tool with both opt-in keys turned.
+    expect(selectOps({ kind: "full" }, true, true).length).toBe(Number(m![1]));
   });
 
   it("matches the core tier list", () => {
@@ -80,6 +82,7 @@ describe("toolset parsing (tools.md § Trimming the toolset)", () => {
     expect(parseToolset("core")).toEqual({ kind: "core" });
     expect(parseToolset("none")).toEqual({ kind: "none" });
     expect(parseToolset("read, export")).toEqual({ kind: "groups", groups: ["read", "export"] });
+    expect(parseToolset("export,audio")).toEqual({ kind: "groups", groups: ["export", "audio"] });
   });
 
   it("refuses an unrecognised value instead of falling back to full", () => {
@@ -98,6 +101,23 @@ describe("toolset parsing (tools.md § Trimming the toolset)", () => {
     expect(selectOps({ kind: "core" }, true)).not.toContain("eval");
     expect(selectOps({ kind: "groups", groups: ["eval"] }, false)).not.toContain("eval");
     expect(selectOps({ kind: "groups", groups: ["eval"] }, true)).toContain("eval");
+  });
+
+  // Held back from the release on 2026-10-14: kept, tested, and registered
+  // only with BRIDGE_ENABLE_AUDIO=1 and a toolset that includes the group.
+  it("needs two keys for the held-back audio group", () => {
+    const AUDIO = ["analyze_audio", "add_audio", "generate_audio"];
+    const audioIn = (ops: string[]) => AUDIO.filter((op) => ops.includes(op));
+    for (const op of AUDIO) expect(OPS.get(op), op).toMatchObject({ group: "audio", readOnly: true, write: false, bridgeOnly: true });
+    expect(audioIn(selectOps({ kind: "full" }, false))).toEqual([]);
+    expect(audioIn(selectOps({ kind: "full" }, true))).toEqual([]);
+    expect(audioIn(selectOps({ kind: "full" }, false, true))).toEqual(AUDIO);
+    expect(audioIn(selectOps({ kind: "core" }, true, true))).toEqual([]);
+    expect(audioIn(selectOps({ kind: "groups", groups: ["export"] }, false, true))).toEqual([]);
+    expect(audioIn(selectOps({ kind: "groups", groups: ["audio"] }, false))).toEqual([]);
+    expect(audioIn(selectOps({ kind: "groups", groups: ["audio"] }, false, true))).toEqual(AUDIO);
+    // The flag adds the audio group and nothing else.
+    expect(selectOps({ kind: "full" }, false, true).length - selectOps({ kind: "full" }, false).length).toBe(AUDIO.length);
   });
 });
 

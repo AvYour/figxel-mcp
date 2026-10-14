@@ -146,14 +146,14 @@ The agent works like a motion designer, and by default the tools hold it to that
 6. **Animation in passes**: poses on the beats, then curves, then polish, with `figma_check_motion` after each pass. It judges every frame from the keyframes, without a render.
 7. **Preview renders** with `figma_export_video`, looked at with `figma_review_video`, over up to three critique rounds `[C-239]`.
 8. **The final render**: `figma_export_video` with `final: true`, which runs only after `figma_check_motion` passes at the delivery frame rate with no keyframe change since.
-9. **Sound**, when the brief has it. Figma's video export has no audio `[C-184]`, so sound is joined to the final render: `figma_add_audio` mixes the tracks onto it without encoding the picture again. Give the agent your own track and it reads the tempo and beats first (`figma_analyze_audio`), so the hits land on the music's real beats; without one, `figma_generate_audio` makes a simple bed and effects offline. Use only audio you have the rights to.
 
 What to expect:
 
 - A `PROCESS_REQUIRED` answer in the transcript is not a failure. Nothing changed; the answer names the step that comes first, and the agent takes it and carries on.
 - Renders land in the exports folder (`~/.figxel/exports` by default) as MP4, GIF or WebM `[C-026]`. A long render answers with a job id that the agent collects later, so a short tool-call timeout does not lose it `[C-249]`.
 - Motion is a Figma beta that Figma turns on per user `[C-115]`. Without it the motion tools answer `UNSUPPORTED`, and the agent delivers the static design and tells you.
-- `figma_review_video`, `figma_analyze_audio` and `figma_add_audio` need ffmpeg on your PATH, or named by `BRIDGE_FFMPEG`; `figma_generate_audio` does not. Without ffmpeg the agent judges from `figma_check_motion` and still frames, and says the motion itself was not seen.
+- The render is silent: Figma's video export has no audio `[C-184]`. Add sound in your video editor afterwards, with audio you have the rights to.
+- `figma_review_video` needs ffmpeg on your PATH, or named by `BRIDGE_FFMPEG`. Without ffmpeg the agent judges from `figma_check_motion` and still frames, and says the motion itself was not seen.
 - Keep the Figma window restored while it renders ([Tips](#tips)).
 
 Smaller motion follows a lighter path: *"Animate the selected toggle switching on, using our duration tokens"* is UI micro-motion, with a one-beat plan, one check, a small GIF and a reduced-motion version.
@@ -225,7 +225,7 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 - **Long calls and timeouts.** Each app has its own tool-call timeout. Codex waits 60 s by default `[C-287]`, Claude Desktop cut a video call at about 60 s `[C-197]`, and others wait far longer ([the table](clients.md#tool-call-timeouts-differ-a-lot), with how to raise them). After a timeout the agent can retry a write with the same key, and it never runs twice. Video renders run as jobs, so a timeout does not lose them `[C-249]`.
 - **Apps with a tool limit.** VS Code allows 128 tools per request `[C-286]` and Windsurf 100 `[C-289]`, fewer than Figxel registers. Untick tools in the app's picker, or set `BRIDGE_TOOLSET`: `core` gives 20 tools for building and checking still designs, with no motion tools. For motion, keep at least the `read`, `style` and `export` groups, which hold `figma_check_motion`, the keyframe tools with `figma_set_motion_plan`, and the video tools ([tools.md § Trimming the toolset](reference/tools.md#trimming-the-toolset)).
 - **Starter files.** A Starter file holds 3 pages `[C-048]` and has no variable modes `[C-047]`. The agent works around the page limit with sections, and reports Figma's refusal of a mode.
-- **ffmpeg** on your PATH enables `figma_review_video`, the audio analysis and mix, and the frame-exact stills of `figma_export_video`; `BRIDGE_FFMPEG` names it when it is elsewhere, and `figma_status` says whether it runs.
+- **ffmpeg** on your PATH enables `figma_review_video` and the frame-exact stills of `figma_export_video`; `BRIDGE_FFMPEG` names it when it is elsewhere, and `figma_status` says whether it runs.
 - **Files go to the exports folder.** Renders, PDFs and saved screenshots land in `~/.figxel/exports` unless you allow other folders with `BRIDGE_EXPORT_ROOTS`.
 - **If the plugin stops mid-task**, the agent tells you what it built so far, checks once more and stops, instead of waiting. Run the plugin again and say *"continue"*.
 
@@ -239,4 +239,4 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 - [Roadmap](reference/roadmap.md#next-steps): what comes next, including the live runs for FigJam and Slides.
 - Found a problem? [Open an issue](https://github.com/AvYour/figxel-mcp/issues).
 
-New since 0.1.0: sound for motion pieces (`figma_analyze_audio`, `figma_generate_audio`, `figma_add_audio`), and `setup --register`, which lists the plugin in Figma desktop so the manual import can be skipped ([Quickstart](../README.md#quickstart)). The [changelog](../CHANGELOG.md) has the rest.
+New since 0.1.0: `setup --register`, which lists the plugin in Figma desktop so the manual import can be skipped ([Quickstart](../README.md#quickstart)). The [changelog](../CHANGELOG.md) has the rest.

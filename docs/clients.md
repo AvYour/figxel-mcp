@@ -14,19 +14,18 @@ Each app fact below carries the id of its entry in the [claim registry](referenc
 
 Figxel needs **Figma desktop**, which exists for macOS 12 or later and for Windows 10 or later (64-bit, and Windows Arm); there is no Linux build `[C-273]`. It also needs **Node.js 22 or later**: Node 22 is maintained until 2027-04-30 and Node 24 is the active LTS line `[C-292]`.
 
-Run setup once, in a terminal:
+Quit Figma desktop completely (on Windows, closing its window leaves it running: quit it from its icon in the notification area too `[C-341]`), then run setup once, in a terminal:
 
 ```bash
-npx -y figxel-mcp@latest setup
+npx -y figxel-mcp@latest setup --register
 ```
 
-`-y` skips npx's install prompt `[C-282]`. Setup creates the plugin token, copies the Figma plugin into `~/.figxel/plugin` (the home folder; `BRIDGE_HOME` moves it), and prints the token, the path of the plugin manifest and ready-made entries for Claude Desktop, Claude Code and any other app. Then, in Figma desktop, open or create a file and:
+`-y` skips npx's install prompt `[C-282]`. Setup creates the plugin token, copies the Figma plugin into `~/.figxel/plugin` (the home folder; `BRIDGE_HOME` moves it), lists the plugin in Figma desktop by writing into Figma's settings file (`%APPDATA%\Figma\settings.json` on Windows) the same entries an import writes, after a backup next to it `[C-275]` `[C-319]` `[C-323]`, and prints the token and ready-made entries for Claude Desktop, Claude Code and any other app. `--dry-run` shows the change first; `setup --unregister` removes the entries. macOS is experimental because the file there is not yet measured `[C-324]`. Then, in Figma desktop, open or create a file and:
 
-1. **Plugins → Development → Import plugin from manifest…**, and choose the manifest setup printed. Figma's Help Center calls the item "Import new plugin from manifest..." `[C-274]`. This is needed only once: Figma reads the plugin's files from that path each time the plugin runs, so an update needs no re-import `[C-275]`.
-2. Run the plugin: **Plugins → Development → Figxel**.
-3. Paste the token into the plugin window and press **Save**. Once connected, the window shows the token's fingerprint (its first and last four characters) next to **Connected**; setup prints the same fingerprint, and `figma_status` shows the one of the server your app runs. When they differ, the plugin is connected to another server.
+1. Run the plugin: **Plugins → Development → Figxel**. Nothing outside Figma can run a plugin, so you start it once per Figma session `[C-016]`.
+2. Paste the token into the plugin window and press **Save**. Once connected, the window shows the token's fingerprint (its first and last four characters) next to **Connected**; setup prints the same fingerprint, and `figma_status` shows the one of the server your app runs. When they differ, the plugin is connected to another server.
 
-Step 1 has an optional shortcut: with Figma desktop closed, `npx -y figxel-mcp@latest setup --register` writes into Figma's settings file (`%APPDATA%\Figma\settings.json` on Windows) the same entries an import writes `[C-275]` `[C-319]`, after a backup next to it (`--dry-run` shows the change first; `setup --unregister` removes the entries). Steps 2 and 3 stay, because nothing outside Figma can run a plugin `[C-016]`. Whether Figma then lists the plugin is not yet verified live `[C-323]`, and macOS is experimental because the file there is not yet measured `[C-324]`; the [README quickstart](../README.md#quickstart) has the caveats.
+If Figxel is not under **Plugins → Development** (or you would rather not let setup touch Figma's settings), run `npx -y figxel-mcp@latest setup` without `--register` and import the plugin by hand: **Plugins → Development → Import plugin from manifest…**, then choose the manifest setup printed. Figma's Help Center calls the item "Import new plugin from manifest..." `[C-274]`. Either way this is needed only once: Figma reads the plugin's files from that path each time the plugin runs, so an update needs no re-import `[C-275]`.
 
 The step-by-step version with the setup output is the [README quickstart](../README.md#quickstart).
 
@@ -105,7 +104,7 @@ Cursor reads `~/.cursor/mcp.json` (every project) or `.cursor/mcp.json` (one pro
 }
 ```
 
-On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Cursor's MCP page states no limit on the number of tools `[C-284]`; it has not been measured with Figxel's 136 tools. If Cursor refuses that many, trim them (see [Model notes](#model-notes)).
+On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Cursor's MCP page states no limit on the number of tools `[C-284]`; it has not been measured with Figxel's 133 tools. If Cursor refuses that many, trim them (see [Model notes](#model-notes)).
 
 ### VS Code
 
@@ -132,7 +131,7 @@ code --add-mcp '{"name":"figxel","command":"npx","args":["-y","figxel-mcp@latest
 
 In PowerShell, edit the file instead: quoting JSON for a native command differs there.
 
-**Too many tools.** A VS Code chat request can have at most 128 tools enabled, and fails above that with "Cannot have more than 128 tools per request." `[C-286]`. Figxel registers 136 tools by default, so it is over the limit on its own. Deselect tools (or whole servers) in the chat's tools picker, or turn on virtual tools with the setting `github.copilot.chat.virtualTools.threshold` `[C-286]`. Starting the server with a smaller `BRIDGE_TOOLSET` also works (see [Model notes](#model-notes)).
+**Too many tools.** A VS Code chat request can have at most 128 tools enabled, and fails above that with "Cannot have more than 128 tools per request." `[C-286]`. Figxel registers 133 tools by default, so it is over the limit on its own. Deselect tools (or whole servers) in the chat's tools picker, or turn on virtual tools with the setting `github.copilot.chat.virtualTools.threshold` `[C-286]`. Starting the server with a smaller `BRIDGE_TOOLSET` also works (see [Model notes](#model-notes)).
 
 Prompts run as `/figxel.design_in_figma`, and resources are attached through **Add Context** `[C-178]`.
 
@@ -190,7 +189,7 @@ Windsurf's MCP documentation now redirects to Devin Desktop's, which reads `mcpS
 
 On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Whether an existing Windsurf install still reads an older config file is not documented `[C-289]`.
 
-**Too many tools.** Cascade can use at most 100 tools at any one time `[C-289]`, and Figxel registers 136 by default, so trim them with `BRIDGE_TOOLSET` (see [Model notes](#model-notes)).
+**Too many tools.** Cascade can use at most 100 tools at any one time `[C-289]`, and Figxel registers 133 by default, so trim them with `BRIDGE_TOOLSET` (see [Model notes](#model-notes)).
 
 ### Hermes
 
@@ -297,6 +296,6 @@ MCP_TOOL_TIMEOUT=3600000 claude          # PowerShell: $env:MCP_TOOL_TIMEOUT = "
 ## Model notes
 
 - **Tool schemas are kept portable.** Every tool's input schema stays inside a conservative JSON Schema subset (no `anyOf`/`$ref`/`const`/`format`…, every object has `properties`, every array has `items`), so apps can translate it for any provider. `test/schema-portability.test.ts` enforces this in CI for every tool, including ones added later.
-- **Some apps cap the number of tools.** VS Code allows 128 per chat request `[C-286]` and Devin Desktop's Cascade 100 at a time `[C-289]`, while Figxel registers 136 by default. OpenAI's function-calling guide suggests fewer than 20 functions at the start of a turn, as a soft suggestion `[C-290]`.
+- **Some apps cap the number of tools.** VS Code allows 128 per chat request `[C-286]` and Devin Desktop's Cascade 100 at a time `[C-289]`, while Figxel registers 133 by default. OpenAI's function-calling guide suggests fewer than 20 functions at the start of a turn, as a soft suggestion `[C-290]`.
 - **Smaller and local models do better with fewer tools.** Trim per app, in the app's own tool picker if it has one, or with an environment variable in that app's server entry: `BRIDGE_TOOLSET=core` (20 tools) or a group list such as `read,export` ([tools.md § Trimming the toolset](reference/tools.md#trimming-the-toolset)). `figma_get_guide` stays registered in every toolset but `none`, so a trimmed agent still gets the skills.
 - **Nothing depends on the model.** `figma_status` is the first call for any model: it works without a plugin and says what to do next.

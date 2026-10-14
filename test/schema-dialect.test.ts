@@ -65,7 +65,7 @@ describe("on the wire, over a real MCP connection", () => {
 
   beforeAll(async () => {
     const home = mkdtempSync(join(tmpdir(), "fmcp-dialect-"));
-    const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1" });
+    const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1", BRIDGE_ENABLE_AUDIO: "1" });
     app = await createApp(config, readOrCreateToken(config.tokenPath), quietLogger);
     const [a, b] = InMemoryTransport.createLinkedPair();
     client = new Client({ name: "dialect-check", version: "0" });

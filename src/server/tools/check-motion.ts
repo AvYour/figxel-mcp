@@ -98,7 +98,7 @@ export const CHECK_MOTION_SHAPE = {
     .min(2)
     .max(4000)
     .optional()
-    .describe("The music's own beats in seconds, increasing (figma_analyze_audio's beatTimes): the beat check uses them instead of the bpm grid."),
+    .describe("The beat times of the music in seconds, increasing: the beat check uses them instead of the bpm grid."),
   beatOffset: z.number().min(0).optional().describe("Time of the first downbeat, s. Default the plan's, else 0."),
   beatsPerBar: z.number().int().min(1).max(12).optional().describe("Default 4."),
   rules: z.array(z.enum(RULE_IDS)).min(1).max(30).optional().describe("Only these rules. Default all."),
@@ -137,7 +137,7 @@ export function auditOptions(args: Record<string, unknown>): AuditOptions {
   const holds = ((args.holds as Span[] | undefined) ?? []).map((h, i) => holdInSeconds(h, i, num("fps") ?? 30));
   const beatTimes = args.beatTimes as number[] | undefined;
   beatTimes?.forEach((t, i) => {
-    if (i > 0 && !(t > beatTimes[i - 1]!)) throw invalid(`\`beatTimes\` must increase: beatTimes[${i}] = ${t} is not after ${beatTimes[i - 1]}.`, "Pass figma_analyze_audio's beatTimes as they are.");
+    if (i > 0 && !(t > beatTimes[i - 1]!)) throw invalid(`\`beatTimes\` must increase: beatTimes[${i}] = ${t} is not after ${beatTimes[i - 1]}.`, "Pass the beat times of the music in seconds, each after the one before.");
   });
   const id = (k: "brandId" | "ctaId") => (typeof args[k] === "string" ? toNodeId(args[k] as string, k).id : undefined);
   const opts: AuditOptions = {

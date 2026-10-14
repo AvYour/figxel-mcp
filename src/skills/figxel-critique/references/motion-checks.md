@@ -60,7 +60,7 @@ figma_check_layout sees only the rest state, so these are computed from the keys
 6. **Accents read:** thick enough for the viewing size, with 3:1 or more against their ground, and visible from their first frame.
 
 ## F. Rhythm
-1. Hits on downbeats, secondary hits on beats or on whole-frame subdivisions, at a stated BPM or on the music's own beats (figma_check_motion { beatTimes } from figma_analyze_audio), or on the timed voice-over.
+1. Hits on downbeats, secondary hits on beats or on whole-frame subdivisions, at a stated BPM or on the music's own beat times (figma_check_motion { beatTimes }), or on the timed voice-over.
 2. The end structure the brief names: an end card (with a breath before it, if planned), a loop seam, a held last pose.
 3. Each scene's activity (the frame-difference curve) stays above any planned breath, so the breath reads as a contrast; a scene stiller than the breath reads as dead.
 4. The device count per stretch stays within the bible's restraint rules.
@@ -69,10 +69,10 @@ figma_check_layout sees only the rest state, so these are computed from the keys
 1. The last frame is settled and clean; for a loop, it is one step before frame 0's pose (the motion skill's `formats` section).
 2. `frameCount` equals `expectedFrames`: the render includes the end frame, ceil(d · fps) + 1 in every format.
 3. Stills are cut by frame index (`stills`, `frameIndices`), never by a rounded time.
-4. The master meets the placement's spec. With sound: it was joined after the last picture fix (figma_add_audio), its warnings are answered, its true peak is at or under −1 dBTP, effects sit on their cuts and accents, and the piece still reads with the sound off. The audio is the user's licensed track or a generated one, named in the report.
+4. The master meets the placement's spec, and the piece reads with the sound off: Figma's export has no audio, and any sound is added after the final render, with audio the user has the rights to, in a video editing tool.
 5. After every round of fixes, re-check each changed span and its neighbours: the run's fixes caused 4 new issues in round 2 and 3 in round 3.
 
 ## Originality: at the directions, on the styleframes, and in round 1
 Before anything moves, hold the chosen direction against card 0 (the storyboard's obvious version), the generated looks and the motion habits of generated work. In review round 1, do it again on the render: answer every `template_move` and `easing_census` info from figma_check_motion (fixed, or kept with a reason in the report), and compare the piece's transitions and accents with card 0 and the bible's vocabulary. A match is either a brand given, with its evidence, or a finding.
 
-Evidence (claim ids, for maintainers): [C-206] [C-246] [C-243] [C-240] [C-242] [C-196] [C-222] [C-259] [C-261] [C-258] [C-230] [C-241] [C-075] [C-207] [C-221] [C-244] [C-194] [C-208] [C-219] [C-209] [C-260] [C-184] [C-332]
+Evidence (claim ids, for maintainers): [C-206] [C-246] [C-243] [C-240] [C-242] [C-196] [C-222] [C-259] [C-261] [C-258] [C-230] [C-241] [C-075] [C-207] [C-221] [C-244] [C-194] [C-208] [C-219] [C-209] [C-260] [C-184]

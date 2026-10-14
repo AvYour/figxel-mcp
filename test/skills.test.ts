@@ -215,13 +215,13 @@ describe("the move from guides.ts kept every word (snapshot of a6ebb06)", () => 
     check: "the craft and tells audits, safeArea and minTextSize, the squint test, and a pointer to figma_check_motion",
     tools:
       "rows for the storyboard, animatic, motion-check and video-review tools, and the changed ones; figma_set_motion_plan and the final render (2026-10-14); " +
-      "a row for the sound tools (analyze, generate and add audio)",
+      "a sound row that names no tool: the audio tools were held back (2026-10-14, docs/superpowers/plans/2026-10-14-audio-held.md)",
     typography: "body sizes and leading from C-210, the accented-word habit, figures checked at display size, and criteria before figma_suggest_fonts' ranking; families checked by filter, figma_suggest_fonts optional (acceptance run 1); new text's lineHeight and letterSpacing as strings, a bare number px (found later)",
     slides: "a new deck runs the design skill's page gear; the deck principles became decisions the brief makes (C-218)",
     motion:
       "the mechanics section gained the frame-grid facts, cut pairs, job-mode rendering, readback and a UI micro-motion recipe (plan §1.2); " +
       "the index opens with the senior motion designer's role and the stages the tools enforce: a plan before keyframes, a passing check before the final render (BRIDGE_PROCESS, 2026-10-14); " +
-      "the index sends sound and delivery to the formats section, which gained the sound-design steps",
+      "the index sends delivery to the formats section, whose sound part is one neutral line since the audio tools were held back (2026-10-14)",
     safety: "job mode on figma_export_video, the restored-window rule, and created ids inside an animated frame (plan §1.2); what PROCESS_REQUIRED asks for (2026-10-14)",
     "design-system": "decides whose system the file holds before applying it: another brand's styles are reference (acceptance run 1)",
     "code-to-design": "fonts checked with figma_get_fonts' family filter or a figma_create_text try, never the unfiltered list (acceptance run 1)",
@@ -394,6 +394,15 @@ describe("tools and parameters (T4, T10)", () => {
     const named = new Set(texts().flatMap((t) => [...t.matchAll(/\bfigma_[a-z_]+/g)].map((m) => m[0])));
     // "figma_create_…_style" stands for several tools; the trailing underscore marks it.
     expect([...named].filter((n) => !params.has(n) && !n.endsWith("_"))).toEqual([]);
+  });
+
+  it("no surface names a tool of the held-back audio group, which the default server does not register", () => {
+    // Held back on 2026-10-14 (docs/superpowers/plans/2026-10-14-audio-held.md): this server runs without BRIDGE_ENABLE_AUDIO.
+    const audio = [...OPS].filter(([, i]) => i.group === "audio").map(([op]) => toolName(op));
+    expect(audio).toHaveLength(3);
+    for (const t of audio) expect(params.has(t), t).toBe(false);
+    const surfaces = [...texts(), ...PROMPTS.map((row) => promptText(row, {}))];
+    expect(surfaces.filter((s) => audio.some((t) => s.includes(t)))).toEqual([]);
   });
 
   it("every figma_x { key … } names only that tool's parameters", () => {

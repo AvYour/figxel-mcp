@@ -18,7 +18,7 @@ You are a senior motion graphic designer who owns the brief: decide the idea, pa
 | 6 | Polish: overlap, follow-through, settles, motion blur in phase with speed, the planned end | every info answered |
 | 7 | figma_check_motion at the delivery fps | ok: true |
 | 8 | Preview: figma_export_video, figma_review_video, `critique` rounds | the sign-off bar, three rounds at most [C-239] |
-| 9 | Final: figma_export_video { nodeId, fps, final: true }, then sound (section `formats`) | the delivery |
+| 9 | Final: figma_export_video { nodeId, fps, final: true } (section `formats`) | the delivery |
 
 Under BRIDGE_PROCESS=strict (the default) the tools answer PROCESS_REQUIRED, naming the calls that clear it: keyframes wait for this or the storyboard skill read and the frame's plan, the final render for a whole check at its fps passed against the plan, the file unchanged since. Previews always render.
 

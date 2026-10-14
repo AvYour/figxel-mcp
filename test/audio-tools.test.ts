@@ -151,8 +151,8 @@ describe("figma_add_audio with ffmpeg stubbed", () => {
     expect(r.isError).toBeFalsy();
     const graphs = s.calls.filter((c) => c.args.includes("-filter_complex")).map((c) => c.args[c.args.indexOf("-filter_complex") + 1]!);
     expect(graphs).toHaveLength(2);
-    expect(graphs[0]).toMatch(/,loudnorm=I=-14:TP=-1:LRA=11:print_format=json,aresample=48000\[aout\]$/);
-    expect(graphs[1]).toMatch(/,loudnorm=I=-14:TP=-1:LRA=11:measured_I=-21.3:measured_TP=-4.1:measured_LRA=3.4:measured_thresh=-31.6:offset=0.02:linear=true:print_format=summary,aresample=48000\[aout\]$/);
+    expect(graphs[0]).toMatch(/,loudnorm=I=-14:TP=-2:LRA=11:print_format=json,aresample=48000\[aout\]$/);
+    expect(graphs[1]).toMatch(/,loudnorm=I=-14:TP=-2:LRA=11:measured_I=-21.3:measured_TP=-4.1:measured_LRA=3.4:measured_thresh=-31.6:offset=0.02:linear=true:print_format=summary,aresample=48000\[aout\]$/);
     const first = s.calls.find((c) => c.args.includes("-filter_complex"))!;
     expect(first.args.slice(-4)).toEqual(["[aout]", "-f", "null", "-"]);
     expect(json(r).loudness.target).toBe(-14);

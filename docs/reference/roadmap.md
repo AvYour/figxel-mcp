@@ -64,7 +64,7 @@ Once the gate passed, Phase 1 (Read) followed with its own implementation plan u
 | # | Decision | Value |
 |---|---|---|
 | 1 | **Name** | Product **Figxel**. MCP server name `figxel`; npm package and bin `figxel-mcp`; plugin name in Figma `Figxel`. The plugin's manifest id stays `figma-mcp-bridge`, because Figma keys a plugin's saved data, the token included, by that id `[C-276]`. The public wording says Figxel works with Figma and is not affiliated with it `[C-272]`. During development the project was called figma-mcp |
-| 2 | **Toolset** | **Every catalog tool active by default: 136** (+`figma_eval` when opted in = 137). Trim through the client's tool picker or `BRIDGE_TOOLSET`, which apps with a tool limit need (VS Code 128 `[C-286]`, Windsurf 100 `[C-289]`) |
+| 2 | **Toolset** | **Every catalog tool active by default: 133** (+`figma_eval` when opted in; the three tools of the `audio` group, held back from the release on 2026-10-14, only with `BRIDGE_ENABLE_AUDIO=1`; 137 in the catalog). Trim through the client's tool picker or `BRIDGE_TOOLSET`, which apps with a tool limit need (VS Code 128 `[C-286]`, Windsurf 100 `[C-289]`) |
 | 3 | **Port** | `38452`, loopback only `[C-037]` |
 | 4 | ~~**Auto-launch**~~ | **Removed 2026-10-07** (ADR #32). `BRIDGE_AUTOLAUNCH` is parsed but inert |
 | 5 | **`figma_eval`** | Present, opt-in (`BRIDGE_ALLOW_EVAL=1`) `[C-041]` |

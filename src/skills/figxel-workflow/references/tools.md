@@ -39,7 +39,7 @@
 | Plan a motion piece | figma_create_storyboard (panels, timing, `offBeat` and `readTime` lists), figma_create_animatic (the board as timed plates, ready to render); both still unverified in Design, so their writes are refused there unless BRIDGE_ALLOW_UNVERIFIED is set; the storyboard skill then builds them by hand |
 | Check keyframes before rendering | figma_check_motion (pops, one frame carrying a move, dead stretches, read times, beats) |
 | See it move | figma_export_video (job mode: `jobId`, `wait`; exact frames with `frameIndices`; `final: true` for the delivery, after a passing figma_check_motion), then figma_review_video on the file (contact sheet, close-ups, stills, metrics; at most `maxImages` pictures inline, so batch them; no second render) |
-| Sound for a motion piece (Figma's export has none) | figma_analyze_audio (the user's own track: tempo, `beatTimes`, loudness), figma_generate_audio (a simple bed and effects made offline; `nodeId` derives the effects from the keys), figma_add_audio (tracks onto the render, the picture copied); only audio the user has the rights to |
+| Sound for a motion piece | none: Figma's export has no audio, so sound is added after the final render, with audio the user has the rights to, in a video editing tool |
 
 On a FigJam board (topic figjam):
 

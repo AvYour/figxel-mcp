@@ -238,7 +238,8 @@ describe("the Editors sentence at the end of a description", () => {
   });
 
   it("every registered tool ends with its sentence, stays within 1024, and no body is cut", async () => {
-    const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-editors-")), BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1" });
+    // Eval and the held-back audio group too: their descriptions obey the same cap.
+    const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-editors-")), BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1", BRIDGE_ENABLE_AUDIO: "1" });
     const bridge = { request: async () => ({}), statusAsync: async () => ({ sessions: [] }), status: () => ({ sessions: [] }) } as unknown as Bridge;
     // The bodies as each module wrote them: a server that ignores the recorder's wrapper.
     const bodies = new Map<string, string>();
@@ -254,7 +255,7 @@ describe("the Editors sentence at the end of a description", () => {
     cleanup.push(() => client.close());
     const { tools } = await client.listTools();
     expect(tools.length).toBe(bodies.size);
-    expect(tools.length).toBe(selectOps({ kind: "full" }, true).length);
+    expect(tools.length).toBe(selectOps({ kind: "full" }, true, true).length);
     for (const t of tools) {
       const suffix = editorsSuffix(t.name.replace(/^figma_/, ""));
       const body = bodies.get(t.name)!;
@@ -496,7 +497,7 @@ describe("figma_status per session", () => {
     ({ role: "hub", listening: true, reason: null, port: 0, host: "127.0.0.1", hubPid: 1, peers: 0, lastAuthFailureAt: null, serverBuild: "dev", allowUnverified: false, sessions, ...extra }) as BridgeStatus;
   const run = async (st: BridgeStatus, env: Record<string, string> = {}) => {
     const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-st-")), BRIDGE_PORT: "0", ...env });
-    const registered = selectOps(config.toolset, config.allowEval).map(toolName);
+    const registered = selectOps(config.toolset, config.allowEval, config.enableAudio).map(toolName);
     return (await buildStatus({
       bridge: { statusAsync: async () => st } as unknown as Bridge,
       config,

@@ -5,7 +5,7 @@
 // schemas are added with each phase's tools (src/server/tools/*.ts); Phase 0
 // only implements `figma_status`.
 
-export const GROUPS = ["meta", "read", "create", "modify", "style", "export", "eval"] as const;
+export const GROUPS = ["meta", "read", "create", "modify", "style", "export", "audio", "eval"] as const;
 export type Group = (typeof GROUPS)[number];
 
 export interface OpInfo {
@@ -58,12 +58,18 @@ const BY_GROUP: Record<Group, readonly string[]> = {
     "set_variable_mode", "update_style", "set_description", "set_keyframes", "remove_keyframes",
     "set_scroll_behavior", "set_prototype_flows", "set_slide_transition", "set_motion_plan",
   ],
-  export: ["export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video", "analyze_audio", "add_audio", "generate_audio"],
+  export: ["export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video"],
+  // Held back from the release on 2026-10-14 (the owner judged the generated
+  // sound not good enough yet, and the licensed-files path is not built):
+  // registered only with BRIDGE_ENABLE_AUDIO=1, as `eval` is only with
+  // BRIDGE_ALLOW_EVAL=1. docs/superpowers/plans/2026-10-14-audio-held.md.
+  audio: ["analyze_audio", "add_audio", "generate_audio"],
   eval: ["eval"],
 };
 
 const WRITE_GROUPS = new Set<Group>(["create", "modify", "style", "eval"]);
-const READ_ONLY_GROUPS = new Set<Group>(["meta", "read", "export"]);
+// audio reads and writes files on disk as the export group does, never the document.
+const READ_ONLY_GROUPS = new Set<Group>(["meta", "read", "export", "audio"]);
 // update_variable_collection: `removeModes` deletes every variable's value for
 // the mode. reset_slot: drops the layers added into a slot. edit_table: removed
 // rows and columns take their cells' text. Each loses work, so each carries
@@ -141,9 +147,10 @@ export function toolsetLabel(toolset: Toolset): string {
  * Standing rules (tools.md): `status` is always in; `get_guide` is in every
  * toolset except `none`, because its skills are how an agent learns to use
  * the tools it was given; `eval` needs both `allowEval` and a toolset that
- * includes the `eval` group.
+ * includes the `eval` group; the held-back `audio` group needs both
+ * `enableAudio` (BRIDGE_ENABLE_AUDIO=1) and a toolset that includes it.
  */
-export function selectOps(toolset: Toolset, allowEval: boolean): string[] {
+export function selectOps(toolset: Toolset, allowEval: boolean, enableAudio = false): string[] {
   const all = [...OPS.keys()];
   let picked: string[];
   switch (toolset.kind) {
@@ -164,5 +171,6 @@ export function selectOps(toolset: Toolset, allowEval: boolean): string[] {
   out.add("status");
   if (toolset.kind !== "none") out.add("get_guide");
   if (!allowEval) out.delete("eval");
+  if (!enableAudio) for (const op of BY_GROUP.audio) out.delete(op);
   return all.filter((op) => out.has(op));
 }

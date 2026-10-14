@@ -27,7 +27,8 @@ const SLIDES = ["get_slide_grid", "create_slides", "set_slide_grid", "move_slide
 
 type Handler = (args: Record<string, unknown>, extra: unknown) => Promise<CallToolResult>;
 
-function registered() {
+/** Every tool, eval and the held-back audio group included, unless `env` says otherwise. */
+function registered(env: Record<string, string> = { BRIDGE_ALLOW_EVAL: "1", BRIDGE_ENABLE_AUDIO: "1" }) {
   const names: string[] = [];
   const handlers = new Map<string, Handler>();
   const server = {
@@ -43,7 +44,7 @@ function registered() {
     statusAsync: async () => ({ sessions: [] }),
     status: () => ({ sessions: [] }),
   } as unknown as Bridge;
-  const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-integ-")), BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1" });
+  const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-integ-")), BRIDGE_PORT: "0", ...env });
   registerTools(server, bridge, config, Date.now(), quietLogger);
   return { names, handlers, forwarded };
 }
@@ -58,7 +59,8 @@ describe("the FigJam and Slides tools, wired", () => {
     expect(OPS.get("set_slide_transition")).toMatchObject({ group: "style", write: true });
     expect(OPS.get("edit_table")!.destructive).toBe(true);
     // 129, plus figma_check_motion, figma_review_video, figma_create_storyboard and figma_create_animatic,
-    // figma_set_motion_plan, and figma_analyze_audio, figma_add_audio and figma_generate_audio.
+    // figma_set_motion_plan, and figma_analyze_audio, figma_add_audio and figma_generate_audio
+    // (in the catalog, held back from default registration).
     expect(OPS.size).toBe(137);
   });
 
@@ -71,10 +73,11 @@ describe("the FigJam and Slides tools, wired", () => {
     expect(flags).toEqual(["undo_step"]);
   });
 
-  it("every tool registers exactly once, eval included; the 16 board and deck tools before figma_batch", () => {
+  it("every tool registers exactly once, eval and audio included; the 16 board and deck tools before figma_batch", () => {
     const { names } = registered();
     expect(names.length).toBe(new Set(names).size);
-    expect(names.length).toBe(selectOps({ kind: "full" }, true).length);
+    expect(names.length).toBe(selectOps({ kind: "full" }, true, true).length);
+    expect(names.length).toBe(OPS.size);
     const batchAt = names.indexOf("figma_batch");
     for (const op of [...FIGJAM, ...SLIDES]) {
       const at = names.indexOf(toolName(op));
@@ -115,7 +118,7 @@ describe("the FigJam and Slides tools, wired", () => {
       registerTool: (_n: string, config: { description?: string }) => void texts.push(config.description ?? ""),
       registerPrompt() {},
     } as unknown as McpServer;
-    const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-integ-")), BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1" });
+    const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-integ-")), BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1", BRIDGE_ENABLE_AUDIO: "1" });
     registerTools(server, {} as Bridge, config, Date.now(), quietLogger);
     for (const r of Object.values(EDITOR_SUPPORT)) texts.push(r.why ?? "", ...Object.values(r.instead ?? {}));
     const known = new Set([...OPS.keys()].map(toolName));
@@ -172,17 +175,35 @@ describe("figma_check_motion, figma_review_video and figma_create_storyboard, wi
 
 // The audio tools work on files: no plugin op of their own. generate_audio
 // { nodeId } reads the frame through check_motion's op, gated by its own row.
+// Held back from the release on 2026-10-14: registered only with BRIDGE_ENABLE_AUDIO=1.
 describe("figma_analyze_audio, figma_add_audio and figma_generate_audio, wired", () => {
   const AUDIO = ["analyze_audio", "add_audio", "generate_audio"];
 
-  it("sit in the export group, answered by the bridge, with no plugin op", () => {
+  it("sit in the audio group, answered by the bridge, with no plugin op", () => {
     for (const op of AUDIO) {
-      expect(OPS.get(op), op).toMatchObject({ group: "export", readOnly: true, write: false, destructive: false, bridgeOnly: true });
+      expect(OPS.get(op), op).toMatchObject({ group: "audio", readOnly: true, write: false, destructive: false, bridgeOnly: true });
       expect(PLUGIN_OPS[op], op).toBeUndefined();
     }
   });
 
-  it("register once each, before figma_batch, and a batch refuses them as export ops", async () => {
+  it("are not registered by default, eval allowed or not; BRIDGE_ENABLE_AUDIO=1 registers all three", () => {
+    const envs: Array<Record<string, string>> = [{}, { BRIDGE_ALLOW_EVAL: "1" }, { BRIDGE_ENABLE_AUDIO: "0" }];
+    for (const env of envs) {
+      const { names } = registered(env);
+      expect(names.filter((n) => AUDIO.includes(n.replace(/^figma_/, ""))), JSON.stringify(env)).toEqual([]);
+      // Everything else is still there: the default is the catalog less eval and the audio group.
+      expect(names.length, JSON.stringify(env)).toBe(selectOps({ kind: "full" }, "BRIDGE_ALLOW_EVAL" in env).length);
+    }
+    expect(registered({}).names.length).toBe(OPS.size - 1 - AUDIO.length);
+    const on = registered({ BRIDGE_ENABLE_AUDIO: "1" }).names;
+    expect(on.filter((n) => AUDIO.includes(n.replace(/^figma_/, "")))).toEqual(AUDIO.map(toolName));
+    // The toolset still decides: core never holds them, and a group list needs the audio group.
+    expect(registered({ BRIDGE_ENABLE_AUDIO: "1", BRIDGE_TOOLSET: "core" }).names.filter((n) => n.endsWith("_audio"))).toEqual([]);
+    expect(registered({ BRIDGE_ENABLE_AUDIO: "1", BRIDGE_TOOLSET: "export" }).names.filter((n) => n.endsWith("_audio"))).toEqual([]);
+    expect(registered({ BRIDGE_ENABLE_AUDIO: "1", BRIDGE_TOOLSET: "audio" }).names.filter((n) => n.endsWith("_audio"))).toEqual(AUDIO.map(toolName));
+  });
+
+  it("register once each, before figma_batch, and a batch refuses them as audio ops", async () => {
     const { names, handlers, forwarded } = registered();
     const batchAt = names.indexOf("figma_batch");
     for (const op of AUDIO) {
@@ -190,7 +211,7 @@ describe("figma_analyze_audio, figma_add_audio and figma_generate_audio, wired",
       expect(names.indexOf(toolName(op)), op).toBeLessThan(batchAt);
     }
     const r = await handlers.get("figma_batch")!({ steps: JSON.stringify([{ op: "generate_audio", params: { durationS: 1, cues: [{ t: 0, type: "tick" }] } }]) }, extra);
-    expect((r.content[0] as { text: string }).text).toContain('"generate_audio" is a export op');
+    expect((r.content[0] as { text: string }).text).toContain('"generate_audio" is a audio op');
     expect(forwarded).toEqual([]);
   });
 

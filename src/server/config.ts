@@ -28,6 +28,12 @@ export type ProcessMode = (typeof PROCESS_MODES)[number];
 export interface Config {
   toolset: Toolset;
   allowEval: boolean;
+  /**
+   * BRIDGE_ENABLE_AUDIO: registers the held-back `audio` group (figma_analyze_audio,
+   * figma_add_audio, figma_generate_audio). Off by default: the tools were held back
+   * from the release on 2026-10-14 (docs/superpowers/plans/2026-10-14-audio-held.md).
+   */
+  enableAudio: boolean;
   /** BRIDGE_ALLOW_UNVERIFIED: writes not yet verified in a file's editor run anyway (src/shared/editors.ts). */
   allowUnverified: boolean;
   /** BRIDGE_PROCESS: the motion process gate, "strict" by default. */
@@ -45,7 +51,7 @@ export interface Config {
   exportRoots: string[];
   port: number;
   logLevel: LogLevel;
-  /** BRIDGE_FFMPEG / BRIDGE_FFPROBE: the programs the video tools run (ffmpeg.ts). Names on PATH by default. */
+  /** BRIDGE_FFMPEG / BRIDGE_FFPROBE: the programs the video (and, when enabled, audio) tools run (ffmpeg.ts). Names on PATH by default. */
   ffmpeg: string;
   ffprobe: string;
   /**
@@ -111,6 +117,8 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
   return {
     toolset,
     allowEval: flag(env, "BRIDGE_ALLOW_EVAL"),
+    // Off by default, like eval: the audio tools are kept and tested, not released.
+    enableAudio: flag(env, "BRIDGE_ENABLE_AUDIO"),
     // Off by default: an unmeasured editor cell refuses writes until a spike has
     // recorded them. Like eval, it belongs to the process the MCP client talks
     // to — a measuring run turns it on for its own calls only [C-129].

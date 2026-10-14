@@ -2,7 +2,8 @@
 //
 // figma_export_video cuts stills and counts frames with them, and
 // figma_review_video, figma_analyze_audio and figma_add_audio need both
-// (figma_generate_audio needs neither). They are found on PATH by name unless
+// (figma_generate_audio needs neither; the three audio tools are held back,
+// registered only with BRIDGE_ENABLE_AUDIO=1). They are found on PATH by name unless
 // BRIDGE_FFMPEG / BRIDGE_FFPROBE name the programs (config.ts). figma_status
 // reports whether each one runs, so "ffmpeg not on PATH" is visible before a
 // render rather than after it. Always executed from an argument array, never
@@ -68,15 +69,25 @@ function checkOne(run: ExecFileLike, command: string, now: number): Promise<Tool
   });
 }
 
-/** Whether ffmpeg and ffprobe run, for figma_status. Never rejects. */
-export async function checkMediaTools(run: ExecFileLike = nodeExecFile, tools: MediaTools = DEFAULT_MEDIA_TOOLS, now = Date.now()): Promise<{ ffmpeg: ToolCheck; ffprobe: ToolCheck; note?: string }> {
+/**
+ * Whether ffmpeg and ffprobe run, for figma_status. Never rejects. `audio`:
+ * the held-back audio tools are registered, so the note names the two that
+ * need both programs; otherwise it names only the video tools.
+ */
+export async function checkMediaTools(
+  run: ExecFileLike = nodeExecFile,
+  tools: MediaTools = DEFAULT_MEDIA_TOOLS,
+  now = Date.now(),
+  opts: { audio?: boolean } = {},
+): Promise<{ ffmpeg: ToolCheck; ffprobe: ToolCheck; note?: string }> {
   const [ffmpeg, ffprobe] = await Promise.all([checkOne(run, tools.ffmpeg, now), checkOne(run, tools.ffprobe, now)]);
+  const needBoth = opts.audio
+    ? "its frames and frame count, figma_review_video, figma_analyze_audio and figma_add_audio need both programs"
+    : "its frames and frame count and figma_review_video need both programs";
   return {
     ffmpeg,
     ffprobe,
-    ...(ffmpeg.available && ffprobe.available
-      ? {}
-      : { note: `figma_export_video still writes the video; its frames and frame count, figma_review_video, figma_analyze_audio and figma_add_audio need both programs. ${noFfmpegHint(tools)}` }),
+    ...(ffmpeg.available && ffprobe.available ? {} : { note: `figma_export_video still writes the video; ${needBoth}. ${noFfmpegHint(tools)}` }),
   };
 }
 

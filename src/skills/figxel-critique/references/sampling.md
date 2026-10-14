@@ -31,7 +31,7 @@ The keys first, because they need no render:
    - The metrics flag freezes, one-frame flickers, flashes and jumps; their defaults come from the run's measured numbers.
 4. **Layout over time** comes from numbers, not from stills: for each drift, push or anticipation, take the move's extreme offset from its keys (figma_check_motion { includeActivity: true } lists the fastest frames, the keys give the values), add it to the layer's rest bounds from figma_get_nodes_info, and compare with the bible's minimum spacing and the `safeArea`. Stills only confirm what the numbers flag. figma_check_layout { nodeId, audit: ["craft"] } sees the rest state alone; at least 7 of the run's collisions existed only in motion.
 
-For an animatic, `cuts` are the panels' `inFrame` values from the latest figma_create_animatic result, panel 1 left out. With music, check the keys against its beats, figma_check_motion { nodeId, fps, beatTimes }; review the picture on the silent render, then once more on the file figma_add_audio wrote (its picture is the same stream). For UI micro-motion, a small GIF is enough: figma_export_video { nodeId, format: "GIF", fps: 12, width: 480, frameIndices: [0, 6, 12] }.
+For an animatic, `cuts` are the panels' `inFrame` values from the latest figma_create_animatic result, panel 1 left out. With music, check the keys against its beat times, figma_check_motion { nodeId, fps, beatTimes }, and review the picture on the silent render. For UI micro-motion, a small GIF is enough: figma_export_video { nodeId, format: "GIF", fps: 12, width: 480, frameIndices: [0, 6, 12] }.
 
 ## When ffmpeg is missing
 

@@ -371,13 +371,21 @@ export function parseLoudnorm(log: string): LoudnormMeasure | null {
   }
 }
 
+/**
+ * Room left under the ceiling for the lossy encoder that follows loudnorm: AAC and
+ * Opus raise the true peak again after it [C-328] (a -14 LUFS mix held at -1 dBTP
+ * came out at -0.8 dBTP as AAC on 2026-10-14), so the filter aims 1 dB lower.
+ */
+const ENCODE_HEADROOM_DB = 1;
+const LOUDNORM_TP = TRUE_PEAK_CEILING_DB - ENCODE_HEADROOM_DB;
+
 /** The loudnorm filter: measuring (first pass) or applying the measured gain linearly (second pass). */
 export function loudnormFilter(target: number, measured?: LoudnormMeasure): string {
-  if (!measured) return `loudnorm=I=${n(target)}:TP=${TRUE_PEAK_CEILING_DB}:LRA=11:print_format=json`;
+  if (!measured) return `loudnorm=I=${n(target)}:TP=${LOUDNORM_TP}:LRA=11:print_format=json`;
   // Linear mode needs a target range at least as wide as the mix's own.
   const lra = Math.min(50, Math.max(11, Math.ceil(measured.input_lra + 1)));
   return (
-    `loudnorm=I=${n(target)}:TP=${TRUE_PEAK_CEILING_DB}:LRA=${lra}` +
+    `loudnorm=I=${n(target)}:TP=${LOUDNORM_TP}:LRA=${lra}` +
     `:measured_I=${n(measured.input_i)}:measured_TP=${n(measured.input_tp)}:measured_LRA=${n(measured.input_lra)}` +
     `:measured_thresh=${n(measured.input_thresh)}:offset=${n(measured.target_offset)}:linear=true:print_format=summary`
   );

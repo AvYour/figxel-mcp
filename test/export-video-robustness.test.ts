@@ -188,6 +188,11 @@ describe("BRIDGE_FFMPEG / BRIDGE_FFPROBE", () => {
     expect(checked.ffmpeg).toEqual({ command: "ffmpeg", available: true, version: "ffmpeg version 9.0-test Copyright" });
     expect(checked.ffprobe).toMatchObject({ command: "ffprobe", available: false, error: "not found" });
     expect(checked.note).toMatch(/If ffmpeg was installed after the MCP client started, restart the MCP client/);
+    // The held-back audio tools are named only where BRIDGE_ENABLE_AUDIO registered them.
+    expect(checked.note).toMatch(/figma_review_video need both programs/);
+    expect(checked.note).not.toMatch(/audio/);
+    const withAudio = await checkMediaTools(run, { ffmpeg: "ffmpeg", ffprobe: "ffprobe" }, Date.now(), { audio: true });
+    expect(withAudio.note).toMatch(/figma_review_video, figma_analyze_audio and figma_add_audio need both programs/);
     resetMediaToolsCache();
   });
 });

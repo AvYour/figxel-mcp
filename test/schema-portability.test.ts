@@ -49,8 +49,8 @@ let client: Client;
 
 beforeAll(async () => {
   const home = mkdtempSync(join(tmpdir(), "fmcp-schema-"));
-  // Every group selected and eval allowed: the widest surface the server can register.
-  const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1" });
+  // Every group selected, eval allowed and the held-back audio group enabled: the widest surface the server can register.
+  const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1", BRIDGE_ENABLE_AUDIO: "1" });
   app = await createApp(config, readOrCreateToken(config.tokenPath), quietLogger);
   const [a, b] = InMemoryTransport.createLinkedPair();
   client = new Client({ name: "schema-check", version: "0" });

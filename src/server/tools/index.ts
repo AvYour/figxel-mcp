@@ -1,4 +1,4 @@
-// Tool registration. The toolset (BRIDGE_TOOLSET + BRIDGE_ALLOW_EVAL) decides
+// Tool registration. The toolset (BRIDGE_TOOLSET + BRIDGE_ALLOW_EVAL + BRIDGE_ENABLE_AUDIO) decides
 // which catalog tools are wanted; a tool is registered only once it is
 // implemented. Phase 0 implemented figma_status; Phase 1 adds the read group
 // (spec §12). Later phases add a module per group here (create.ts, modify.ts, …).
@@ -53,8 +53,14 @@ const IMPLEMENTED_CREATE = [
 /** Export ops implemented so far (spec §12 phase 1: figma_export_node). */
 const IMPLEMENTED_EXPORT = [
   "export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video",
-  "analyze_audio", "add_audio", "generate_audio",
 ] as const;
+
+/**
+ * The audio group: implemented and tested, held back from the release on
+ * 2026-10-14. Selected only with BRIDGE_ENABLE_AUDIO=1 (selectOps), so without
+ * it `wanted` is false for each and registerAudio registers nothing.
+ */
+const IMPLEMENTED_AUDIO = ["analyze_audio", "add_audio", "generate_audio"] as const;
 
 /** Style ops implemented so far (spec §12 phase 2: fills, strokes, corner radius). */
 const IMPLEMENTED_STYLE = [
@@ -82,7 +88,7 @@ const IMPLEMENTED_MODIFY = [
 
 // Guard against these lists drifting from the catalog: a name here that tools.md
 // does not list would register a tool the documentation never promised.
-for (const op of [...IMPLEMENTED_READ, ...IMPLEMENTED_CREATE, ...IMPLEMENTED_MODIFY, ...IMPLEMENTED_STYLE, ...IMPLEMENTED_EXPORT, ...IMPLEMENTED_META]) {
+for (const op of [...IMPLEMENTED_READ, ...IMPLEMENTED_CREATE, ...IMPLEMENTED_MODIFY, ...IMPLEMENTED_STYLE, ...IMPLEMENTED_EXPORT, ...IMPLEMENTED_AUDIO, ...IMPLEMENTED_META]) {
   if (!OPS.has(op)) {
     throw new Error(`tools/index.ts marks \`${op}\` as implemented, but it is not in the catalog (shared/ops.ts)`);
   }
@@ -91,7 +97,7 @@ for (const op of [...IMPLEMENTED_READ, ...IMPLEMENTED_CREATE, ...IMPLEMENTED_MOD
 /** Phase 4: the escape hatch. Registered only when both keys allow it. */
 const IMPLEMENTED_EVAL = ["eval"] as const;
 
-const IMPLEMENTED = new Set<string>(["status", "get_guide", ...IMPLEMENTED_READ, ...IMPLEMENTED_CREATE, ...IMPLEMENTED_MODIFY, ...IMPLEMENTED_STYLE, ...IMPLEMENTED_EXPORT, ...IMPLEMENTED_META, ...IMPLEMENTED_EVAL]);
+const IMPLEMENTED = new Set<string>(["status", "get_guide", ...IMPLEMENTED_READ, ...IMPLEMENTED_CREATE, ...IMPLEMENTED_MODIFY, ...IMPLEMENTED_STYLE, ...IMPLEMENTED_EXPORT, ...IMPLEMENTED_AUDIO, ...IMPLEMENTED_META, ...IMPLEMENTED_EVAL]);
 
 export interface Registration {
   selected: string[];
@@ -111,10 +117,12 @@ export function registerTools(
   logger?: Logger,
   motionProcess?: MotionProcess,
 ): Registration {
-  const selected = selectOps(config.toolset, config.allowEval).map(toolName);
+  const selected = selectOps(config.toolset, config.allowEval, config.enableAudio).map(toolName);
   const registered = selected.filter((t) => IMPLEMENTED.has(t.slice("figma_".length)));
   // BRIDGE_FFMPEG / BRIDGE_FFPROBE: the programs the video and audio tools run, and figma_status checks.
   const media = { ffmpeg: config.ffmpeg, ffprobe: config.ffprobe };
+  // figma_status's ffmpeg note names the audio tools only where they are registered.
+  const audioRegistered = IMPLEMENTED_AUDIO.some((op) => registered.includes(toolName(op)));
   const motion = motionProcess ?? new MotionProcess(config.processMode);
   motion.registered = new Set(registered);
   const ctx = {
@@ -123,7 +131,7 @@ export function registerTools(
     startedAt,
     selectedTools: selected,
     registeredTools: registered,
-    media: () => checkMediaTools(nodeExecFile, media),
+    media: () => checkMediaTools(nodeExecFile, media, Date.now(), { audio: audioRegistered }),
     process: motion,
   };
 
@@ -148,6 +156,7 @@ export function registerTools(
   registerMotionPlan(server, bridge, wanted, motion);
   registerCheckMotion(server, bridge, wanted, motion);
   registerReview(server, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
+  // Held back: registers nothing unless BRIDGE_ENABLE_AUDIO=1 selected the audio group.
   registerAudio(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
   registerFigjam(server, bridge, wanted);
   registerSlides(server, bridge, wanted);

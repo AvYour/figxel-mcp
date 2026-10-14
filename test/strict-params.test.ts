@@ -34,7 +34,7 @@ let server: McpServer;
 
 beforeAll(async () => {
   server = new McpServer({ name: "strict", version: "0" });
-  const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-strict-")), BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1" });
+  const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-strict-")), BRIDGE_PORT: "0", BRIDGE_ALLOW_EVAL: "1", BRIDGE_ENABLE_AUDIO: "1" });
   registerTools(server, bridge, config, Date.now());
   const [a, b] = InMemoryTransport.createLinkedPair();
   client = new Client({ name: "strict-check", version: "0" });
