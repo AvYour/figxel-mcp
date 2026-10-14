@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/lockup-reverse.png">
+    <img src="assets/logo/lockup.png" alt="figxel" width="270">
+  </picture>
+</p>
+
 # Figxel
 
 **Let your AI agent read and edit your Figma files.** Figxel is a local MCP server that works with Figma desktop. Through a small plugin that you run in Figma, an AI app such as Claude, Cursor or VS Code can read, build and change designs in Figma Design, FigJam and Figma Slides files. It also ships skills that teach the agent to design, storyboard, animate and critique its own work.
