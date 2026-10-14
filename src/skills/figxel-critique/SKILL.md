@@ -52,7 +52,7 @@ Inside an auto-layout the layout owns x and y, so a fix changes sizing, alignmen
 
 - No blocker or major finding in any lens; every lens at 8 or above.
 - figma_check_layout ok: true, and every craft and tells info answered: fixed, or kept with its reason in the report.
-- For motion: figma_check_motion ok, or each remaining warning declared in the bible and named in the report; every `template_move` and `easing_census` info answered.
+- For motion: figma_check_motion ok: true, any finding the brief intends in the plan's `accept` and named in the report; every `template_move` and `easing_census` info answered.
 - The last round introduced no regression.
 - Stop at the bar or at the gear's round budget, three at most; then report what is left.
 

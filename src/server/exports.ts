@@ -3,12 +3,19 @@
 //
 //   - a relative `saveTo` resolves from BRIDGE_EXPORT_DIR;
 //   - an absolute one must sit inside BRIDGE_EXPORT_DIR or a BRIDGE_EXPORT_ROOTS
-//     entry — checked on the path as written AND after realpath, so a symlink
-//     inside a root cannot carry the write outside it;
+//     entry — compared after realpath on both sides, so a symlink inside a root
+//     cannot carry the write outside it, and two spellings of one folder agree;
 //   - anything else is INVALID_PARAM, and nothing is created on the way.
+//
+// The comparison used to run on the paths as written first. One folder has
+// several spellings: a Windows 8.3 short path (C:\Users\ALEXAN~1\…, which
+// %TEMP% can hold) against its long form, or /tmp against /private/tmp on
+// macOS. A path inside a root was then refused (2026-10-14 audit). realpath
+// gives each folder one spelling. A path that starts with "~" is refused: no
+// shell expands it here, so it named a folder called "~" in the export dir.
 
 import { mkdir, realpath, writeFile } from "node:fs/promises";
-import { dirname, extname, isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { BridgeError, ErrorCode } from "../shared/errors.js";
 
 export interface ExportRoots {
@@ -38,15 +45,20 @@ const outsideRoots = (saveTo: string, roots: ExportRoots) =>
       "add it to BRIDGE_EXPORT_ROOTS in the MCP client's server config.",
   });
 
-/** The nearest ancestor of `path` that exists, realpath'd. */
-async function realAncestor(path: string): Promise<string> {
+/**
+ * `path` as it really resolves: its nearest existing ancestor realpath'd, and
+ * the parts that do not exist yet appended as written.
+ */
+async function realTarget(path: string): Promise<string> {
   let p = path;
+  const rest: string[] = [];
   for (;;) {
     try {
-      return await realpath(p);
+      return rest.length ? join(await realpath(p), ...rest.reverse()) : await realpath(p);
     } catch {
       const up = dirname(p);
       if (up === p) throw new BridgeError(ErrorCode.INVALID_PARAM, `No existing directory above ${path}.`);
+      rest.push(basename(p));
       p = up;
     }
   }
@@ -73,13 +85,17 @@ async function realRoots(roots: ExportRoots): Promise<string[]> {
 export async function resolveSavePath(saveTo: string, roots: ExportRoots): Promise<string> {
   const trimmed = saveTo.trim();
   if (trimmed === "") throw new BridgeError(ErrorCode.INVALID_PARAM, "`saveTo` is empty.");
+  if (trimmed.startsWith("~")) {
+    throw new BridgeError(ErrorCode.INVALID_PARAM, `\`saveTo\` starts with "~", which is not expanded here (no shell reads it): ${saveTo}`, {
+      hint: `Pass a full path, or a path relative to the export directory (${roots.exportDir}).`,
+    });
+  }
   const target = isAbsolute(trimmed) ? resolve(trimmed) : resolve(roots.exportDir, trimmed);
-  const lexical = [roots.exportDir, ...roots.exportRoots].map((r) => resolve(r));
-  if (!lexical.some((r) => inside(r, target))) throw outsideRoots(saveTo, roots);
 
+  // Where it really lands, against where the roots really are: one spelling each.
   const real = await realRoots(roots);
-  const ancestor = await realAncestor(dirname(target));
-  if (!real.some((r) => ancestor === r || inside(r, ancestor))) throw outsideRoots(saveTo, roots);
+  const landing = await realTarget(target);
+  if (!real.some((r) => inside(r, landing))) throw outsideRoots(saveTo, roots);
   try {
     // The file itself may already exist as a symlink pointing elsewhere.
     const existing = await realpath(target);

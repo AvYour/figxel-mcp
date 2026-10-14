@@ -12,37 +12,57 @@
 // A render runs as a job (video-jobs.ts) [C-249]: a call waits at most `wait`
 // seconds, a client's cancel or timeout ends only that wait, and a later call
 // collects the render by `jobId` — or by asking for the same render again.
+//
+// What a collecting call does stays inside its own wait: the job counts the
+// frames (ffprobe decodes the whole file) right after it saves the video, and
+// the stills are cut only while the call's wait lasts — the rest come back as
+// `framesPending` for the next call. A late finish once spent its whole answer
+// on ffprobe and twelve ffmpeg runs, past the client's 60 s (2026-10-14 audit).
+//
+// The motion process (motion-process.ts) stands in front of the keyframe
+// writes and of a final render: under BRIDGE_PROCESS=strict a keyframe write
+// needs the motion skill read and a plan on the frame, and `final: true` a
+// passing figma_check_motion with no change to the file since. A final call
+// that names a render already running or done (its `jobId`, or the same
+// settings) attaches to it before the gate reads anything: the gate's read
+// would answer BUSY while that render holds the plugin.
 
-import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BridgeError, ErrorCode } from "../../shared/errors.js";
+import { toolName } from "../../shared/ops.js";
 import { PRODUCT_NAME } from "../../shared/version.js";
 import {
   DEFAULT_VIDEO_FPS,
   expectedFrames,
+  figmaWords,
   frameAt,
   frameSeek,
   isRenderTimeout,
-  RENDER_TIMEOUT_HINT,
+  renderTimeoutHint,
   VIDEO_EXTENSION,
   VIDEO_FORMATS,
   VIDEO_MIME,
   videoSettings,
   type VideoFormat,
 } from "../../shared/video.js";
-import type { Bridge } from "../bridge.js";
+import { renderLostAdvice, type Bridge, type SessionView } from "../bridge.js";
+import { bytesOf } from "../binary.js";
 import { defaultExportName, resolveSavePath, writeExport, type ExportRoots } from "../exports.js";
+import { DEFAULT_MEDIA_TOOLS, isMissing, nodeExecFile, noFfmpegHint, type ExecFileLike, type MediaTools } from "../ffmpeg.js";
+import { fileNow, finalCall, finalGate, keyframeGate, sessionIdOf, withProcessWarnings, type AcceptedNote, type MotionProcess } from "../motion-process.js";
 import { errorResult, okResult } from "../results.js";
 import { heartbeat, VideoJobs, waitFor, type VideoJob } from "../video-jobs.js";
 import { readAnnotations, writeAnnotations } from "./annotations.js";
 import { WRITE_PARAMS } from "./create.js";
-import { INLINE_LIMIT } from "./export.js";
-import { addressCall, forwardTool, writeEpoch, type Extra } from "./forward.js";
+import { DEFAULT_MAX_SIZE, INLINE_LIMIT } from "./export.js";
+import { addressCall, forwardTool, writeEpoch, writesSince, type Extra } from "./forward.js";
 import { fitDescription, hexColor } from "./params.js";
+
+export type { ExecFileLike } from "../ffmpeg.js";
 
 const SESSION = {
   session: z.string().optional().describe("Optional sessionId or file name, to pick a Figma file when more than one is connected."),
@@ -57,8 +77,18 @@ export const VIDEO_IDLE_TIMEOUT_MS = 600_000;
 const MAX_FRAMES = 12;
 /** A call's default wait: a margin under clients that cut a call at 60 s [C-030] [C-197]. */
 export const DEFAULT_WAIT_S = 40;
+/** The longest a call waits, whatever `wait` asks, unless BRIDGE_VIDEO_MAX_WAIT_S allows more (config.ts) [C-030]. */
+export const DEFAULT_MAX_WAIT_S = 45;
+/** Stills a finished render gets even when the call's wait is spent: a few seconds, still under a 60 s client. */
+const MIN_FRAME_BUDGET_MS = 5_000;
+/** One ffmpeg run for one still; one that hangs must not take the call with it. */
+const STILL_TIMEOUT_MS = 15_000;
+/** ffprobe -count_frames decodes the whole file; this bounds it inside the job. */
+const PROBE_TIMEOUT_MS = 60_000;
 /** A render with no result after this long gets the minimized-window hint [C-198]. */
 export const STALL_MS = 120_000;
+/** Past Figma's own 4-minute limit [C-198]: the render may never answer. */
+const LOST_MS = 300_000;
 const JOB_ID = /^[A-Za-z0-9._-]{1,64}$/;
 /** What describes a render, beside `nodeId` and `session`. */
 const RENDER_KEYS = ["format", "fps", "quality", "loopCount", "width", "height", "scale", "saveTo"] as const;
@@ -66,27 +96,29 @@ const NO_JOB_HINT = `Renders are kept 30 min after they end, in the ${PRODUCT_NA
 
 // ── ffmpeg, without a shell ──────────────────────────────────────────────────
 
-export type ExecFileLike = (
-  file: string,
-  args: readonly string[],
-  options: { encoding: "buffer"; maxBuffer: number; windowsHide: boolean },
-  callback: (error: (Error & { code?: unknown }) | null, stdout: Buffer, stderr: Buffer) => void,
-) => unknown;
-
-const nodeExecFile: ExecFileLike = (file, args, options, callback) => execFile(file, [...args], options, callback);
+/**
+ * Scale a still so its long side is at most `max` px, never up: a full-size
+ * 1080 × 1920 frame is past what a vision request takes once several images
+ * are in play, the reason figma_export_node caps inline images at 1024 [C-092].
+ * Quoted for the filter graph, whose parser would split on the commas.
+ */
+export function stillScale(max: number): string {
+  return `scale='min(${max},iw)':'min(${max},ih)':force_original_aspect_ratio=decrease`;
+}
 
 /**
  * One still of a video as PNG bytes. execFile with an argument array: the path
  * and the time are never parsed by a shell, whatever characters they contain.
+ * `maxSide` scales it down (stillScale); `ffmpeg` is the program to run.
  */
-export function grabFrame(run: ExecFileLike, video: string, t: number): Promise<Buffer> {
+export function grabFrame(run: ExecFileLike, video: string, t: number, opts: { ffmpeg?: string; maxSide?: number; timeoutMs?: number } = {}): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     run(
-      "ffmpeg",
-      ["-v", "error", "-ss", String(t), "-i", video, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"],
-      { encoding: "buffer", maxBuffer: 64 * 1024 * 1024, windowsHide: true },
+      opts.ffmpeg ?? DEFAULT_MEDIA_TOOLS.ffmpeg,
+      ["-v", "error", "-ss", String(t), "-i", video, "-frames:v", "1", ...(opts.maxSide ? ["-vf", stillScale(opts.maxSide)] : []), "-f", "image2pipe", "-vcodec", "png", "-"],
+      { encoding: "buffer", maxBuffer: 64 * 1024 * 1024, windowsHide: true, ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}) },
       (err, stdout) => {
-        if (err) reject(err);
+        if (err) reject(err.killed ? new Error(`ffmpeg took longer than ${Math.round((opts.timeoutMs ?? 0) / 1000)} s for the frame at ${t} s`) : err);
         else if (!stdout || stdout.length === 0) reject(new Error(`no frame at ${t} s (past the end of the video?)`));
         else resolve(stdout);
       },
@@ -119,18 +151,22 @@ function rational(v: unknown): number {
  * with the spawn error (code ENOENT when ffprobe is missing), or with
  * ffprobe's own message for a file it cannot read.
  */
-export function probeVideo(run: ExecFileLike, path: string): Promise<VideoProbe> {
+export function probeVideo(run: ExecFileLike, path: string, opts: { ffprobe?: string; timeoutMs?: number } = {}): Promise<VideoProbe> {
   return new Promise((resolve, reject) => {
     run(
-      "ffprobe",
+      opts.ffprobe ?? DEFAULT_MEDIA_TOOLS.ffprobe,
       [
         "-v", "error", "-select_streams", "v:0", "-count_frames",
         "-show_entries", "stream=width,height,r_frame_rate,avg_frame_rate,nb_read_frames:format=duration",
         "-of", "json", path,
       ],
-      { encoding: "buffer", maxBuffer: 4 * 1024 * 1024, windowsHide: true },
+      { encoding: "buffer", maxBuffer: 4 * 1024 * 1024, windowsHide: true, ...(opts.timeoutMs ? { timeout: opts.timeoutMs } : {}) },
       (err, stdout, stderr) => {
         if (err) {
+          if (err.killed) {
+            reject(new Error(`ffprobe took longer than ${Math.round((opts.timeoutMs ?? 0) / 1000)} s`));
+            return;
+          }
           const said = stderr?.toString("utf8").trim();
           reject(said && err.code !== "ENOENT" ? Object.assign(new Error(said), { code: err.code }) : err);
           return;
@@ -163,13 +199,7 @@ export function probeVideo(run: ExecFileLike, path: string): Promise<VideoProbe>
   });
 }
 
-const isMissing = (err: unknown) => (err as { code?: unknown } | null)?.code === "ENOENT";
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
-/** Figma's own words at the end of the plugin's `Figma could not export "<name>" as <format>: <words>`. */
-const figmaWords = (message: string) => {
-  const at = message.lastIndexOf(": ");
-  return at < 0 ? message : message.slice(at + 2);
-};
 
 // ── figma_export_video ───────────────────────────────────────────────────────
 
@@ -181,15 +211,16 @@ interface VideoData {
   mime: string;
   bytes: number;
   durationS?: number;
-  base64: string;
 }
 
-function asVideo(data: unknown): VideoData {
+/** The plugin's video and its bytes: inline `base64`, or `binary` once the bridge reassembled chunks (binary.ts). */
+function asVideo(data: unknown): { d: VideoData; bytes: Buffer } {
   const d = data as Partial<VideoData> | null;
-  if (!d || typeof d !== "object" || typeof d.base64 !== "string" || !(VIDEO_FORMATS as readonly string[]).includes(String(d.format))) {
+  const bytes = bytesOf(data);
+  if (!d || typeof d !== "object" || !bytes || !(VIDEO_FORMATS as readonly string[]).includes(String(d.format))) {
     throw new BridgeError(ErrorCode.INTERNAL, "The plugin's video export carried no bytes.");
   }
-  return d as VideoData;
+  return { d: d as VideoData, bytes };
 }
 
 /** `<name>-<id>-<time>.mp4`, with the extension exports.ts does not know for video. */
@@ -211,11 +242,37 @@ export interface SavedVideo {
   durationS?: number;
 }
 
-/** Write the plugin's bytes. The job does this as soon as Figma answers, so the file exists whether or not a call is left to collect it. */
-export async function saveVideo(data: unknown, saveTo: string | undefined, roots: ExportRoots): Promise<SavedVideo> {
-  const d = asVideo(data);
+/**
+ * Write the plugin's bytes. The job does this as soon as Figma answers, so the
+ * file exists whether or not a call is left to collect it. When `saveTo` cannot
+ * be written (the file is open elsewhere, the disk is full), the video goes to
+ * a default name in the export directory instead, with a warning: a render is
+ * minutes of Figma's time, and an error here used to lose it.
+ */
+export async function saveVideo(data: unknown, saveTo: string | undefined, roots: ExportRoots): Promise<SavedVideo & { warning?: string }> {
+  const { d, bytes } = asVideo(data);
   const format = d.format as VideoFormat;
-  const path = await writeExport(saveTo ?? videoName(d.name, d.exportedNodeId, format), Buffer.from(d.base64, "base64"), roots);
+  const fallback = videoName(d.name, d.exportedNodeId, format);
+  let path: string;
+  let warning: string | undefined;
+  try {
+    path = await writeExport(saveTo ?? fallback, bytes, roots);
+  } catch (err) {
+    const first = messageOf(err);
+    if (saveTo === undefined) {
+      throw new BridgeError(ErrorCode.INTERNAL, `Figma rendered the video, but it could not be written to the export directory: ${first}`, {
+        hint: `Free disk space in ${roots.exportDir}, or point BRIDGE_EXPORT_DIR somewhere writable, then render again.`,
+      });
+    }
+    try {
+      path = await writeExport(fallback, bytes, roots);
+    } catch (again) {
+      throw new BridgeError(ErrorCode.INTERNAL, `Figma rendered the video, but it could not be written to ${saveTo} (${first}) nor to the export directory (${messageOf(again)}).`, {
+        hint: "Close the program holding the file, or free disk space, then render again.",
+      });
+    }
+    warning = `Could not write ${saveTo} (${first}); the video was saved to ${path} instead.`;
+  }
   return {
     path,
     bytes: d.bytes,
@@ -225,6 +282,7 @@ export async function saveVideo(data: unknown, saveTo: string | undefined, roots
     exportedNodeId: d.exportedNodeId,
     name: d.name,
     ...(typeof d.durationS === "number" ? { durationS: d.durationS } : {}),
+    ...(warning ? { warning } : {}),
   };
 }
 
@@ -233,9 +291,9 @@ interface Rendered {
   saved: SavedVideo;
   /** The rate Figma sampled the timeline at: the asked fps, else the format's default. */
   fps: number;
-  warning: string | undefined;
-  /** ffprobe's answer, asked once per render: null when it could not be had. */
-  probe?: VideoProbe | null;
+  warnings: string[];
+  /** ffprobe's answer, asked once, in the job, right after the file is written: null when it could not be had. */
+  probe: VideoProbe | null;
   probeNote?: string;
 }
 
@@ -246,10 +304,41 @@ interface FrameAsk {
 }
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
+const round3 = (v: number) => Math.round(v * 1000) / 1000;
 const round4 = (v: number) => Math.round(v * 10_000) / 10_000;
 
-/** The answer for a finished render: the file, its frame count against the timeline, and the asked frames. */
-async function answerDone(job: VideoJob<Rendered>, ask: FrameAsk, reused: boolean, run: ExecFileLike, roots: ExportRoots, renderMs: number): Promise<CallToolResult> {
+/** Count the frames of a written render: the job runs this, so no collecting call waits on a whole decode. */
+async function probeRender(run: ExecFileLike, tools: MediaTools, path: string): Promise<Pick<Rendered, "probe" | "probeNote">> {
+  try {
+    return { probe: await probeVideo(run, path, { ffprobe: tools.ffprobe, timeoutMs: PROBE_TIMEOUT_MS }) };
+  } catch (err) {
+    return {
+      probe: null,
+      probeNote: isMissing(err) ? `ffprobe could not be started, so frameCount is not measured. ${noFfmpegHint(tools)}` : `ffprobe could not count the frames: ${messageOf(err)}`,
+    };
+  }
+}
+
+/** What answerDone needs beyond the job. */
+interface DoneContext {
+  run: ExecFileLike;
+  tools: MediaTools;
+  roots: ExportRoots;
+  /** Stills are cut until then; the rest are `framesPending`. */
+  deadline: number;
+  now: () => number;
+}
+
+/** The answer for a finished render: the file, its frame count against the timeline, and the asked frames — as many as the call's wait allows. */
+async function answerDone(
+  job: VideoJob<Rendered>,
+  ask: FrameAsk,
+  reused: boolean,
+  renderMs: number,
+  ctx: DoneContext,
+  /** What the motion process says about this render: `final`, and a note or warnings. */
+  processFields: Record<string, unknown> = {},
+): Promise<CallToolResult> {
   const r = job.result!;
   const { saved } = r;
   const meta: Record<string, unknown> = {
@@ -259,29 +348,27 @@ async function answerDone(job: VideoJob<Rendered>, ask: FrameAsk, reused: boolea
     jobId: job.id,
     renderS: round1(renderMs / 1000),
     fps: r.fps,
+    ...processFields,
   };
-  if (r.probe === undefined) {
-    try {
-      r.probe = await probeVideo(run, saved.path);
-    } catch (err) {
-      r.probe = null;
-      r.probeNote = isMissing(err) ? "ffprobe is not on PATH, so frameCount is not measured." : `ffprobe could not count the frames: ${messageOf(err)}`;
-    }
-  }
   const notes: string[] = r.probeNote ? [r.probeNote] : [];
   const counted = r.probe?.frames;
   // Every format ends on the first frame at or after the timeline's end: ceil(d · fps) + 1 [C-194].
   const expected = saved.durationS !== undefined ? expectedFrames(saved.durationS, r.fps) : undefined;
   if (counted !== undefined) meta.frameCount = counted;
   if (expected !== undefined) meta.expectedFrames = expected;
+  // A GIF keeps each frame's delay in hundredths of a second, so its own clock can differ from `fps` [C-194].
+  if (saved.format === "GIF" && r.probe) {
+    meta.fileFps = round3(r.probe.fps);
+    if (r.probe.durationS !== undefined) meta.fileDurationS = round3(r.probe.durationS);
+  }
   if (counted !== undefined && expected !== undefined && counted !== expected) {
     notes.push(`The file has ${counted} frames; a ${saved.durationS} s timeline at ${r.fps} fps implies ${expected} (the end frame renders too: ceil(duration × fps) + 1).`);
   }
   if (reused) meta.reused = true;
-  if (job.epoch !== writeEpoch()) {
+  if (writesSince(job.epoch) > 0) {
     notes.push(`Edits ran through ${PRODUCT_NAME} after this render started, so it shows the frame before them; render again under a new jobId to see them.`);
   }
-  if (r.warning) meta.warning = r.warning;
+  if (r.warnings.length) meta.warning = r.warnings.join(" ");
 
   const ks = ask.indices ?? (ask.seconds ?? []).map((t) => frameAt(t, r.fps));
   // Seek by the file's own rate: a GIF stores delays in hundredths of a second, which can drift from the asked fps.
@@ -289,31 +376,45 @@ async function answerDone(job: VideoJob<Rendered>, ask: FrameAsk, reused: boolea
   const last = counted !== undefined ? counted - 1 : undefined;
   const images: Array<{ type: "image"; data: string; mimeType: string }> = [];
   const shots: Array<Record<string, unknown>> = [];
+  const pending: number[] = [];
+  let missing = false;
   for (const k of ks) {
     const shot: Record<string, unknown> = { frame: k, t: round4(k / r.fps) };
     if (last !== undefined && k > last) {
       shots.push({ ...shot, error: `past the last frame (${last})` });
       continue;
     }
+    const left = ctx.deadline - ctx.now();
+    if (missing || left <= 0) {
+      if (!missing) pending.push(k);
+      continue;
+    }
     try {
-      const png = await grabFrame(run, saved.path, frameSeek(k, seekFps));
+      // The long side at most 1024 px, as figma_export_node's inline images [C-092].
+      const png = await grabFrame(ctx.run, saved.path, frameSeek(k, seekFps), { ffmpeg: ctx.tools.ffmpeg, maxSide: DEFAULT_MAX_SIZE, timeoutMs: Math.max(1_000, Math.min(left, STILL_TIMEOUT_MS)) });
       if (png.length > INLINE_LIMIT) {
         // Too large to read inline; it lands next to the video instead.
         const stem = saved.path.slice(0, saved.path.length - extname(saved.path).length);
-        shots.push({ ...shot, path: await writeExport(`${stem}-f${k}.png`, png, roots) });
+        shots.push({ ...shot, path: await writeExport(`${stem}-f${k}.png`, png, ctx.roots) });
       } else {
         images.push({ type: "image", data: png.toString("base64"), mimeType: "image/png" });
         shots.push({ ...shot, image: images.length });
       }
     } catch (err) {
       if (isMissing(err)) {
-        notes.push("ffmpeg not on PATH; frames skipped. The video is written — open it, or install ffmpeg for frames.");
-        break;
+        notes.push(`ffmpeg could not be started, so frames are skipped. The video is written — open it, or make ffmpeg available for frames. ${noFfmpegHint(ctx.tools)}`);
+        missing = true;
+        continue;
       }
       shots.push({ ...shot, error: messageOf(err) });
     }
   }
   if (shots.length) meta.frames = shots;
+  if (pending.length) {
+    // The call's wait is spent: the rest come from the next call, which renders nothing.
+    meta.framesPending = pending;
+    notes.push(`${pending.length} frame(s) were not cut within this call's wait: collect them with figma_export_video { jobId: "${job.id}", frameIndices: [${pending.join(", ")}] }.`);
+  }
   if (notes.length) meta.note = notes.join(" ");
   // No structuredContent: a client that prefers it over `content` would drop the frames.
   return { content: [{ type: "text", text: JSON.stringify(meta) }, ...images] };
@@ -333,23 +434,96 @@ async function changedSince(bridge: Bridge, t: number): Promise<boolean> {
   }
 }
 
-function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean, run: ExecFileLike, jobs: VideoJobs<Rendered>): void {
+/**
+ * The session a render runs in, picked the way the bridge picks one
+ * (sessions.ts select: by id, then file name, else the active one), so the
+ * render can be pinned to it and keyed by it: a render of "1:2" in one file is
+ * never handed out for "1:2" in another. Undefined when none is connected.
+ */
+export function renderSession(sessions: readonly SessionView[], arg: string | undefined): SessionView | undefined {
+  if (!arg) return sessions.find((s) => s.active);
+  const byId = sessions.find((s) => s.sessionId === arg);
+  if (byId) return byId;
+  const named = sessions.filter((s) => s.file.name?.toLowerCase() === arg.toLowerCase());
+  // A Design file and its board often share a name: video export runs in Design.
+  const design = named.filter((s) => s.editorType === "figma");
+  return (design.length ? design : named).reduce<SessionView | undefined>((best, s) => (!best || s.lastActiveAt >= best.lastActiveAt ? s : best), undefined);
+}
+
+/** What the render tool is configured with (tools/index.ts from config.ts). */
+interface VideoToolOptions {
+  run: ExecFileLike;
+  tools: MediaTools;
+  maxWaitS: number;
+}
+
+/** What a call said about a render: `final` marks the delivery, with the warnings a guided gate left and the findings the plan accepted. */
+interface RenderMark {
+  final: boolean;
+  warnings: string[];
+  accepted: AcceptedNote[];
+}
+
+function registerExportVideo(
+  server: McpServer,
+  bridge: Bridge,
+  roots: ExportRoots,
+  wanted: (op: string) => boolean,
+  vo: VideoToolOptions,
+  jobs: VideoJobs<Rendered>,
+  proc: MotionProcess | undefined,
+): void {
   if (!wanted("export_video")) return;
+  const { run, tools } = vo;
+  /**
+   * Which top-level frame a node exported, learned from each render, per plugin
+   * window: a render is keyed by the frame, so asking for the frame, or for any
+   * layer already rendered through it, finds the same render.
+   */
+  const frames = new Map<string, string>();
+  const learn = (fileId: string, nodeId: string, frame: string) => {
+    for (const id of [nodeId, frame]) {
+      frames.delete(`${fileId}|${id}`);
+      frames.set(`${fileId}|${id}`, frame);
+    }
+    while (frames.size > 1000) frames.delete(frames.keys().next().value!);
+  };
+  // Per job, not per call: a final call may attach to a render a preview started, and a later call collects it.
+  const marks = new WeakMap<VideoJob<Rendered>, RenderMark>();
+  // The session each render's frame lives in (sessionIdOf): frame ids are per file.
+  const sessions = new WeakMap<VideoJob<Rendered>, string>();
+  /** The process fields of a finished render's answer; a delivery names the findings its plan accepted, for the report. */
+  const processFields = async (job: VideoJob<Rendered>): Promise<Record<string, unknown>> => {
+    const mark = marks.get(job);
+    if (mark?.final) {
+      return { final: true, ...(mark.accepted.length ? { accepted: mark.accepted } : {}), ...(mark.warnings.length ? { processWarnings: mark.warnings } : {}) };
+    }
+    if (!proc?.active || !job.result) return {};
+    const { saved, fps } = job.result;
+    const session = sessions.get(job) ?? "";
+    const ready = proc.finalBlockers(saved.exportedNodeId, fps, session, await fileNow(bridge, session)).length === 0;
+    return {
+      final: false,
+      processNote: ready
+        ? `Preview. figma_check_motion passed on this frame at ${fps} fps with no change to the file since: the delivery render is ${finalCall(saved.exportedNodeId, fps)}.`
+        : `Preview, for judging the motion. The delivery render is ${finalCall(saved.exportedNodeId, fps)}, once figma_check_motion passes on this frame at that fps with no change to the file after it.`,
+    };
+  };
   server.registerTool(
     "figma_export_video",
     {
       title: "Export an animation as video",
       description: fitDescription(
         "Render the animation of a top-level frame to MP4, GIF or WEBM — the way to SEE motion; figma_export_node renders " +
-          "only the resting state. A layer exports its top-level frame (`exportedNodeId`). Always writes a file (`saveTo`, " +
-          "else the export directory). Waits up to `wait` s (default 40); a longer render answers status \"rendering\" with " +
-          "a `jobId`, and figma_export_video { jobId } collects it, so no client timeout loses a render. Name your own " +
-          "`jobId` for long renders and never start a second export meanwhile; `cancel` + `jobId` drops one. `frameIndices` " +
-          "(or `frames`, seconds) return those frames as PNG, frame-exact, when ffmpeg is on PATH; `frameCount` vs " +
-          "`expectedFrames` checks the length. Meanwhile other Figma calls answer BUSY (nothing ran); " +
-          "figma_review_video and figma_get_guide still work. For a contact sheet, close-ups and metrics, run " +
-          "figma_review_video on the file. fps: MP4/WEBM 12|24|30|60, GIF 8|12|15|24|30. Needs keyframes. Skills: " +
-          "motion, critique (figma_get_guide).",
+          "only the rest state. A layer exports its top-level frame (`exportedNodeId`). Always writes a file (`saveTo`, " +
+          "else the export directory). Waits up to `wait` s (default 40, at most 45); a longer render answers status " +
+          "\"rendering\" with a `jobId`, and figma_export_video { jobId } collects it. " +
+          "Name your own `jobId` for long renders and start no second export meanwhile; `cancel` + `jobId` drops one. " +
+          "`frameIndices` (or `frames`, seconds) return those frames as PNG (long side ≤ 1024), frame-exact, with ffmpeg; " +
+          "ones not cut in time come back as `framesPending`. A render is a preview; `final: true` is the delivery, " +
+          "refused under BRIDGE_PROCESS=strict until figma_check_motion passed on the frame at this fps, the file " +
+          "unchanged since. Meanwhile other Figma calls answer BUSY. fps: MP4/WEBM 12|24|30|60, GIF 8|12|15|24|30. " +
+          "Skills: motion, critique.",
       ),
       inputSchema: {
         nodeId: z.string().optional().describe("The animated top-level frame, or any layer inside it (id or Figma link). Starts a render; omit it to collect one by `jobId`."),
@@ -363,9 +537,13 @@ function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoo
         saveTo: z.string().optional().describe("File to write, .mp4 / .gif / .webm. Same path rules as figma_export_node's saveTo."),
         frames: z.array(z.number().min(0)).max(MAX_FRAMES).optional().describe("Seconds to return as PNG stills, each mapped to its nearest frame, e.g. [0, 0.4]."),
         frameIndices: z.array(z.number().int().min(0)).max(MAX_FRAMES).optional().describe("Frames to return as PNG stills, exactly: frame k is the timeline at k / fps. Not with `frames`."),
-        wait: z.number().int().min(0).max(600).optional().describe("Seconds this call waits for the render (default 40). Lower it if your client cuts calls sooner; 0 starts and returns."),
+        wait: z.number().int().min(0).max(600).optional().describe("Seconds this call waits for the render (default 40; at most 45 unless the server allows more). Lower it if your client cuts calls sooner; 0 starts and returns."),
         jobId: z.string().min(1).max(64).optional().describe("Letters, digits, . _ -. With `nodeId`: your name for this render. Alone: collect or poll that render."),
         cancel: z.boolean().optional().describe("With `jobId` only: drop that render. Figma finishes a render it has begun; its result is discarded."),
+        final: z
+          .boolean()
+          .optional()
+          .describe("true for the delivery render: needs a passing figma_check_motion on the frame at this fps, with no change to the file since. Default false: a preview."),
         ...SESSION,
       },
       annotations: readAnnotations("export_video"),
@@ -381,7 +559,13 @@ function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoo
         return invalid("Pass `frames` (seconds) or `frameIndices`, not both.", "frameIndices names frames exactly; frames maps each time to its nearest frame.");
       }
       const ask: FrameAsk = { seconds: args.frames as number[] | undefined, indices: args.frameIndices as number[] | undefined };
-      const waitMs = (typeof args.wait === "number" ? args.wait : DEFAULT_WAIT_S) * 1000;
+      // A call waits at most maxWaitS whatever `wait` says: one that runs past the
+      // client's limit is cut, and a client may then restart the server [C-271].
+      const askedWaitS = typeof args.wait === "number" ? args.wait : DEFAULT_WAIT_S;
+      const waitS = Math.min(askedWaitS, vo.maxWaitS);
+      const waitMs = waitS * 1000;
+      const capped = askedWaitS > waitS ? { waitCappedS: waitS } : {};
+      const callStart = jobs.now();
       const settingKeys = RENDER_KEYS.filter((k) => args[k] !== undefined);
 
       /** Wait for the job (at most `wait`), then answer with what it is now. */
@@ -411,38 +595,65 @@ function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoo
               elapsedS: round1(ms / 1000),
               nodeId: job.nodeId,
               ...(job.phase ? { phase: job.phase } : {}),
+              ...capped,
               hint:
                 `Still rendering. Collect it with figma_export_video { jobId: "${job.id}" }; do not start another export. ` +
                 "Until the render ends, other Figma calls answer BUSY and change nothing." +
                 (ms >= STALL_MS
                   ? " No result after 2 min: a minimized Figma window stops video export — ask the user to restore the Figma window. " +
                     "Figma itself ends a render it has not finished in about 4 min (TIMEOUT)."
-                  : ""),
+                  : "") +
+                (ms >= LOST_MS ? ` ${renderLostAdvice(ms / 1000)}` : "") +
+                ("waitCappedS" in capped ? ` This server waits at most ${waitS} s per call (BRIDGE_VIDEO_MAX_WAIT_S), a margin under clients that cut calls at 60 s.` : ""),
             });
           case "cancelled":
             return okResult({ status: "cancelled", jobId: job.id });
           case "failed": {
-            // The bridge's idle limit ran out: the commonest cause is a minimized Figma [C-198].
+            // An older hub's idle limit ran out: the commonest cause is a minimized Figma [C-198].
             const e = job.error;
             if (e instanceof BridgeError && e.code === ErrorCode.STALLED) {
               return errorResult(new BridgeError(e.code, e.message, { hint: "A minimized Figma window stops video export: ask the user to restore the Figma window, then render again." }), { readOnly: true });
             }
-            // Figma ended the render itself, long before the bridge's idle limit [C-198]. A plugin
-            // built before TIMEOUT existed reports it as UNSUPPORTED, which tells an agent to stop.
+            // Figma ended the render itself [C-198]. The bridge picked the hint from its count of
+            // timeouts in a row [C-318]; a plugin built before TIMEOUT existed reports it as
+            // UNSUPPORTED, which tells an agent to stop, and an older hub passes that on.
             if (e instanceof BridgeError && (e.code === ErrorCode.TIMEOUT || (e.code === ErrorCode.UNSUPPORTED && isRenderTimeout(figmaWords(e.message))))) {
               const said = e.code === ErrorCode.TIMEOUT ? e.message : e.message.replace(/^Figma could not export /, "Figma gave up rendering ");
-              return errorResult(new BridgeError(ErrorCode.TIMEOUT, `${said} (${round1(ms / 1000)} s after the render started).`, { hint: RENDER_TIMEOUT_HINT }), { readOnly: true });
+              return errorResult(
+                new BridgeError(ErrorCode.TIMEOUT, `${said} (${round1(ms / 1000)} s after the render started).`, {
+                  hint: e.code === ErrorCode.TIMEOUT && e.hint ? e.hint : renderTimeoutHint(),
+                  ...(e.partial !== undefined ? { partial: e.partial } : {}),
+                }),
+                { readOnly: true },
+              );
             }
             return errorResult(e, { readOnly: true });
           }
           case "done":
-            return answerDone(job, ask, reused, run, roots, ms);
+            return answerDone(
+              job,
+              ask,
+              reused,
+              ms,
+              {
+                run,
+                tools,
+                roots,
+                deadline: Math.max(callStart + waitMs, jobs.now() + MIN_FRAME_BUDGET_MS),
+                now: jobs.now,
+              },
+              await processFields(job),
+            );
         }
       };
 
       if (args.cancel === true) {
         if (jobId === undefined) return invalid("`cancel` needs the `jobId` of the render to drop.");
-        const others = [...(args.nodeId !== undefined ? ["nodeId"] : []), ...settingKeys, ...["wait", "frames", "frameIndices"].filter((k) => args[k] !== undefined)];
+        const others = [
+          ...(args.nodeId !== undefined ? ["nodeId"] : []),
+          ...settingKeys,
+          ...["wait", "frames", "frameIndices", "final"].filter((k) => args[k] !== undefined),
+        ];
         if (others.length) return invalid(`\`cancel\` takes only \`jobId\` (got ${named(others)} too).`);
         const job = jobs.get(jobId);
         if (!job) return invalid(`No render named "${jobId}".`, NO_JOB_HINT);
@@ -460,8 +671,10 @@ function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoo
 
       if (args.nodeId === undefined) {
         if (jobId === undefined) return invalid("Pass `nodeId` to start a render, or `jobId` to collect one.");
-        if (settingKeys.length) {
-          return invalid(`${named(settingKeys)} describe a new render and need \`nodeId\`.`, `To collect "${jobId}", pass only \`jobId\` (and \`wait\`, \`frames\` or \`frameIndices\`).`);
+        // `final` is decided when a render is asked for, not when it is collected.
+        const describing = [...settingKeys, ...(args.final !== undefined ? ["final"] : [])];
+        if (describing.length) {
+          return invalid(`${named(describing)} describe a new render and need \`nodeId\`.`, `To collect "${jobId}", pass only \`jobId\` (and \`wait\`, \`frames\` or \`frameIndices\`).`);
         }
         const job = jobs.get(jobId);
         if (!job) return invalid(`No render named "${jobId}".`, NO_JOB_HINT);
@@ -501,19 +714,37 @@ function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoo
         return refuse(err);
       }
       const fps = typeof settings.fps === "number" ? settings.fps : DEFAULT_VIDEO_FPS[settings.format];
-      const key = JSON.stringify([addressed.session ?? null, addressed.params.nodeId, settings, target ?? null]);
+      // Keyed by the file the render runs in (its plugin window) and pinned to that session, so
+      // a render of "1:2" in one file is never handed out for "1:2" in another; and by the
+      // frame it exports, once a render has shown which frame that is.
+      let where: SessionView | undefined;
+      try {
+        where = renderSession((await bridge.statusAsync()).sessions, addressed.session);
+      } catch {
+        where = undefined;
+      }
+      const fileId = where?.instanceId ?? null;
+      const session = where?.sessionId ?? addressed.session;
+      const nodeId = String(addressed.params.nodeId);
+      // `final` is not part of the key: a preview and a delivery of the same settings are the same bytes.
+      const keyFor = (frame: string) => JSON.stringify([fileId, frame, settings, target ?? null]);
+      const key = keyFor((fileId !== null ? frames.get(`${fileId}|${nodeId}`) : undefined) ?? nodeId);
       // Handed out again only while it still shows the document [C-249]: no write through this
-      // process since it started — a write queued behind a render runs after it.
-      // A finished one also needs no change the plugin reported after it ended; not since it
-      // started, because the event of the edit just before the render arrives debounced, late.
+      // process since it started (one refused before it reached Figma does not count) — a write
+      // queued behind a render runs after it. A finished one also needs no change the plugin
+      // reported after it ended; not since it started, because the event of the edit just
+      // before the render arrives debounced, late.
       const fresh = async (job: VideoJob<Rendered>) =>
-        job.epoch === writeEpoch() && (job.status === "rendering" || !(await changedSince(bridge, job.endedAt ?? job.startedAt)));
+        writesSince(job.epoch) === 0 && (job.status === "rendering" || !(await changedSince(bridge, job.endedAt ?? job.startedAt)));
 
+      // The render this call names or repeats is looked up before the motion gate: the gate reads
+      // the frame's plan from the plugin, and that read answers BUSY while a render holds it, so a
+      // final call retried after a client cut it off would be refused instead of collecting its own render.
       let job: VideoJob<Rendered> | undefined;
       let reused = false;
       const same = jobId !== undefined ? jobs.get(jobId) : undefined;
       if (same?.status === "rendering") {
-        if (same.key !== key) {
+        if (same.key !== key && same.key !== keyFor(nodeId)) {
           return invalid(
             `Render "${jobId}" is still running with other settings.`,
             `Collect it with figma_export_video { jobId: "${jobId}" }, drop it with { jobId: "${jobId}", cancel: true }, or give this render another jobId.`,
@@ -527,14 +758,50 @@ function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoo
           reused = candidate.status === "done";
         }
       }
+
+      // The delivery waits for a passing check; a preview never does. Asked before any job is started.
+      const final = args.final === true;
+      let mark: RenderMark | undefined;
+      let sessionId = "";
+      if (proc?.active) {
+        if (final && job && marks.get(job)?.final) {
+          // This render passed the gate when it was asked for as the delivery: attach to it, or collect it.
+          sessionId = sessions.get(job) ?? (await sessionIdOf(bridge, addressed.session));
+        } else if (final && job?.status === "rendering") {
+          // A preview of the same render still holds the plugin, so the gate cannot read the frame's plan until it ends.
+          if (proc.mode === "strict") {
+            return refuse(
+              new BridgeError(
+                ErrorCode.BUSY,
+                `A preview with these settings is still rendering ("${job.id}"), and the final render's check reads the frame's motion plan from Figma, which has to wait until that render ends. Nothing was rendered as the delivery.`,
+                {
+                  hint: `Collect the preview with figma_export_video { jobId: "${job.id}" }, then ask again with final: true: the finished render becomes the delivery if the check still holds and nothing changed.`,
+                },
+              ),
+            );
+          }
+          mark = { final: true, warnings: [`the frame's motion plan could not be read while the preview "${job.id}" holds the plugin, so this delivery was not checked against it`], accepted: [] };
+          sessionId = await sessionIdOf(bridge, addressed.session);
+        } else if (final) {
+          const gate = await finalGate(proc, bridge, nodeId, addressed.session, fps, extra.signal);
+          if (gate.refusal) return refuse(gate.refusal);
+          mark = { final: true, warnings: gate.warnings, accepted: gate.accepted ?? [] };
+          sessionId = gate.session;
+        } else {
+          sessionId = await sessionIdOf(bridge, addressed.session);
+        }
+      } else if (final) {
+        mark = { final: true, warnings: [], accepted: [] };
+      }
+
       if (!job) {
         try {
           job = jobs.start(
-            { id: jobId ?? `video-${randomUUID().slice(0, 8)}`, key, nodeId: String(addressed.params.nodeId), format: settings.format, epoch: writeEpoch() },
+            { id: jobId ?? `video-${randomUUID().slice(0, 8)}`, key, nodeId, format: settings.format, epoch: writeEpoch() },
             async (signal, j) => {
               // The job's own signal: only `cancel` aborts it, never the call that started it [C-249].
               const data = await bridge.request("export_video", addressed.params, {
-                ...(addressed.session !== undefined ? { session: addressed.session } : {}),
+                ...(session !== undefined ? { session } : {}),
                 idleTimeoutMs: VIDEO_IDLE_TIMEOUT_MS,
                 jobId: j.id,
                 signal,
@@ -542,13 +809,24 @@ function registerExportVideo(server: McpServer, bridge: Bridge, roots: ExportRoo
                   if (p.phase) j.phase = p.phase;
                 },
               });
-              return { saved: await saveVideo(data, saveTo, roots), fps, warning: addressed.warning };
+              const { warning, ...saved } = await saveVideo(data, saveTo, roots);
+              if (fileId !== null) {
+                learn(fileId, nodeId, saved.exportedNodeId);
+                j.key = keyFor(saved.exportedNodeId);
+              }
+              // Counted here, in the job, so the call that collects it never waits on a whole decode.
+              j.phase = "counting frames";
+              const probed = await probeRender(run, tools, saved.path);
+              return { saved, fps, warnings: [addressed.warning, warning].filter((w): w is string => w !== undefined), ...probed };
             },
           );
         } catch (err) {
           return refuse(err);
         }
       }
+      // A delivery stays one, whichever later call collects it.
+      if (mark) marks.set(job, mark);
+      if (proc?.active) sessions.set(job, sessionId);
       return answer(job, reused);
     },
   );
@@ -576,24 +854,52 @@ const keyframe = z
 export interface MotionOptions {
   /** ffmpeg runner, injected by tests; production runs node's execFile. */
   execFile?: ExecFileLike;
+  /** BRIDGE_FFMPEG / BRIDGE_FFPROBE (config.ts); names on PATH by default. */
+  media?: MediaTools;
+  /** BRIDGE_VIDEO_MAX_WAIT_S (config.ts): the longest one figma_export_video call waits. */
+  maxWaitS?: number;
+  /** The motion process gate (motion-process.ts). Without it nothing is gated: a test of the tools alone. */
+  process?: MotionProcess;
+}
+
+/**
+ * A keyframe write behind the motion gate: addressed, then the skill and the
+ * frame's plan asked for (strict refuses, guided warns), then forwarded. Like
+ * every write it moves writeEpoch(), which is what makes an earlier check stale.
+ */
+async function gatedKeyframeWrite(bridge: Bridge, proc: MotionProcess, op: string, args: Record<string, unknown>, extra: Extra): Promise<CallToolResult> {
+  const key = args.idempotencyKey as string | undefined;
+  let addressed: Awaited<ReturnType<typeof addressCall>>;
+  try {
+    addressed = await addressCall(bridge, op, args, args.session as string | undefined);
+  } catch (err) {
+    return errorResult(err instanceof BridgeError ? err.withKey(key) : err, { unchanged: true });
+  }
+  const gate = await keyframeGate(proc, bridge, toolName(op), String(addressed.params.nodeId), addressed.session, extra.signal);
+  if (gate.refusal) return errorResult(gate.refusal.withKey(key), { unchanged: true });
+  const result = await forwardTool(bridge, op, addressed.params, extra, { session: addressed.session, idempotencyKey: key });
+  return withProcessWarnings(result, gate.warnings);
 }
 
 /**
  * Register the motion and prototype tools. Wired by the integrator in
  * tools/index.ts after the other groups: registerMotion(server, bridge,
- * { exportDir, exportRoots }, wanted).
+ * { exportDir, exportRoots }, wanted, { media, maxWaitS, process }).
  */
 export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean, opts: MotionOptions = {}): void {
-  const write = (op: string, title: string, description: string, shape: z.ZodRawShape) => {
+  const proc = opts.process;
+  const write = (op: string, title: string, description: string, shape: z.ZodRawShape, gated = false) => {
     if (!wanted(op)) return;
     server.registerTool(
       `figma_${op}`,
       { title, description: fitDescription(description), inputSchema: { ...shape, ...WRITE_PARAMS }, annotations: writeAnnotations(op) },
       async (args: Record<string, unknown>, extra: Extra) =>
-        forwardTool(bridge, op, args, extra, {
-          session: args.session as string | undefined,
-          idempotencyKey: args.idempotencyKey as string | undefined,
-        }),
+        gated && proc?.active
+          ? gatedKeyframeWrite(bridge, proc, op, args, extra)
+          : forwardTool(bridge, op, args, extra, {
+              session: args.session as string | undefined,
+              idempotencyKey: args.idempotencyKey as string | undefined,
+            }),
     );
   };
 
@@ -605,7 +911,8 @@ export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportR
         description: fitDescription(
           "The timeline animation of layers, for implementing it in code: per animated layer its keyframe tracks " +
             '({ field, keyframes: [{ t (s), value, easing }] }, the same strings figma_set_keyframes takes), animation ' +
-            "styles, its top-level frame and timeline, plus `timelineCohorts` (layers that play together). " +
+            "styles, its top-level frame and timeline, plus `timelineCohorts` (layers that play together) and " +
+            "`motionPlans` (each frame's figma_set_motion_plan). " +
             "`topLevelFrameId` is the frame on the page, found through the parents; a cohort is keyed by that frame and " +
             "lists every `timelineIds` seen — a timeline id is never a node id. Inside an animated frame, address layers " +
             "by the ids your create calls returned: an id read from a listing there can be temporary. This is Motion, " +
@@ -629,14 +936,15 @@ export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportR
   write(
     "set_keyframes",
     "Set keyframes (Motion)",
-    "Animate a layer on its frame's timeline: each track replaces that field's keyframes; other tracks stay. Values and " +
-      "easings are strings. Every track is read back once Figma settles and re-applied if it did not land: " +
-      "`tracks[].status` is written or rewritten, `timeline` is { id, duration, topLevelFrameId } (`timelineNote` when " +
-      "the ids differ), and a track that never lands fails INTERNAL with `partial.applied` / `notApplied`. The timeline grows to fit the last keyframe and never shrinks unless `timelineDuration` says so " +
-      "(`tracks: []` + `timelineDuration` only sets it). Refused before any change: a top-level frame (animate a " +
-      "child), WIDTH/HEIGHT on a group or vector, a missing or non-SOLID paint index, EASE_IN_OUT (Figma spells it " +
-      "EASE_IN_AND_OUT). Not prototype transitions (figma_set_reactions). Check keys with figma_check_motion, see them " +
-      "with figma_export_video. UNSUPPORTED means stop, not retry. Skills: motion, critique (figma_get_guide).",
+    "Animate a layer on its frame's timeline: each track replaces that field's keyframes; other tracks stay. Every " +
+      "track is read back and re-applied if it did not land: `tracks[].status` is written " +
+      "or rewritten, `timeline` is { id, duration, topLevelFrameId }, and a track that never lands fails INTERNAL with " +
+      "`partial.notApplied`. The timeline grows to fit the last key and never shrinks unless `timelineDuration` says " +
+      "so (`tracks: []` + `timelineDuration` only sets it). Refused before any change: a top-level frame (animate a " +
+      "child), WIDTH/HEIGHT on a group or vector, a missing or non-SOLID paint, EASE_IN_OUT (Figma spells it " +
+      "EASE_IN_AND_OUT); under BRIDGE_PROCESS=strict (the default) PROCESS_REQUIRED until this session read the motion " +
+      "skill (figma_get_guide) and the frame has a plan (figma_set_motion_plan). Not prototype transitions " +
+      "(figma_set_reactions). Check keys with figma_check_motion. UNSUPPORTED means stop, not retry. Skill: motion.",
     {
       nodeId: z.string().describe("The layer to animate — inside a top-level frame, not the frame itself."),
       tracks: z
@@ -646,6 +954,7 @@ export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportR
         .describe("One entry per field."),
       timelineDuration: z.number().positive().optional().describe("Seconds. Applied as given, even if shorter than the keyframes."),
     },
+    true,
   );
 
   write(
@@ -654,11 +963,14 @@ export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportR
     "Remove a layer's manual keyframe tracks: the given `fields`, or every track when omitted. A field that is not " +
       "animated is reported in `notAnimated`, not an error. Each removal is read back once Figma settles and repeated " +
       "if the track is still there; one that will not go fails INTERNAL with `partial.notRemoved`. Returns `removed` " +
-      "and `remaining`, read back. Animation styles are not touched; figma_set_keyframes writes tracks.",
+      "and `remaining`, read back. Animation styles are not touched; figma_set_keyframes writes tracks. Under " +
+      "BRIDGE_PROCESS=strict (the default) PROCESS_REQUIRED until this session read the motion skill (figma_get_guide) " +
+      "and the frame has a plan (figma_set_motion_plan).",
     {
       nodeId: z.string(),
       fields: z.array(z.string()).min(1).max(100).optional().describe('Fields as figma_get_motion_context names them, e.g. ["OPACITY", "fill:0"].'),
     },
+    true,
   );
 
   write(
@@ -693,5 +1005,13 @@ export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportR
   );
 
   // One store per server: a process serves one MCP connection, and the store is where its renders live.
-  registerExportVideo(server, bridge, roots, wanted, opts.execFile ?? nodeExecFile, new VideoJobs<Rendered>());
+  registerExportVideo(
+    server,
+    bridge,
+    roots,
+    wanted,
+    { run: opts.execFile ?? nodeExecFile, tools: opts.media ?? DEFAULT_MEDIA_TOOLS, maxWaitS: opts.maxWaitS ?? DEFAULT_MAX_WAIT_S },
+    new VideoJobs<Rendered>(),
+    proc,
+  );
 }

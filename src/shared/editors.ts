@@ -14,7 +14,8 @@
 //                unless BRIDGE_ALLOW_UNVERIFIED lets a measuring run through.
 // A contradicted fact maps to "unmeasured", never to "no", so a contradiction
 // is never a load-bearer (AGENTS.md). A cell turns "yes" only from a result
-// recorded under spikes/results/.
+// recorded under spikes/results/; set_motion_plan's row says why it is the
+// one exception.
 //
 // The same function refuses at two layers: the bridge (authoritative; every MCP
 // client reaches the plugin through it) and the plugin (a backstop for an older
@@ -241,6 +242,15 @@ export const EDITOR_SUPPORT: Readonly<Record<string, EditorRow>> = {
     why: SLIDES_WHY,
     instead: { figma: "animate between frames with figma_set_reactions" },
   }),
+  // Design: yes ahead of its own live run, the one exception to "a cell turns
+  // yes only from a recorded result" (spec ADR #35, #41). Its one Plugin API
+  // call, setSharedPluginData on a frame, and the read-back are what
+  // spikes/results/live-storyboard.json measured for the storyboard record
+  // [C-188], but not on an animated frame; and as unmeasured it would refuse
+  // every keyframe write under the default BRIDGE_PROCESS=strict. The run is
+  // listed in docs/reference/roadmap.md § Next steps. A plan exists for
+  // keyframes, which run in Design only.
+  set_motion_plan: row("yes", "no", "no", { why: MOTION_WHY }),
   // export
   export_node: everywhere(),
   save_screenshots: everywhere(),
@@ -252,6 +262,11 @@ export const EDITOR_SUPPORT: Readonly<Record<string, EditorRow>> = {
   }),
   // Reads a video file on disk; Figma is never asked.
   review_video: everywhere(),
+  // Read and write audio files on disk. generate_audio { nodeId } reads the frame through
+  // check_motion's op, and the gate judges that op by its own row.
+  analyze_audio: everywhere(),
+  add_audio: everywhere(),
+  generate_audio: everywhere(),
   // eval — two-key opt-in; the script, not this code, decides what it touches.
   eval: everywhere(),
 };

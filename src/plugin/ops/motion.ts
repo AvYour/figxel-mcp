@@ -12,7 +12,16 @@
 // reads is exactly what figma_set_keyframes takes back.
 
 import { BridgeError, ErrorCode } from "../../shared/errors.js";
-import { isRenderTimeout, RENDER_TIMEOUT_HINT, VIDEO_MIME, videoSettings } from "../../shared/video.js";
+import {
+  DEFAULT_VIDEO_FPS,
+  isRenderTimeout,
+  isSmallRender,
+  RENDER_FAILED_HINT,
+  renderSize,
+  renderTimeoutHint,
+  VIDEO_MIME,
+  videoSettings,
+} from "../../shared/video.js";
 import type { OpContext, PluginOp } from "./index.js";
 import { beforeMutating, unchanged } from "../guard.js";
 import { ensureLoaded } from "../pages.js";
@@ -33,6 +42,7 @@ import {
 } from "../read.js";
 import { parseColor } from "../write.js";
 import { encodeBase64 } from "./export.js";
+import { readMotionPlan } from "./motion-plan.js";
 import {
   bindingAt,
   easingToString,
@@ -66,6 +76,7 @@ type Motion = NodeLike & {
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const r4 = (v: number) => Math.round(v * 10000) / 10000;
+const r6 = (v: number) => Math.round(v * 1e6) / 1e6;
 const invalid = (msg: string, hint?: string) => new BridgeError(ErrorCode.INVALID_PARAM, msg, hint ? { hint } : {});
 
 // ── availability ─────────────────────────────────────────────────────────────
@@ -606,6 +617,14 @@ const getMotionContext: PluginOp = {
     // came back under three ids on 2026-10-09, two of them second roots that
     // stopped resolving [C-199]; every timeline id seen is listed instead.
     const cohorts = new Map<string, { rootNodeId: string | null; timelineId: string; timelineIds: string[]; durationMs: number; memberNodeIds: string[] }>();
+    // The frames this answer names, for their motion plans: each root's own, then each cohort's.
+    const frames = new Map<string, NodeLike>();
+    const frameOf = (n: NodeLike): NodeLike | null => {
+      const top = NOT_SCENE.has(n.type) ? null : topLevelFrameOf(n);
+      if (top && !frames.has(top.id)) frames.set(top.id, top);
+      return top;
+    };
+    const topLevelFrameIds = roots.map((r) => frameOf(r)?.id ?? null);
     const nodes = animated.map((n) => {
       const manual = read(n, "manualKeyframeTracks");
       const tracks = manualTracksToText(manual);
@@ -613,7 +632,7 @@ const getMotionContext: PluginOp = {
       const stylesRaw = read(n, "animationStyles");
       const animationStyles = (Array.isArray(stylesRaw) ? stylesRaw : []).map(animationStyleText).filter((s): s is Record<string, unknown> => s !== null);
       const timeline = firstTimeline(n);
-      const topLevelFrameId = topLevelFrameOf(n)?.id ?? null;
+      const topLevelFrameId = frameOf(n)?.id ?? null;
       if (timeline) {
         const key = topLevelFrameId ?? `timeline:${timeline.id}`;
         const c = cohorts.get(key) ?? { rootNodeId: topLevelFrameId, timelineId: timeline.id, timelineIds: [], durationMs: Math.round(timeline.duration * 1000), memberNodeIds: [] };
@@ -640,9 +659,15 @@ const getMotionContext: PluginOp = {
       ? "None of the given layers is animated; their children were not read (recursive: false). Omit recursive to read them."
       : "No animated layers here.";
     return {
-      scope: { from, ids: roots.map((r) => r.id), recursive },
+      // topLevelFrameIds[i] is the frame around ids[i] (null for a page or a section): what the motion gate keys on.
+      scope: { from, ids: roots.map((r) => r.id), recursive, topLevelFrameIds },
       count: nodes.length,
       nodes,
+      // Each named frame's plan from figma_set_motion_plan; null when it has none.
+      motionPlans: [...frames.values()].map((f) => {
+        const { plan, invalid } = readMotionPlan(f);
+        return { frameId: f.id, name: f.name, plan, ...(invalid ? { invalid } : {}) };
+      }),
       timelineCohorts: [...cohorts.values()].map((c) =>
         c.timelineIds.length > 1 || (c.rootNodeId !== null && c.timelineIds[0] !== c.rootNodeId)
           ? {
@@ -677,6 +702,22 @@ function videoTarget(node: VideoExportable): VideoExportable {
   return top as VideoExportable;
 }
 
+/**
+ * The frame's timeline, read before a render: `undefined` when it has none,
+ * "unknown" when this build cannot say (no `timelines` member, or a read that
+ * fails for another reason) — then the render is tried as before. A gated
+ * Motion API is UNSUPPORTED: there is nothing to render without it [C-115].
+ */
+function timelineBeforeRender(target: VideoExportable): Timeline | undefined | "unknown" {
+  if (!("timelines" in target)) return "unknown";
+  try {
+    return firstTimeline(target);
+  } catch (err) {
+    if (err instanceof BridgeError && err.code === ErrorCode.UNSUPPORTED && GATED.test(err.message)) throw err;
+    return "unknown";
+  }
+}
+
 const exportVideo: PluginOp = {
   write: false,
   async run(ctx: OpContext) {
@@ -685,22 +726,39 @@ const exportVideo: PluginOp = {
     const node = (await byId(api(), nodeId)) as VideoExportable;
     const target = videoTarget(node);
     if (typeof target.exportAsync !== "function") throw new BridgeError(ErrorCode.UNSUPPORTED, `A ${target.type} cannot be exported.`);
+    // Nothing to play: refused here, in milliseconds, rather than by Figma's
+    // bare "Video export failed", which says neither why nor what to do.
+    const timeline = timelineBeforeRender(target);
+    if (timeline === undefined || (timeline !== "unknown" && !(timeline.duration > 0))) {
+      throw invalid(
+        `"${target.name}" has no animation to render: ${timeline === undefined ? "it has no timeline" : "its timeline is 0 s long"}.`,
+        "Key a layer inside the frame with figma_set_keyframes (figma_get_motion_context shows what animates), then render. " +
+          "figma_export_node renders a still frame.",
+      );
+    }
     ctx.progress(0, undefined, `rendering ${settings.format}`);
     let bytes: Uint8Array;
     try {
       bytes = await target.exportAsync(settings);
     } catch (err) {
-      // A render Figma ran out of time for is no refusal of the frame: render again (shared/video.ts).
+      // A render Figma ran out of time for is no refusal of the frame: render
+      // again (shared/video.ts). Its size goes along, so the bridge can tell a
+      // stuck exporter (a small render that timed out) from a render too big.
       if (isRenderTimeout(message(err))) {
-        throw new BridgeError(ErrorCode.TIMEOUT, `Figma gave up rendering "${target.name}" as ${settings.format}: ${message(err)}`, { hint: RENDER_TIMEOUT_HINT });
+        const fps = typeof settings.fps === "number" ? settings.fps : DEFAULT_VIDEO_FPS[settings.format];
+        const size =
+          timeline !== "unknown" && typeof target.width === "number" && typeof target.height === "number"
+            ? renderSize({ width: target.width, height: target.height }, settings, timeline.duration, fps)
+            : undefined;
+        throw new BridgeError(ErrorCode.TIMEOUT, `Figma gave up rendering "${target.name}" as ${settings.format}: ${message(err)}`, {
+          hint: renderTimeoutHint({ small: isSmallRender(size) }),
+          ...(size ? { partial: { render: size } } : {}),
+        });
       }
-      // Figma rejects a frame with no animation, any node that is not a
-      // top-level frame, and video in a host that is not Figma itself.
-      throw new BridgeError(ErrorCode.UNSUPPORTED, `Figma could not export "${target.name}" as ${settings.format}: ${message(err)}`, {
-        hint:
-          "Video export needs a top-level frame whose layers have keyframes (figma_get_motion_context shows them; " +
-          "figma_set_keyframes adds them) and Figma desktop with video export (MP4/GIF/WEBM, plugin API Update 128).",
-      });
+      // The frame has a timeline, so this is not a missing animation, and
+      // Figma said nothing more: retry once, then restart Figma. Not
+      // UNSUPPORTED, which tells an agent to stop for good.
+      throw new BridgeError(ErrorCode.INTERNAL, `Figma could not export "${target.name}" as ${settings.format}: ${message(err)}`, { hint: RENDER_FAILED_HINT });
     }
     ctx.progress(0, bytes.length, "encoding");
     const base64 = await encodeBase64(bytes, ctx.yieldToHost);
@@ -717,7 +775,8 @@ const exportVideo: PluginOp = {
       format: settings.format,
       mime: VIDEO_MIME[settings.format],
       bytes: bytes.length,
-      ...(durationS !== undefined ? { durationS: r4(durationS) } : {}),
+      // To the microsecond, as Figma keeps it: the frame count depends on it [C-194].
+      ...(durationS !== undefined ? { durationS: r6(durationS) } : {}),
       base64,
     };
   },

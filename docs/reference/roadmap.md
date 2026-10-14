@@ -32,6 +32,7 @@ Each live run's results file is what turns an editor cell to **yes** or **no** a
 - **Publish 0.1.0.** Create the public repository, add the npm token, and push the tag ([CONTRIBUTING.md § Releasing](../../CONTRIBUTING.md#releasing)).
 - **Live runs for FigJam and Slides.** Five spikes in order, plus a few steps only a person in Figma desktop can do ([plan record § Live runs still to do](../superpowers/plans/2026-10-09-figjam-slides.md#live-runs-still-to-do)).
 - **The rest of the skills pass.** The spikes still open, among them the one that flips `figma_create_animatic`'s Design cell; a tools-only client walking every skill through `figma_get_guide`; the motion acceptance run; and re-runs of the earlier Design spikes ([skills plan record § Results of wave 1 and 2](../superpowers/plans/2026-10-13-skills.md#results-of-wave-1-and-2)). The record dates from 2026-10-13, and some runs have finished since: `spikes/results/live-storyboard.json` and the first design acceptance run, `spikes/results/2026-10-13-acceptance-design-1.md`.
+- **The motion process, live.** A spike that stores a plan on an animated frame, reads it back through `figma_get_motion_context` and `figma_check_motion`'s snapshot (by a layer id as well, during a second-id period `[C-199]`), and runs the gate end to end: a keyframe write refused and then allowed, a passing check, a final render refused after an edit by hand, and the delivery. `figma_set_motion_plan`'s Design cell is yes ahead of this run (spec ADR #41).
 - **macOS.** A first live run (setup, the plugin import and one Design spike) and a green CI run, after which the macOS job stops being non-blocking.
 - **Phase 5, hardening.** Real multi-session use, reconnect storms and load tests of 10,000+ nodes ([spec §12](../superpowers/specs/2026-10-06-figma-mcp-design.md#12-roadmap)).
 
@@ -63,7 +64,7 @@ Once the gate passed, Phase 1 (Read) followed with its own implementation plan u
 | # | Decision | Value |
 |---|---|---|
 | 1 | **Name** | Product **Figxel**. MCP server name `figxel`; npm package and bin `figxel-mcp`; plugin name in Figma `Figxel`. The plugin's manifest id stays `figma-mcp-bridge`, because Figma keys a plugin's saved data, the token included, by that id `[C-276]`. The public wording says Figxel works with Figma and is not affiliated with it `[C-272]`. During development the project was called figma-mcp |
-| 2 | **Toolset** | **Every catalog tool active by default: 132** (+`figma_eval` when opted in = 133). Trim through the client's tool picker or `BRIDGE_TOOLSET`, which apps with a tool limit need (VS Code 128 `[C-286]`, Windsurf 100 `[C-289]`) |
+| 2 | **Toolset** | **Every catalog tool active by default: 136** (+`figma_eval` when opted in = 137). Trim through the client's tool picker or `BRIDGE_TOOLSET`, which apps with a tool limit need (VS Code 128 `[C-286]`, Windsurf 100 `[C-289]`) |
 | 3 | **Port** | `38452`, loopback only `[C-037]` |
 | 4 | ~~**Auto-launch**~~ | **Removed 2026-10-07** (ADR #32). `BRIDGE_AUTOLAUNCH` is parsed but inert |
 | 5 | **`figma_eval`** | Present, opt-in (`BRIDGE_ALLOW_EVAL=1`) `[C-041]` |

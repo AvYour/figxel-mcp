@@ -327,7 +327,7 @@ describe("figma_export_video in job mode", () => {
     expect(r.content[0]!.text).toMatch(/^TIMEOUT: Figma gave up rendering "Hero" as MP4: Video export timed out \(240 s after the render started\)\.\n/);
     expect(r.structuredContent).toMatchObject({ code: "TIMEOUT", safeToRetry: true });
     const hint = r.structuredContent!.hint as string;
-    expect(hint).toMatch(/restored[\s\S]*render again[\s\S]*a lower `fps`/);
+    expect(hint).toMatch(/restored[\s\S]*render again[\s\S]*If the next render times out too, Figma's video exporter is likely stuck/);
     expect(hint).not.toMatch(/keyframes/);
 
     autoResolve = true;
@@ -337,12 +337,13 @@ describe("figma_export_video in job mode", () => {
     expect(renders()).toHaveLength(2);
   });
 
-  it("a plugin's own TIMEOUT keeps its words and gains the time the render ran", async () => {
+  it("a TIMEOUT keeps its words and the bridge's hint, and gains the time the render ran", async () => {
+    // The hint is the bridge's: it counts timeouts in a row per plugin window [C-318].
     const started = json(await call({ nodeId: "1:2", wait: 0 }));
-    renders()[0]!.reject(new BridgeError(ErrorCode.TIMEOUT, 'Figma gave up rendering "Hero" as GIF: Video export timed out', { hint: "x" }));
+    renders()[0]!.reject(new BridgeError(ErrorCode.TIMEOUT, 'Figma gave up rendering "Hero" as GIF: Video export timed out', { hint: "2 renders in a row ended in Figma's 4-minute limit." }));
     await new Promise((r) => setTimeout(r, 5));
     const r = await call({ jobId: started.jobId });
-    expect(r.content[0]!.text).toMatch(/^TIMEOUT: Figma gave up rendering "Hero" as GIF: Video export timed out \([\d.]+ s after the render started\)\.\nFigma ends a video render/);
+    expect(r.content[0]!.text).toMatch(/^TIMEOUT: Figma gave up rendering "Hero" as GIF: Video export timed out \([\d.]+ s after the render started\)\.\n2 renders in a row/);
   });
 
   it("a refusal that is not Figma's time limit stays UNSUPPORTED, whatever the frame is called", async () => {
@@ -475,7 +476,7 @@ describe("figma_export_video in job mode", () => {
     const meta = json(await call({ nodeId: "1:2" }));
     expect(meta.frameCount).toBeUndefined();
     expect(meta.expectedFrames).toBe(25);
-    expect(meta.note).toMatch(/ffprobe is not on PATH/);
+    expect(meta.note).toMatch(/ffprobe could not be started, so frameCount is not measured/);
   });
 
   it("refuses what cannot be answered, before anything is sent", async () => {

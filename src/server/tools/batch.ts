@@ -17,10 +17,11 @@ import { BridgeError, ErrorCode } from "../../shared/errors.js";
 import { OPS } from "../../shared/ops.js";
 import { PRODUCT_NAME } from "../../shared/version.js";
 import type { Bridge } from "../bridge.js";
+import { KEYFRAME_OPS, keyframeGate, withProcessWarnings, type GateResult, type MotionProcess } from "../motion-process.js";
 import { errorResult } from "../results.js";
 import { writeAnnotations } from "./annotations.js";
 import { WRITE_PARAMS } from "./create.js";
-import { forwardTool, type Extra } from "./forward.js";
+import { addressCall, forwardTool, type Extra } from "./forward.js";
 import { fitDescription, MAX_DESCRIPTION } from "./params.js";
 
 /** A registered tool's input shape, by op name (no `figma_`). */
@@ -69,6 +70,8 @@ function withEditors<C extends { description?: unknown }>(name: string, config: 
 // duplicated rather than imported: the server bundle does not import sandbox
 // code. test/batch.test.ts pins that the two agree on every op.
 const EXCLUDED: ReadonlySet<string> = new Set(["batch", "group_nodes", "boolean_nodes", "flatten_nodes", "clone_node"]);
+/** A motion plan is checked by its own tool (motion-plan.ts), which a batch step would skip. */
+const PLAN_OP = "set_motion_plan";
 export const MAX_STEPS = 50;
 
 /** Why `op` cannot be a batch step, or null when it can. */
@@ -79,6 +82,7 @@ export function batchRefusal(op: string): string | null {
   if (info.group !== "modify" && info.group !== "style") return `"${op}" is a ${info.group} op; a batch holds modify and style edits`;
   if (info.destructive) return `"${op}" is destructive and runs on its own call`;
   if (EXCLUDED.has(op)) return `"${op}" replaces nodes with new ids, so later steps could name nodes that no longer exist`;
+  if (op === PLAN_OP) return `"${op}" is checked by the server and stored on its own call, before the keyframes that need it`;
   return null;
 }
 
@@ -137,7 +141,40 @@ export function validateSteps(raw: unknown, shapeOf: ShapeOf, wanted: (op: strin
   });
 }
 
-export function registerBatch(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, shapeOf: ShapeOf): void {
+/**
+ * The motion gate for a batch's keyframe steps (motion-process.ts), each layer
+ * asked once: strict refuses the whole batch at the first step that may not
+ * run, guided collects warnings.
+ */
+async function gateKeyframeSteps(
+  bridge: Bridge,
+  proc: MotionProcess,
+  steps: Array<{ op: string; params: Record<string, unknown> }>,
+  session: string | undefined,
+  extra: Extra,
+): Promise<{ refusal?: BridgeError; warnings: string[] }> {
+  // The ids inside the steps as the plugin will see them, and the session a link names.
+  const addressed = await addressCall(bridge, "batch", { steps }, session);
+  const seen = new Map<string, GateResult>();
+  const warnings = new Set<string>();
+  for (const [i, s] of (addressed.params.steps as typeof steps).entries()) {
+    if (!KEYFRAME_OPS.has(s.op)) continue;
+    const nodeId = String(s.params.nodeId);
+    let gate = seen.get(nodeId);
+    if (!gate) {
+      gate = await keyframeGate(proc, bridge, `figma_batch's figma_${s.op} step`, nodeId, addressed.session, extra.signal);
+      seen.set(nodeId, gate);
+    }
+    if (gate.refusal) {
+      const r = gate.refusal;
+      return { refusal: new BridgeError(r.code, `steps[${i}]: ${r.message}`, { ...(r.hint ? { hint: r.hint } : {}), partial: r.partial }), warnings: [] };
+    }
+    for (const w of gate.warnings) warnings.add(w);
+  }
+  return { warnings: [...warnings] };
+}
+
+export function registerBatch(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, shapeOf: ShapeOf, proc?: MotionProcess): void {
   if (!wanted("batch")) return;
   server.registerTool(
     "figma_batch",
@@ -151,7 +188,8 @@ export function registerBatch(server: McpServer, bridge: Bridge, wanted: (op: st
           "that replaces nodes with new ids (group, boolean, flatten, clone). Steps run in order and stop at the first " +
           "failure without rolling back: the error's partial.steps and partial.failedAt say what was applied, and one " +
           "Ctrl+Z undoes the whole batch. Success: { steps: [{ index, op, ok, result }], completed, itemsFailed? }. A " +
-          "step's ok means it ran; each node it could not change is listed in itemsFailed: [{ step, op, id, error }].",
+          "step's ok means it ran; each node it could not change is listed in itemsFailed: [{ step, op, id, error }]. " +
+          "Keyframe steps pass the same motion gate as figma_set_keyframes (BRIDGE_PROCESS).",
       ),
       inputSchema: {
         steps: z
@@ -170,10 +208,21 @@ export function registerBatch(server: McpServer, bridge: Bridge, wanted: (op: st
         // Refused here, so nothing reached Figma: a corrected retry is safe [C-096].
         return errorResult(e, { unchanged: true });
       }
-      return forwardTool(bridge, "batch", { steps }, extra, {
-        session: args.session as string | undefined,
-        idempotencyKey: args.idempotencyKey as string | undefined,
-      });
+      const forward = () =>
+        forwardTool(bridge, "batch", { steps }, extra, {
+          session: args.session as string | undefined,
+          idempotencyKey: args.idempotencyKey as string | undefined,
+        });
+      if (!proc?.active || !steps.some((s) => KEYFRAME_OPS.has(s.op))) return forward();
+      let gate: Awaited<ReturnType<typeof gateKeyframeSteps>>;
+      try {
+        gate = await gateKeyframeSteps(bridge, proc, steps, args.session as string | undefined, extra);
+      } catch (err) {
+        return errorResult(err instanceof BridgeError ? err.withKey(args.idempotencyKey as string | undefined) : err, { unchanged: true });
+      }
+      if (gate.refusal) return errorResult(gate.refusal.withKey(args.idempotencyKey as string | undefined), { unchanged: true });
+      // Like every write, the batch moves writeEpoch(), which makes an earlier figma_check_motion stale.
+      return withProcessWarnings(await forward(), gate.warnings);
     },
   );
 }

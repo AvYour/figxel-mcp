@@ -247,11 +247,23 @@ describe("calls behind a video render answer BUSY at once (2026-10-13)", () => {
     expect(plugin.requests()).toEqual(["get_styles", "export_video"]);
   });
 
-  it("the BUSY hint names a minimized window once a render passes 2 min [C-198]", () => {
-    const slow = renderBusyError({ jobId: undefined, elapsedMs: 121_000, cancelled: false }, undefined);
+  it("the BUSY hint names a minimized window once a render passes 2 min [C-198], and a re-run of the plugin past 5 min", () => {
+    const slow = renderBusyError({ jobId: undefined, elapsedMs: 121_000, state: "running" }, undefined);
     expect(slow.message).toMatch(/121 s so far/);
     expect(slow.hint).toMatch(/minimized Figma window stops video export/);
-    expect(renderBusyError({ jobId: undefined, elapsedMs: 30_000, cancelled: false }, undefined).hint).not.toMatch(/minimized/);
+    expect(slow.hint).not.toMatch(/close the Figxel plugin window/);
+    expect(renderBusyError({ jobId: undefined, elapsedMs: 30_000, state: "running" }, undefined).hint).not.toMatch(/minimized/);
+    const lost = renderBusyError({ jobId: "j", elapsedMs: 310_000, state: "running" }, undefined);
+    expect(lost.hint).toMatch(/no result after 5 min, the render may never answer: ask the user to close the Figxel plugin window and run it again/);
+  });
+
+  it("a render the bridge stopped waiting for without a cancel is never called cancelled", () => {
+    const abandoned = renderBusyError({ jobId: "j", elapsedMs: 700_000, state: "abandoned" }, undefined);
+    expect(abandoned.message).toMatch(/^Figma is still busy with a video render \(figma_export_video job "j"\), with no result after 700 s/);
+    expect(abandoned.message).not.toMatch(/cancel/);
+    const earlier = renderBusyError({ jobId: undefined, elapsedMs: 42_000, state: "earlier" }, undefined);
+    expect(earlier.message).toMatch(/^Figma is still busy with a video render that an earlier Figxel process started, with no result after 42 s/);
+    expect(earlier.message).not.toMatch(/cancel/);
   });
 });
 

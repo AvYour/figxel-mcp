@@ -19,6 +19,7 @@ import { childrenOf, field } from "../board-read.js";
 import { bindingAt, fieldFromString, manualTracksToText, valueToString } from "../motion-fields.js";
 // The gate's words come from motion.ts, so a gated account reads alike from every motion op [C-115].
 import { GATED, noMotion } from "./motion.js";
+import { readMotionPlan } from "./motion-plan.js";
 import { byId, int, selectionOf, str, topLevelFrameOf, walk, type FigmaLike, type NodeLike } from "../read.js";
 
 type Any = Record<string, unknown>;
@@ -220,6 +221,8 @@ const checkMotion: PluginOp = {
     );
     ctx.progress(nodes.length, nodes.length);
     const rootBox = nodes[0]!;
+    // The plan of the frame just read, so the server judges against that frame's own plan.
+    const stored = readMotionPlan(root);
     return {
       root: {
         id: root.id,
@@ -233,6 +236,8 @@ const checkMotion: PluginOp = {
       truncated,
       maxNodes,
       from,
+      plan: stored.plan,
+      ...(stored.invalid ? { planInvalid: stored.invalid } : {}),
     };
   },
 };

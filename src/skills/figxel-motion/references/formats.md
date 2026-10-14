@@ -1,4 +1,4 @@
-# Formats — brief fields, reading, placement, tempo, loops and delivery
+# Formats — brief fields, reading, sound, placement, tempo, loops and delivery
 
 ## Fields the placement and the brief set
 Write these into the brief. They come from where the piece plays and what it is for, never from the last piece:
@@ -8,7 +8,7 @@ Write these into the brief. They come from where the piece plays and what it is 
 - **Stillness:** where the piece may hold still on purpose; each such stretch is declared as a hold.
 - **Cut grammar:** which changes are continuous moves (match cut, push-through, whip) and which are cuts on purpose (hard, smash, on the beat).
 
-For a feed or story ad the defaults are: the brand or the key message within the first 3 seconds [C-235], so frame 0 opens on the hook; the brand fully visible by 3 s and the CTA readable for 2.5 s or more [C-241]; an end card. A title, a loop, an animated icon, a brand film or a broadcast spot decides each field from its own brief. Pass the matching settings to figma_check_motion: `brandBy` and `ctaMinS` for other times, `holds` for declared stillness, and `rules` listing every rule except `cold_open` when the piece opens still or from black on purpose.
+For a feed or story ad the defaults are: the brand or the key message within the first 3 seconds [C-235], so frame 0 opens on the hook; the brand fully visible by 3 s and the CTA readable for 2.5 s or more [C-241]; an end card. A title, a loop, an animated icon, a brand film or a broadcast spot decides each field from its own brief. Declare what the brief changes in the plan, which figma_check_motion applies: `holds` for declared stillness, and `accept` for each finding the brief intends, with its reason: `cold_open` when the piece opens still or from black on purpose, `brand_late` up to the time the brief sets (`to`). A check with `rules`, a later `brandBy` or a shorter `ctaMinS` never clears the final render.
 
 ## Reading
 - **Read time:** max(5/6 s, 0.3 s × words), counted from fully legible to covered; numbers and prices count as words [C-241]. Subtitle practice is the basis: about 20 characters per second for adults, and at least 5/6 s per subtitle [C-231] [C-232].
@@ -16,7 +16,13 @@ For a feed or story ad the defaults are: the brand or the key message within the
 - figma_check_motion checks these from the keys: `read_time`, `cold_open`, and with `brandId` and `ctaId` the `brand_late` and `cta_short` rules.
 
 ## Sound
-Figma's export has no audio [C-184]. Plan the music on the tempo grid and join it downstream where the client has a shell (ffmpeg); otherwise deliver the picture and say the track is to be added. Unless the brief says sound is on, the piece must read with sound off.
+Figma's export has no audio [C-184], so sound is chosen or made, then joined to the render.
+- **Sound off first.** Unless the brief says sound is on, the piece reads with the sound off: the message, the brand and the CTA live in the picture; sound adds rhythm and weight, never information.
+- **Only the user's own audio.** Use music and effects the user supplied and has the rights to; never fetch a track from the web. Name the source in the report.
+- **A track: analyse it before planning.** figma_analyze_audio { path } gives the tempo, `beatTimes`, a first-downbeat guess (`beatOffset`), strong onsets and the loudness. Put the beat sheet's hits on the real beats (frame = round(t × fps)) and check the keys against them with figma_check_motion { nodeId, fps, beatTimes }. Under 0.4 `confidence` the tempo is a guess: time the hits to the strong onsets and say so.
+- **No track: generate one.** figma_generate_audio { durationS, bed } makes a simple bed at the plan's tempo and first downbeat, its `sections` following the beat sheet's energy (lower under the hook, lifting into the reveal). A generated bed is a temporary or simple track; say in the report that a produced, licensed track is better for a final ad.
+- **Effects on cuts and accents.** figma_generate_audio { durationS, nodeId, fps } derives a whoosh per fast move, a hit per cut and a tick per text entrance. Read `derivedCues`, cut what crowds (at most one effect per beat in a busy stretch), and run again with the edited list as `cues`. A riser ends at t + durationS: end it on the hit it leads into.
+- **Order.** The picture first: review the previews, then render the final (Delivery, step 1). Then make or analyse the sound and join it to the final render with figma_add_audio { video, tracks, loudness } (the music first, the effects after; the picture is copied, not encoded again), answer every warning (a track trimmed at the end, audio that stops early, a peak over −1 dBTP [C-332]), and look at the result once more with figma_review_video. Pass `loudness` only when the brief or the placement's spec gives a target; otherwise report the measured level.
 
 ## Placement and safe zones
 - Aspect, delivery size, codec, frame-rate mode and audio format come from the placement's spec. Meta's Stories video ad spec, for one, names a 9:16 frame, H.264 at a constant frame rate, and AAC stereo audio [C-233].
@@ -28,9 +34,9 @@ Figma's export has no audio [C-184]. Plan the music on the tempo grid and join i
 ## Tempo
 - **Choose one** where a beat is a whole number of frames: fps × 60 / BPM is an integer [C-244]. At 30 fps: 60, 72, 75, 90, 100, 120, 150 or 180 BPM; at 24 fps: 60, 72, 80, 90, 96, 120, 144, 160 or 180.
 - **Eighths** are whole frames only where fps × 30 / BPM is an integer: at 30 fps 60, 75, 90, 100, 150 and 180; at 24 fps 60, 72, 80, 90, 120, 144 and 180. At the other tempos put secondary hits on beats, or on the nearest frame.
-- **A track the client supplies** sets its own tempo: take its BPM and the time of its first downbeat, pass them as `bpm` and `beatOffset` to figma_check_motion, and round every hit to the nearest frame; the default `beatToleranceFrames` of 1 allows that rounding. figma_create_storyboard takes no offset, so start the board on the first downbeat or note the shift.
+- **A track the client supplies** sets its own tempo and its own beats, which drift off any one BPM: analyse it (Sound, above), put its tempo and first downbeat in the plan's brief as `bpm` and `beatOffset`, which figma_check_motion applies, pass its `beatTimes` to figma_check_motion so accents are judged against the real beats, and round every hit to the nearest frame; the default `beatToleranceFrames` of 1 allows that rounding. figma_create_storyboard takes no offset, so start the board on the first downbeat or note the shift.
 - **A voice-over-led spot** is timed from the script, not a BPM: place the hits on the frames where the words land. Before the recording exists, time it at a speaking rate you assume, write that rate in the brief as an assumption, and re-time when the recording arrives.
-- Pass the same `bpm` to figma_create_storyboard and figma_check_motion so the beat checks agree.
+- Pass the same `bpm` to figma_create_storyboard and the plan so the beat checks agree.
 
 ## Frame rates
 - Figma exports MP4 at 12, 24, 30 or 60 fps, and GIF at 8, 12, 15, 24 or 30 [C-116]. Plan at one of them. A 25, 29.97 or 23.976 fps delivery is planned at 24 or 30 and conformed downstream with ffmpeg where a shell exists; say so in the report.
@@ -47,8 +53,8 @@ Figma's export has no audio [C-184]. Plan the music on the tempo grid and join i
 Nothing may flash more than three times in any one second [C-222]. figma_review_video's `flash` is a craft metric that skips declared cuts, not the WCAG test: run the count as the critique skill's motion checks describe (B6), on a pass with no `cuts` and no `holds`. A single large brightness jump at a continuous cut is a craft fault: bridge the tone (section `transitions`).
 
 ## Delivery
-1. Render the master at delivery size and fps: figma_export_video { nodeId, format: "MP4", fps, width, saveTo, jobId }. Keep Figma's window restored until it is done [C-198].
+1. Render the master at delivery size and fps once figma_check_motion { nodeId, fps } passes: figma_export_video { nodeId, format: "MP4", fps, width, saveTo, jobId, final: true }. Any change to the file after the check (a keyframe, a text edit, an undo, an edit by hand) needs the check again first. The result lists the findings the plan accepted: name them in the report. Keep Figma's window restored until it is done [C-198].
 2. Length: a d-second timeline at f fps gives ceil(d · f) + 1 frames in every format [C-194]. Compare `frameCount` with `expectedFrames`; where the placement needs the exact length and a shell exists, drop the last frame with ffmpeg; otherwise say so in the report. A GIF stores whole hundredths of a second per frame: a 12 fps GIF plays at 12.5 fps [C-266].
 3. Poster: when the placement shows a still before play, check that frame as a still, figma_review_video { path, stills: [<frame>] }.
 4. Last look: the first and last frames as stills, the contact sheet once more, and the frame count.
-5. Report: the placement and its spec source (or "unverified"), the duration and frame count, what was left for downstream (audio, trimming, conforming, encoding), and any default kept on purpose.
+5. Report: the placement and its spec source (or "unverified"), the duration and frame count, the sound (its source, or "generated", and its measured loudness) or that the piece ships silent, what was left for downstream (trimming, conforming, encoding), and any default kept on purpose.

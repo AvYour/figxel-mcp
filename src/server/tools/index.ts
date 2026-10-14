@@ -7,7 +7,10 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OPS, selectOps, toolName } from "../../shared/ops.js";
 import type { Bridge } from "../bridge.js";
 import type { Config, Logger } from "../config.js";
+import { checkMediaTools, nodeExecFile } from "../ffmpeg.js";
+import { MotionProcess } from "../motion-process.js";
 import { createShapeRecorder, registerBatch } from "./batch.js";
+import { registerAudio } from "./audio.js";
 import { registerCheckMotion } from "./check-motion.js";
 import { registerComponents } from "./components.js";
 import { registerCreate } from "./create.js";
@@ -18,6 +21,7 @@ import { registerExport } from "./export.js";
 import { registerFigjam } from "./figjam.js";
 import { registerModify } from "./modify.js";
 import { registerMotion } from "./motion.js";
+import { registerMotionPlan } from "./motion-plan.js";
 import { registerNavigate } from "./navigate.js";
 import { registerStatus } from "./meta.js";
 import { registerRead } from "./read.js";
@@ -47,14 +51,17 @@ const IMPLEMENTED_CREATE = [
 ] as const;
 
 /** Export ops implemented so far (spec §12 phase 1: figma_export_node). */
-const IMPLEMENTED_EXPORT = ["export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video"] as const;
+const IMPLEMENTED_EXPORT = [
+  "export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video",
+  "analyze_audio", "add_audio", "generate_audio",
+] as const;
 
 /** Style ops implemented so far (spec §12 phase 2: fills, strokes, corner radius). */
 const IMPLEMENTED_STYLE = [
   "set_fills", "set_strokes", "set_corner_radius", "set_effects", "set_blend_mode", "set_layout_grids", "apply_style_to_node",
   "bind_variable_to_node", "set_reactions", "remove_reactions",
   "set_variable_mode", "update_style", "set_description", "set_keyframes", "remove_keyframes", "set_scroll_behavior", "set_prototype_flows",
-  "set_slide_transition",
+  "set_slide_transition", "set_motion_plan",
 ] as const;
 
 /** Meta ops answered by the plugin (figma_status is the bridge's own). */
@@ -91,17 +98,41 @@ export interface Registration {
   registered: string[];
 }
 
-export function registerTools(server: McpServer, bridge: Bridge, config: Config, startedAt: number, logger?: Logger): Registration {
+/**
+ * `motionProcess` is the motion process this server's tools share
+ * (motion-process.ts): createApp passes the one its skill resources report to;
+ * without it a fresh one runs in the configured mode.
+ */
+export function registerTools(
+  server: McpServer,
+  bridge: Bridge,
+  config: Config,
+  startedAt: number,
+  logger?: Logger,
+  motionProcess?: MotionProcess,
+): Registration {
   const selected = selectOps(config.toolset, config.allowEval).map(toolName);
   const registered = selected.filter((t) => IMPLEMENTED.has(t.slice("figma_".length)));
-  const ctx = { bridge, config, startedAt, selectedTools: selected, registeredTools: registered };
+  // BRIDGE_FFMPEG / BRIDGE_FFPROBE: the programs the video and audio tools run, and figma_status checks.
+  const media = { ffmpeg: config.ffmpeg, ffprobe: config.ffprobe };
+  const motion = motionProcess ?? new MotionProcess(config.processMode);
+  motion.registered = new Set(registered);
+  const ctx = {
+    bridge,
+    config,
+    startedAt,
+    selectedTools: selected,
+    registeredTools: registered,
+    media: () => checkMediaTools(nodeExecFile, media),
+    process: motion,
+  };
 
   const wanted = (op: string) => registered.includes(toolName(op));
   // figma_batch validates each step against the shape its own tool registered,
   // so the shapes are recorded from the first register call on.
   const shapeOf = createShapeRecorder(server);
   if (wanted("status")) registerStatus(server, ctx);
-  registerGuide(server, wanted);
+  registerGuide(server, wanted, motion);
   // Each group registers once and skips the ops the toolset did not select, so
   // BRIDGE_TOOLSET=core registers only the core tier within each group.
   registerRead(server, bridge, wanted);
@@ -113,9 +144,11 @@ export function registerTools(server: McpServer, bridge: Bridge, config: Config,
   registerExport(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted);
   registerTokens(server, bridge, wanted);
   registerComponents(server, bridge, wanted);
-  registerMotion(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted);
-  registerCheckMotion(server, bridge, wanted);
-  registerReview(server, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted);
+  registerMotion(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media, maxWaitS: config.videoMaxWaitS, process: motion });
+  registerMotionPlan(server, bridge, wanted, motion);
+  registerCheckMotion(server, bridge, wanted, motion);
+  registerReview(server, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
+  registerAudio(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
   registerFigjam(server, bridge, wanted);
   registerSlides(server, bridge, wanted);
   registerStoryboard(server, bridge, wanted);
@@ -123,7 +156,7 @@ export function registerTools(server: McpServer, bridge: Bridge, config: Config,
   // is not selected, so `wanted` is already false and this returns immediately.
   if (logger) registerEval(server, bridge, logger, wanted, config.allowEval);
   // Last: a batch step may name any tool registered above.
-  registerBatch(server, bridge, wanted, shapeOf);
+  registerBatch(server, bridge, wanted, shapeOf, motion);
 
   return { selected, registered };
 }

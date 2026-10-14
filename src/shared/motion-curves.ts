@@ -23,6 +23,8 @@
 // a jump is a cut pair [C-240]. Before a track's first key the first key's
 // value is held and the base value never shows [C-191].
 
+import type { MotionPlanRecord } from "./motion-plan.js";
+
 /** A keyframe as the motion tools carry it. */
 export interface KeyText {
   t: number;
@@ -406,4 +408,12 @@ export interface MotionSnapshot {
   maxNodes: number;
   /** How the frame was found: "node", "selection" or "page". */
   from?: string;
+  /**
+   * The frame's motion plan (figma_set_motion_plan), read in the same pass, so
+   * the check is judged against the plan of the very frame it read: null when
+   * the frame has none. Absent from a plugin built before plans.
+   */
+  plan?: MotionPlanRecord | null;
+  /** Why a stored plan could not be read. */
+  planInvalid?: string;
 }

@@ -76,7 +76,10 @@ describe("what a user or an agent reads", () => {
   it("the connection hints give steps someone who installed the package can take", () => {
     expect(NO_SESSION_HINT).toContain(`Open the plugin in Figma: ${PLUGIN_MENU_PATH}.`);
     expect(NO_SESSION_HINT).toContain(`run \`${SETUP_COMMAND}\` and import the plugin from the manifest it prints`);
-    expect(TOKEN_HINT).toBe(`A plugin tried to connect but its token is wrong — run \`${SETUP_COMMAND}\`, which prints the token, and paste it into the ${PLUGIN_NAME} plugin.`);
+    expect(TOKEN_HINT).toBe(
+      `A plugin tried to connect to this server and was refused: its token does not match this server's token file. Run \`${SETUP_COMMAND}\`, ` +
+        `which prints the token and its fingerprint, and paste the token into the ${PLUGIN_NAME} plugin.`,
+    );
     expect(HUB_LOST_HINT).toMatch(/^The Figxel process that held the Figma connection exited/);
     for (const hint of [NO_SESSION_HINT, TOKEN_HINT, HUB_LOST_HINT]) expect(hint).not.toMatch(/figma-mcp|dist\/|rebuild|node dist/i);
   });

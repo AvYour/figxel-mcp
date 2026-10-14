@@ -94,6 +94,19 @@ export interface HelloMsg {
   file: FileInfo;
   page: PageInfo | null;
   user: UserInfo | null;
+  /**
+   * The op the sandbox is still running from an earlier connection, if any:
+   * the plugin runs one op at a time and outlives the server process that sent
+   * it, so a new hub learns here that a render holds it. Absent on old bundles.
+   */
+  running?: RunningOp | null;
+}
+
+export interface RunningOp {
+  op: string;
+  id: string;
+  /** How long it has run, by the sandbox's clock. */
+  elapsedMs: number;
 }
 
 export interface ResultOkMsg {

@@ -12,6 +12,12 @@ export const ErrorCode = {
   CANCELLED: "CANCELLED",
   BUSY: "BUSY",
   UNSUPPORTED: "UNSUPPORTED",
+  /**
+   * The motion process (BRIDGE_PROCESS=strict) wants an earlier step first:
+   * the motion skill read, a motion plan, or a passing figma_check_motion.
+   * Answered by the server before anything is sent, so nothing changed.
+   */
+  PROCESS_REQUIRED: "PROCESS_REQUIRED",
   INTERNAL: "INTERNAL",
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

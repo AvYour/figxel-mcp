@@ -12,6 +12,7 @@ import {
   type PluginToServer,
   type ServerToPlugin,
 } from "../shared/protocol.js";
+import { tokenFingerprint } from "../shared/token.js";
 import { PLUGIN_NAME, SETUP_COMMAND } from "../shared/version.js";
 import type { HelloInfo, SandboxToUi, UiToSandbox } from "./messages.js";
 
@@ -58,6 +59,13 @@ function showTokenForm(reason: string): void {
   tokenInput.focus();
 }
 
+/**
+ * The token's fingerprint, shown next to "Connected" and in the token form.
+ * `setup` and figma_status print the server's: when the two differ, the
+ * plugin is connected to another server than the one the AI app talks to.
+ */
+const fingerprintText = (t: string | null) => `token ${tokenFingerprint(t)}`;
+
 function send(msg: PluginToServer): void {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
 }
@@ -89,7 +97,7 @@ function scheduleReconnect(): void {
 }
 
 function connect(): void {
-  if (!token) return showTokenForm(`Paste the token printed by: ${SETUP_COMMAND}`);
+  if (!token) return showTokenForm(`Paste the token printed by: ${SETUP_COMMAND} (it prints its fingerprint too).`);
   if (!hello) return;
   window.clearTimeout(stableTimer);
   window.clearTimeout(retryTimer);
@@ -114,7 +122,7 @@ function connect(): void {
     switch (msg.t) {
       case "welcome":
         chunkBytes = msg.limits.chunkBytes;
-        setStatus("ok", "Connected", `Session ${msg.sessionId} · bridge ${msg.serverVersion}`);
+        setStatus("ok", "Connected", `Session ${msg.sessionId} · bridge ${msg.serverVersion} · ${fingerprintText(token)}`);
         changeTokenBtn.hidden = false;
         activity(`connected (${msg.sessionId})`);
         toSandbox({ kind: "connected", sessionId: msg.sessionId });
@@ -139,8 +147,9 @@ function connect(): void {
       stopped = true;
       if (ev.code === CLOSE.AUTH_FAILED) {
         stopped = false; // a new token restarts the loop
+        const refused = token;
         token = null;
-        return showTokenForm("The bridge rejected the token. Paste the current one.");
+        return showTokenForm(`The bridge rejected the token (${fingerprintText(refused)}). Paste the current one: ${SETUP_COMMAND} prints it with its fingerprint.`);
       }
       if (ev.code === CLOSE.SESSION_REPLACED) return setStatus("error", "Replaced", "Another window of this plugin took over.");
       if (ev.code === CLOSE.PROTOCOL_MISMATCH) return setStatus("error", "Version mismatch", ev.reason ? `${ev.reason}. ${UPDATE_STEPS}` : UPDATE_STEPS);
@@ -192,6 +201,6 @@ tokenForm.onsubmit = (ev) => {
   toSandbox({ kind: "need-hello" }); // connect() replaces the current socket, if any
 };
 
-changeTokenBtn.onclick = () => showTokenForm("Paste a new token. The current connection stays up until you save.");
+changeTokenBtn.onclick = () => showTokenForm(`Saved: ${fingerprintText(token)}. Paste a new token; the current connection stays up until you save.`);
 
 setStatus("wait", "Starting…");

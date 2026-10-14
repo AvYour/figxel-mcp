@@ -8,6 +8,7 @@ import { createContext, runInContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 import { OPS } from "../src/shared/ops.js";
 import { CLOSE } from "../src/shared/protocol.js";
+import { tokenFingerprint } from "../src/shared/token.js";
 import { VERSION as BRIDGE_VERSION } from "../src/shared/version.js";
 import type { Bridge } from "../src/server/bridge.js";
 import { newToken, sleep, startBridge } from "./helpers.js";
@@ -192,8 +193,13 @@ describe("built plugin bundles against a real bridge", () => {
     const unknown = s.ops.filter((op) => !OPS.has(op));
     expect(unknown).toEqual([]);
     await until(() => plugin.el("status").textContent === "Connected");
-    // The bridge here runs from source, so it reports the unbundled version.
-    expect(plugin.el("detail").textContent).toMatch(new RegExp(`^Session s-\\d+ · bridge ${BRIDGE_VERSION.replaceAll(".", "\\.")}$`));
+    // The bridge here runs from source, so it reports the unbundled version. The token's
+    // fingerprint is the one setup and figma_status print, so a person can compare them.
+    expect(plugin.el("detail").textContent).toMatch(new RegExp(`^Session s-\\d+ · bridge ${BRIDGE_VERSION.replaceAll(".", "\\.")} · token [0-9a-f]{4}\\.\\.\\.[0-9a-f]{4}$`));
+    const stored = plugin.storage.get("figma-mcp.token") as string;
+    expect(plugin.el("detail").textContent!.endsWith(` · token ${tokenFingerprint(stored)}`)).toBe(true);
+    expect(tokenFingerprint(stored)).toBe(bridge.status().tokenFingerprint);
+    expect(plugin.el("detail").textContent).not.toContain(stored); // never the token itself
   });
 
   it("forwards a selection change through the iframe-hosted debounce (no sandbox timers)", async () => {
@@ -217,10 +223,14 @@ describe("built plugin bundles against a real bridge", () => {
     await until(() => plugin.storage.get("figma-mcp.token") === token); // saved to clientStorage
   });
 
-  it("stops and shows the token form when the bridge rejects the token (4001)", async () => {
+  it("stops and shows the token form when the bridge rejects the token (4001), naming the refused token's fingerprint", async () => {
     const { bridge, plugin } = await bridgeAndPlugin("wrong");
     await until(() => plugin.el("token-form").hidden === false);
     expect(plugin.el("detail").textContent).toMatch(/rejected the token/);
+    const refused = tokenFingerprint(plugin.storage.get("figma-mcp.token") as string);
+    expect(plugin.el("detail").textContent).toContain(`(token ${refused})`);
+    expect(plugin.el("detail").textContent).toMatch(/setup prints it with its fingerprint/);
+    expect(refused).not.toBe(bridge.status().tokenFingerprint);
     expect(bridge.status().lastAuthFailureAt).not.toBeNull();
     const failedAt = bridge.status().lastAuthFailureAt;
     await sleep(1500); // longer than the first backoff steps — no retry loop on 4001

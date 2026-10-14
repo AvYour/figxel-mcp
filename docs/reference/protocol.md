@@ -59,9 +59,12 @@ Handshake rules:
   "ops": ["create_frame", "get_design_context", "…"],  // ops this plugin implements
   "file": { "name": "Landing Page", "key": null },     // figma.fileKey may be null (spec §14)
   "page": { "id": "0:1", "name": "Home" },
-  "user": { "id": "12345", "name": "Alex" }            // null when the currentuser permission is absent
+  "user": { "id": "12345", "name": "Alex" },           // null when the currentuser permission is absent
+  "running": { "op": "export_video", "id": "r-3fa1c2d9-2", "elapsedMs": 41200 }  // or null; absent on old bundles
 }
 ```
+
+`running` is the op the sandbox is still running from an earlier connection. The sandbox runs one op at a time and outlives the server process that sent it, so after a reconnect — to the same hub or to a new one after the old hub exited `[C-271]` — the bridge learns that a video render holds the plugin, and answers other calls `BUSY` until the plugin answers that render, instead of queueing them behind it until they `STALL`.
 
 `editorType` is load-bearing: the bridge decides every op against it ([spec §4.7](../superpowers/specs/2026-10-06-figma-mcp-design.md#47-editor-types)). `ops` means "implemented by this build" and is **not** filtered by editor — a board's plugin advertises the Design-only ops too, so "too old" never stands in for "wrong editor". An editor value the bridge does not run in (`dev`, `buzz`) gets every op refused except the ones the bridge answers itself. The plugin refuses the table's **no** cells again before running an op, for a hub build that predates the gate.
 
@@ -83,7 +86,7 @@ Handshake rules:
 - `data` **must** be JSON-serializable. The plugin converts Figma objects (getters, cyclic references) into a DTO before sending.
 - Write-op results carry `idempotencyKey` and, when served from cache, `"replayed": true`.
 - **Binary data** (export) is sent as `{ "mime": "image/png", "bytes": 184320, "base64": "…" }`. The plugin never writes files — the bridge does (§3, `request`).
-- **Large binary payloads** (base64 > 8 MB) are sent in chunks: a `result` carrying `{ mime, bytes, chunks: N }` with no `base64`, followed by N `chunk` frames. Nothing is rejected for being too large.
+- **Large binary payloads** (base64 > 8 MB) are sent in chunks: a `result` carrying `{ mime, bytes, chunks: N }` with no `base64`, followed by N `chunk` frames. Nothing is rejected for being too large. The bridge decodes each chunk as it arrives and keeps an export's bytes as binary, never as one long base64 string.
 
 ### `chunk` (continuation of a binary payload)
 
@@ -159,7 +162,7 @@ Every `chunk` resets its request's idle timer. The bridge reassembles after the 
   "idempotencyKey": "landing-hero-v1" }      // document-write ops only
 ```
 
-- `id` is unique for the lifetime of the bridge process, formatted `r-<n>`.
+- `id` is unique across bridge processes, formatted `r-<prefix>-<n>`: 8 hex characters chosen at random when the process starts, then a counter. With `r-<n>` alone a new hub started again at `r-1`, and an old render's `result` answered the new hub's request that carried the same id.
 - `idleTimeoutMs` measures **idle**, not a duration ceiling (§4).
 - Bridge-only parameters are **not** forwarded to the plugin. Example: `saveTo` on `figma_export_node` is held by the bridge; the plugin receives only `{ nodeId, format, scale }` and returns bytes; the bridge validates the path and writes the file.
 - **Sequential per session.** The bridge does not send a new request to a session before the previous request's `result` arrives. The per-session queue holds 32; beyond that → `BUSY` (§4). While a video render holds the plugin (`export_video` sent and not yet answered, or waiting in the queue), a new request is not queued: it is refused at once with `BUSY` (§4).
@@ -183,6 +186,23 @@ The bridge does the same on its side: a second tool call with a key whose reques
 - Only a summary of the result is stored (ids, names), not export bytes.
 - Read ops carry no key — they are naturally idempotent.
 - **A failure that provably changed nothing is not recorded.** An op that fails before touching the document says so with `partial: { created: [] }`; the plugin then forgets the key instead of storing the error, so a corrected retry under the same key runs rather than replaying the refusal. Every other outcome — success, or a failure that may have changed something — is recorded.
+
+#### Motion plans in the file
+
+`set_motion_plan` stores a plan the server has already checked; the plugin only stores it, so its params are the record itself:
+
+```jsonc
+{ "t": "request", "id": "r-21", "op": "set_motion_plan",
+  "params": { "nodeId": "12:34",
+              "plan": { "v": 1, "brief": { "audience": "…", "message": "…", "format": "1080x1920 Reels", "durationS": 6, "fps": 30 },
+                        "beats": [{ "name": "hook", "from": 0, "to": 1.5, "onScreen": "…", "action": "…", "transition": "…" }] } },
+  "idempotencyKey": "plan-hero-v1" }
+```
+
+- The plugin finds the node's top-level frame by walking parents, checks that `brandId` and `ctaId` (when present) are inside it, and writes `JSON.stringify(plan)` with `setSharedPluginData("figmamcp", "motionPlan", …)` on the frame, the namespace the storyboard record uses, readable by any plugin. Every check runs before that one write (`partial: { created: [] }` on a refusal). The result is `{ frameId, frameName, replaced }`.
+- `get_motion_context` reads the plans back: `scope.topLevelFrameIds` (the frame around each scope root, or null) and `motionPlans` (`[{ frameId, name, plan | null, invalid? }]`).
+- `check_motion`'s snapshot carries the plan of the frame it read, in the same pass: `plan` (null when it has none) and `planInvalid?`, so `figma_check_motion` is judged against that frame's own plan.
+- Before a keyframe write or a final render, the server's motion gate (`BRIDGE_PROCESS`) sends one `get_motion_context` request with `{ nodeId, recursive: false, maxNodes: 1 }` to learn the frame and its plan. When the process wants a step first, the server answers the tool call itself with `PROCESS_REQUIRED` (§9) and sends nothing else.
 
 ### `cancel`
 
@@ -208,7 +228,7 @@ A wall-clock timeout is a hard limit in disguise: "max 30 seconds per request" m
 
 | Timer | Default | Reset by | On expiry |
 |---|---|---|---|
-| Per-request idle | 30 s (export ops: 120 s) | every `progress` / `chunk` for that id | `cancel{reason:"STALLED"}` to the plugin; the tool call is answered with a `STALLED` error |
+| Per-request idle | 30 s (export ops: 120 s; `export_video`: none) | every `progress` / `chunk` for that id | `cancel{reason:"STALLED"}` to the plugin; the tool call is answered with a `STALLED` error |
 | Hello | 5 s | — | close `4008` |
 | Heartbeat | `ping` every 15 s | **any** message from the plugin | 45 s of silence → connection closed, session dropped, pending requests → `NO_SESSION` |
 | Total duration in the bridge | **none** | — | — |
@@ -216,6 +236,7 @@ A wall-clock timeout is a hard limit in disguise: "max 30 seconds per request" m
 - **An op that keeps reporting is never stopped by the bridge**, however many hours it runs.
 - **An op that is genuinely stuck is still detected** within 30 seconds of its last report.
 - Export ops get a 120 s idle because `exportAsync` is a single host call that cannot report progress midway.
+- A video render (`export_video`) gets no idle limit. One `exportAsync` renders the whole video, a minimized Figma window can hold it for 40 minutes and then finish it `[C-198]`, and `figma_export_video` runs it as a job detached from the call `[C-249]`: a `STALLED` there threw the late result away while the plugin stayed busy anyway. A plugin that is gone is still caught, by the socket closing or by the heartbeat — the plugin window answers `ping` while the sandbox renders.
 - `idleTimeoutMs` can be raised per request by specific tools (e.g. `figma_eval` via its `timeoutMs` parameter), but the meaning stays idle.
 
 ### A limit outside the bridge's control: the MCP client timeout
@@ -237,7 +258,8 @@ A client may also restart the server after its calls time out: the Claude deskto
 | Condition | Bridge | Plugin |
 |---|---|---|
 | Session queue > 32 | Reject new requests with `BUSY`, gone as soon as the queue drains | — |
-| A video render holds the plugin: `export_video` sent and not yet answered by the plugin (also after a cancel or a `STALLED`), or waiting in the queue | Reject new requests with `BUSY` at once, before anything is sent. The message names the render's `jobId` and elapsed seconds; nothing ran, so a retry is safe (a write with the same `idempotencyKey`). Gone when the plugin answers the render `[C-197]` `[C-198]` | Renders on: a cancel cannot stop `exportAsync` |
+| A video render holds the plugin: `export_video` sent and not yet answered by the plugin (also after a cancel, or after the plugin reconnected), named as `running` in the plugin's `hello` (sent by an earlier server process), or waiting in the queue | Reject new requests with `BUSY` at once, before anything is sent. The message names the render's `jobId` and elapsed seconds, and says why it holds the plugin: running, cancelled, or no result yet from an earlier process; nothing ran, so a retry is safe (a write with the same `idempotencyKey`). After 5 min the hint says that closing and re-running the plugin ends the wait. Gone when the plugin answers the render `[C-197]` `[C-198]` | Renders on: a cancel cannot stop `exportAsync` |
+| Figma ends a render in its time limit (`TIMEOUT`) | Counts the timeouts in a row per plugin window (`instanceId`); a render the plugin answers successfully resets it. The second in a row, or a timeout of a small render (the plugin sends the render's size in `partial.render`), gets a hint to restart Figma `[C-318]` | Sends `TIMEOUT`, with `partial.render: { frames, width, height }` when it knows them |
 | A call `STALLED`, and the plugin has answered nothing since it connected | The hint adds that the plugin may still be finishing an op an earlier Figxel process sent it, such as a render | Runs one op at a time and outlives the process that sent it |
 | Plugin disconnects with requests pending | All pending → `NO_SESSION` + `idempotencyKey` + a suggestion to retry | Reconnect (§5); an op already running in the sandbox keeps running and is recorded |
 | Tool call with no session | Wait up to `BRIDGE_SESSION_WAIT_MS` (5 s) for a reconnecting plugin; then `NO_SESSION` (auto-launch was removed on 2026-10-07, spec ADR #32) | — |
@@ -269,7 +291,7 @@ connect → hello → welcome → (normal) → disconnect
 |---|---|---|---|
 | `1000` | normal | Normal closure | — |
 | `1001` | going away | Plugin window closed | — |
-| `1009` | message too big | Frame > `maxFrameBytes` (should not happen — large payloads must be chunked) | Report a bug |
+| `1009` | message too big | Frame > `maxFrameBytes` (should not happen — large payloads must be chunked). Between server processes a hub sends a large result in pieces too, to a proxy that offers them (spec §4.2) | Report a bug |
 | `4001` | `AUTH_FAILED` | Wrong or empty token | Stop; show the token form |
 | `4002` | `DUPLICATE_HELLO` | `hello` sent more than once | Report a bug |
 | `4003` | `FORBIDDEN_ORIGIN` | Origin is not `null`/absent | Stop |
@@ -344,6 +366,7 @@ connect → hello → welcome → (normal) → disconnect
 | `progress`, request without a `progressToken` | `notifications/message` at level `info`, **at most 1 per 5 s** (a fallback, so logs are not flooded) |
 | Client sends `notifications/cancelled` (SDK: `extra.signal` aborted) | `cancel{reason:"CLIENT_CANCELLED"}` to the plugin |
 | `log` from the plugin | stderr; plus `notifications/message` at the matching level (`debug`/`info`/`warning`/`error`) |
+| A tool call that skips a step of the motion process (`BRIDGE_PROCESS=strict`) | Answered by the server with `PROCESS_REQUIRED` (`partial: { created: [], missing }`, `safeToRetry: true`) and the calls that satisfy it; no `request` is sent ([spec §10](../superpowers/specs/2026-10-06-figma-mcp-design.md#10-error-handling)) |
 | `event` from the plugin | Stored as state; read via `figma_status` / `figma_get_selection` (also exposed as the MCP resource `figxel://session/<id>/selection`) |
 | Final `result` | A `tools/call` response. Errors become `isError: true` with the text `"<CODE>: <message>\n<hint>"` plus `structuredContent` carrying `{ code, hint, idempotencyKey?, partial? }` |
 
@@ -362,4 +385,5 @@ Progress only extends a tool call's life in clients that **use** it (§4). In cl
 - `protocolVersion` is raised **only** for breaking changes. The bridge accepts exactly the version it knows; anything else gets `4005`.
 - New optional fields do not raise the version; receivers must ignore unknown fields.
 - The plugin advertises its `ops` in `hello`; the bridge answers `UNSUPPORTED` for a tool whose op is missing (plugin older than bridge). Conversely, a plugin op the bridge does not recognise is ignored.
+- `set_motion_plan` (2026-10-14) is a new op: for a plugin built before it, the bridge answers `UNSUPPORTED` as "older than this server" (the op is missing from its `ops`), and that plugin's `get_motion_context` answers without `scope.topLevelFrameIds`, which the motion gate reports the same way; its `check_motion` answers without `plan`, which the check reads as no plan. Both are additions, so `protocolVersion` stayed 1; `PROCESS_REQUIRED` never travels on the wire.
 - `UNSUPPORTED` also covers the editor: an op that does not run, or is not yet verified, in the session's `editorType` is refused before the ops check, with `partial: { created: [] }` on a write (spec §4.7). Widening the plugin to FigJam and Figma Slides changed no message, so `protocolVersion` stayed 1; `editorType` was in `hello` from the start.

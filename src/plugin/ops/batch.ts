@@ -22,6 +22,8 @@ import type { OpContext, PluginOp } from "./index.js";
 
 /** Edits a batch may not hold, beyond the destructive ones: they change which ids exist. */
 export const BATCH_EXCLUDED: ReadonlySet<string> = new Set(["batch", "group_nodes", "boolean_nodes", "flatten_nodes", "clone_node"]);
+/** A motion plan: its checks live on the server (src/server/motion-plan.ts), which a batch step never meets. */
+const PLAN_OP = "set_motion_plan";
 export const MAX_STEPS = 50;
 
 /** Why `op` cannot be a batch step, or null when it can. */
@@ -32,6 +34,7 @@ export function notBatchable(op: string): string | null {
   if (info.group !== "modify" && info.group !== "style") return `"${op}" is a ${info.group} op; a batch holds modify and style edits`;
   if (info.destructive) return `"${op}" is destructive and runs on its own call`;
   if (BATCH_EXCLUDED.has(op)) return `"${op}" replaces nodes with new ids, so later steps could name nodes that no longer exist`;
+  if (op === PLAN_OP) return `"${op}" is checked by the server and stored on its own call, before the keyframes that need it`;
   return null;
 }
 

@@ -250,8 +250,8 @@ describe("figma_review_video with ffmpeg stubbed", () => {
   it("without ffmpeg for the pictures, the numbers still come back, with a note", async () => {
     ffmpegMissing = true;
     const out = json(await call({ path: video, stills: [1], metrics: false }));
-    expect(out.sheet.error).toBe("ffmpeg not on PATH");
-    expect(out.stills[0].error).toBe("ffmpeg not on PATH");
+    expect(out.sheet.error).toBe("ffmpeg is not on PATH");
+    expect(out.stills[0].error).toBe("ffmpeg is not on PATH");
     expect(out.note).toMatch(/ffmpeg is not on PATH, so no images were cut/);
   });
 

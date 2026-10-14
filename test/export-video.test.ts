@@ -55,11 +55,36 @@ describe("export_video in the plugin", () => {
     expect(r).toMatchObject({ nodeId: card.id, exportedNodeId: frame.id, format: "GIF", mime: "image/gif", bytes: 4, durationS: 0.8, base64: "R0lGOA==" });
   });
 
-  it("a frame with nothing animated comes back UNSUPPORTED with what to do", async () => {
+  it("a frame with nothing to play is refused INVALID_PARAM before Figma renders, with what to do", async () => {
+    // No timeline at all, and a timeline 0 s long: Figma's own answer was a bare "Video export failed".
+    for (const timelines of [[], [{ id: "TL:1", duration: 0 }]]) {
+      frame.timelines = timelines;
+      const err = await run({ nodeId: card.id }).catch((e: unknown) => e);
+      expect(err, JSON.stringify(timelines)).toMatchObject({ code: "INVALID_PARAM", message: expect.stringMatching(/^"Hero" has no animation to render/) });
+      expect((err as { hint: string }).hint).toMatch(/figma_set_keyframes/);
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it("a gated Motion API is UNSUPPORTED, which says stop; a build without the member still tries the render", async () => {
+    Object.defineProperty(frame, "timelines", {
+      get() {
+        throw new Error('"timelines" is not a supported API');
+      },
+    });
+    await expect(run({ nodeId: frame.id })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    expect(calls).toEqual([]);
+    delete (frame as { timelines?: unknown }).timelines;
+    await expect(run({ nodeId: frame.id })).resolves.toMatchObject({ exportedNodeId: frame.id });
+  });
+
+  it("any other refusal of an animated frame is retryable: render again once, then restart Figma — not UNSUPPORTED", async () => {
     frame.exportAsync = async () => {
-      throw new Error("Node has no animation to export");
+      throw new Error("Video export failed");
     };
-    await expect(run({ nodeId: frame.id })).rejects.toMatchObject({ code: "UNSUPPORTED", hint: expect.stringMatching(/figma_set_keyframes/) });
+    const err = await run({ nodeId: frame.id }).catch((e: unknown) => e);
+    expect(err).toMatchObject({ code: "INTERNAL", message: 'Figma could not export "Hero" as MP4: Video export failed' });
+    expect((err as { hint: string }).hint).toMatch(/Render again once\. If it fails again, ask the user to save, quit and reopen Figma/);
   });
 
   it("a render Figma ran out of time for is TIMEOUT, to render again — not UNSUPPORTED, which says stop [C-198]", async () => {
@@ -67,12 +92,30 @@ describe("export_video in the plugin", () => {
     frame.exportAsync = async () => {
       throw new Error("Video export timed out");
     };
+    Object.assign(frame, { width: 1080, height: 1920, timelines: [{ id: "TL:1", duration: 14.4 }] });
     const err = await run({ nodeId: card.id, fps: 30 }).catch((e: unknown) => e);
     expect(err).toMatchObject({ code: "TIMEOUT", message: 'Figma gave up rendering "Hero" as MP4: Video export timed out' });
+    // Its size goes along, so the bridge can tell a stuck exporter from a render too big [C-318].
+    expect((err as { partial: unknown }).partial).toEqual({ render: { frames: 433, width: 1080, height: 1920 } });
     const hint = (err as { hint: string }).hint;
     expect(hint).toMatch(/about 4 minutes; the frame is not at fault/);
-    expect(hint).toMatch(/restored[\s\S]*render again[\s\S]*a lower `fps`, a smaller `width`, or a shorter timeline/);
+    expect(hint).toMatch(/restored[\s\S]*render again[\s\S]*may need fewer frames[\s\S]*If the next render times out too, Figma's video exporter is likely stuck/);
     expect(hint).not.toMatch(/keyframes/);
+  });
+
+  it("a small render that times out says Figma's exporter is likely stuck: restart Figma, not fewer frames [C-318]", async () => {
+    frame.exportAsync = async () => {
+      throw new Error("Video export timed out");
+    };
+    Object.assign(frame, { width: 400, height: 436 });
+    const err = await run({ nodeId: card.id, format: "GIF", fps: 12 }).catch((e: unknown) => e);
+    expect(err).toMatchObject({ code: "TIMEOUT", partial: { render: { frames: 11, width: 400, height: 436 } } });
+    expect((err as { hint: string }).hint).toMatch(/^A render this small should take seconds, so Figma's video exporter is likely stuck\. In that state every render times out until Figma restarts, and fewer frames do not help\. Ask the user to save their work, quit Figma completely and reopen it, then run the Figxel plugin again/);
+  });
+
+  it("sends the timeline's length to the microsecond, as Figma keeps it [C-194]", async () => {
+    frame.timelines = [{ id: "TL:1", duration: 89 / 30 }];
+    expect(await run({ nodeId: frame.id })).toMatchObject({ durationS: 2.966667 });
   });
 
   it("a layer outside any top-level frame is refused before Figma renders", async () => {
@@ -213,7 +256,12 @@ describe("figma_export_video through MCP", () => {
     expect(meta).toMatchObject({ fps: 15, frameCount: 13, expectedFrames: 13 });
     const stills = ffmpeg.filter((c) => c.file === "ffmpeg");
     expect(stills).toHaveLength(2);
-    expect(stills[1]!.args).toEqual(["-v", "error", "-ss", "0.383333", "-i", meta.path, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"]);
+    // Scaled to at most 1024 px on the long side, never up, as figma_export_node's inline images [C-092].
+    expect(stills[1]!.args).toEqual([
+      "-v", "error", "-ss", "0.383333", "-i", meta.path, "-frames:v", "1",
+      "-vf", "scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease",
+      "-f", "image2pipe", "-vcodec", "png", "-",
+    ]);
     expect(stills[1]!.options).not.toHaveProperty("shell");
     const probe = ffmpeg.find((c) => c.file === "ffprobe")!;
     expect(probe.args.at(-1)).toBe(meta.path);
@@ -225,10 +273,13 @@ describe("figma_export_video through MCP", () => {
     const r = await call({ nodeId: "1:2", frames: [0, 0.2, 0.4] });
     expect(r.isError).toBeFalsy();
     const meta = JSON.parse(r.content[0]!.text!);
-    expect(meta.note).toMatch(/ffmpeg not on PATH; frames skipped/);
+    expect(meta.note).toMatch(/ffmpeg could not be started, so frames are skipped\. The video is written/);
+    // Where to get it, the override, and the restart a fresh install needs.
+    expect(meta.note).toMatch(/BRIDGE_FFMPEG and BRIDGE_FFPROBE[\s\S]*If ffmpeg was installed after the MCP client started, restart the MCP client/);
     expect(existsSync(meta.path)).toBe(true);
     expect(ffmpeg.filter((c) => c.file === "ffmpeg")).toHaveLength(1); // stops at the first ENOENT
     expect(r.content.some((c) => c.type === "image")).toBe(false);
+    expect(meta.framesPending).toBeUndefined();
   });
 });
 

@@ -92,8 +92,15 @@ describe("the editor table", () => {
     // A new tool starts unmeasured until its spike records it under spikes/results/.
     expect(notYes("unmeasured")).toEqual(["check_motion", "create_animatic", "fit_sections"]);
     // The whole catalog before FigJam and Slides, plus figma_review_video, which never reaches Figma,
-    // and figma_create_storyboard, measured by spikes/results/live-storyboard.json.
-    expect(notYes("yes")).toHaveLength(115);
+    // figma_create_storyboard, measured by spikes/results/live-storyboard.json, figma_set_motion_plan,
+    // whose one write that run measured too, and the three audio tools, which work on files
+    // (generate_audio's nodeId goes through check_motion's own row).
+    expect(notYes("yes")).toHaveLength(119);
+    expect(["analyze_audio", "add_audio", "generate_audio"].map((op) => EDITOR_SUPPORT[op])).toEqual([
+      { figma: "yes", figjam: "yes", slides: "yes" },
+      { figma: "yes", figjam: "yes", slides: "yes" },
+      { figma: "yes", figjam: "yes", slides: "yes" },
+    ]);
   });
 
   it("refuses only where the typings and Figma's pages agree [C-133] [C-134]", () => {
@@ -101,12 +108,12 @@ describe("the editor table", () => {
     expect(no("figjam")).toEqual([
       "check_motion", "combine_as_variants", "convert_to_component", "create_animatic", "create_effect_style", "create_grid_style",
       "create_paint_style", "create_slides", "create_text_style", "export_video", "get_motion_context", "get_slide_grid", "move_slides",
-      "set_slide_grid", "set_slide_properties", "set_slide_transition",
+      "set_motion_plan", "set_slide_grid", "set_slide_properties", "set_slide_transition",
     ]);
     expect(no("slides")).toEqual([
       "check_motion", "create_animatic", "create_code_block", "create_connectors", "create_effect_style", "create_grid_style",
       "create_link_preview", "create_paint_style", "create_stickies", "create_text_style", "edit_connectors", "export_video",
-      "get_motion_context",
+      "get_motion_context", "set_motion_plan",
     ]);
     // Working in Slides lists createShapeWithText and createTable as supported, against the typings [C-137].
     for (const op of ["create_shapes_with_text", "create_table", "edit_table", "set_board_properties", "fit_sections"]) {

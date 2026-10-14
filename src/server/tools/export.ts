@@ -26,6 +26,7 @@ import {
   writeExport,
   type ExportRoots,
 } from "../exports.js";
+import { bytesOf } from "../binary.js";
 import { errorResult, okResult } from "../results.js";
 import { mergePdfs } from "../pdf.js";
 import { forwardTool, type Extra } from "./forward.js";
@@ -62,20 +63,21 @@ interface ExportData {
   pixelHeight?: number;
   pixelEstimate?: true;
   capped?: true;
-  base64: string;
 }
 
-function asExport(data: unknown): ExportData {
+/** The plugin's export and its bytes: inline `base64`, or `binary` once the bridge reassembled chunks (binary.ts). */
+function asExport(data: unknown): { d: ExportData; bytes: Buffer } {
   const d = data as Partial<ExportData> | null;
-  if (!d || typeof d !== "object" || typeof d.base64 !== "string" || typeof d.format !== "string") {
+  const bytes = bytesOf(data);
+  if (!d || typeof d !== "object" || !bytes || typeof d.format !== "string") {
     throw new BridgeError(ErrorCode.INTERNAL, "The plugin's export result carried no bytes.");
   }
-  return d as ExportData;
+  return { d: d as ExportData, bytes };
 }
 
 /** Turn the plugin's bytes into the MCP result spec §8 describes. */
 export async function shapeExport(data: unknown, saveTo: string | undefined, roots: ExportRoots): Promise<CallToolResult> {
-  const d = asExport(data);
+  const { d, bytes } = asExport(data);
   // Where the node is and how big the picture is: the image alone says neither.
   const meta = {
     nodeId: d.nodeId,
@@ -94,7 +96,7 @@ export async function shapeExport(data: unknown, saveTo: string | undefined, roo
     // No structuredContent: a client that prefers it over `content` would drop the image.
     return {
       content: [
-        { type: "image", data: d.base64, mimeType: d.mime },
+        { type: "image", data: bytes.toString("base64"), mimeType: d.mime },
         { type: "text", text: JSON.stringify(meta) },
       ],
     };
@@ -103,11 +105,11 @@ export async function shapeExport(data: unknown, saveTo: string | undefined, roo
     return {
       content: [
         { type: "text", text: JSON.stringify(meta) },
-        { type: "text", text: Buffer.from(d.base64, "base64").toString("utf8") },
+        { type: "text", text: bytes.toString("utf8") },
       ],
     };
   }
-  const path = await writeExport(saveTo ?? defaultExportName(d.name, d.nodeId, d.format), Buffer.from(d.base64, "base64"), roots);
+  const path = await writeExport(saveTo ?? defaultExportName(d.name, d.nodeId, d.format), bytes, roots);
   const why =
     saveTo !== undefined ? undefined : d.format === "PDF" ? "PDF is always written to a file" : "over 5 MB, so written to a file instead of inline";
   return okResult({ ...meta, path, ...(why ? { note: why } : {}) });
@@ -152,10 +154,10 @@ interface AssetsData {
  */
 export async function shapeAssets(data: unknown, dir: string | undefined, roots: ExportRoots): Promise<CallToolResult> {
   const d = (data ?? {}) as AssetsData;
-  if (typeof d.base64 !== "string" || !Array.isArray(d.files)) {
+  const all = bytesOf(d);
+  if (!all || !Array.isArray(d.files)) {
     throw new BridgeError(ErrorCode.INTERNAL, "The plugin's download_assets result carried no payload.");
   }
-  const all = Buffer.from(d.base64, "base64");
   const prefix = dir !== undefined ? `${dir.replace(/[\\/]+$/, "")}/` : "";
   const items = (d.items ?? []).map((i) => ({ ...i, files: [] as Array<Record<string, unknown>> }));
   const byNode = new Map(items.map((i) => [i.nodeId, i]));

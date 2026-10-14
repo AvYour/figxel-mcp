@@ -213,11 +213,16 @@ describe("the move from guides.ts kept every word (snapshot of a6ebb06)", () => 
     workflow: "points new work at the design and storyboard skills by gear; every element earns its place instead of decoration by default",
     build: "the worked example taught generated tells (a caps eyebrow, a centred block, identical icon cards, vague copy, a blob, one radius); a second example reaches the opposite answer from its brief",
     check: "the craft and tells audits, safeArea and minTextSize, the squint test, and a pointer to figma_check_motion",
-    tools: "rows for the storyboard, animatic, motion-check and video-review tools, and the changed ones",
+    tools:
+      "rows for the storyboard, animatic, motion-check and video-review tools, and the changed ones; figma_set_motion_plan and the final render (2026-10-14); " +
+      "a row for the sound tools (analyze, generate and add audio)",
     typography: "body sizes and leading from C-210, the accented-word habit, figures checked at display size, and criteria before figma_suggest_fonts' ranking; families checked by filter, figma_suggest_fonts optional (acceptance run 1); new text's lineHeight and letterSpacing as strings, a bare number px (found later)",
     slides: "a new deck runs the design skill's page gear; the deck principles became decisions the brief makes (C-218)",
-    motion: "the mechanics section gained the frame-grid facts, cut pairs, job-mode rendering, readback and a UI micro-motion recipe (plan §1.2)",
-    safety: "job mode on figma_export_video, the restored-window rule, and created ids inside an animated frame (plan §1.2)",
+    motion:
+      "the mechanics section gained the frame-grid facts, cut pairs, job-mode rendering, readback and a UI micro-motion recipe (plan §1.2); " +
+      "the index opens with the senior motion designer's role and the stages the tools enforce: a plan before keyframes, a passing check before the final render (BRIDGE_PROCESS, 2026-10-14); " +
+      "the index sends sound and delivery to the formats section, which gained the sound-design steps",
+    safety: "job mode on figma_export_video, the restored-window rule, and created ids inside an animated frame (plan §1.2); what PROCESS_REQUIRED asks for (2026-10-14)",
     "design-system": "decides whose system the file holds before applying it: another brand's styles are reference (acceptance run 1)",
     "code-to-design": "fonts checked with figma_get_fonts' family filter or a figma_create_text try, never the unfiltered list (acceptance run 1)",
     spec: "lineHeight and letterSpacing take figma_set_text_properties' strings (\"auto\", \"24\", \"150%\", \"-2%\"); a bare number is px (acceptance run 1, found later)",

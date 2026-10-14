@@ -15,10 +15,10 @@ export function okResult(data: unknown): CallToolResult {
 
 /**
  * Codes that are answered before any request reaches the document: no plugin
- * to send to, a queue that refused it, a port that never opened. Retrying one
- * cannot apply anything twice.
+ * to send to, a queue that refused it, a port that never opened, a step of the
+ * motion process still to do. Retrying one cannot apply anything twice.
  */
-const NEVER_REACHED = new Set<string>([ErrorCode.NO_SESSION, ErrorCode.BUSY, ErrorCode.PORT_IN_USE]);
+const NEVER_REACHED = new Set<string>([ErrorCode.NO_SESSION, ErrorCode.BUSY, ErrorCode.PORT_IN_USE, ErrorCode.PROCESS_REQUIRED]);
 
 /**
  * Except a call that had already been sent when the connection went: NO_SESSION
@@ -39,6 +39,15 @@ function neverReached(e: BridgeError): boolean {
 function changedNothing(partial: unknown): boolean {
   const created = (partial as { created?: unknown } | null | undefined)?.created;
   return Array.isArray(created) && created.length === 0;
+}
+
+/**
+ * Whether a failure provably left the document as it was: refused before it
+ * reached Figma, or reported by the plugin with `created: []`. A write that
+ * failed this way does not make a video render stale (tools/forward.ts).
+ */
+export function reachedNothing(err: unknown): boolean {
+  return err instanceof BridgeError && (neverReached(err) || changedNothing(err.partial));
 }
 
 /**

@@ -56,9 +56,9 @@ const BY_GROUP: Record<Group, readonly string[]> = {
     "set_fills", "set_strokes", "set_corner_radius", "set_effects", "set_blend_mode", "set_layout_grids",
     "apply_style_to_node", "bind_variable_to_node", "set_reactions", "remove_reactions",
     "set_variable_mode", "update_style", "set_description", "set_keyframes", "remove_keyframes",
-    "set_scroll_behavior", "set_prototype_flows", "set_slide_transition",
+    "set_scroll_behavior", "set_prototype_flows", "set_slide_transition", "set_motion_plan",
   ],
-  export: ["export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video"],
+  export: ["export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video", "analyze_audio", "add_audio", "generate_audio"],
   eval: ["eval"],
 };
 
@@ -72,8 +72,10 @@ const DESTRUCTIVE = new Set([
   "delete_nodes", "detach_instance", "ungroup_nodes", "delete_variable", "delete_variable_collection", "delete_style",
   "delete_component_property", "update_variable_collection", "reset_slot", "undo_step", "eval", "edit_table",
 ]);
-// review_video reads a file the bridge already wrote: no Figma call, no plugin op.
-const BRIDGE_ONLY = new Set(["status", "get_guide", "review_video"]);
+// review_video reads a file the bridge already wrote, and the audio tools read and write
+// files on this machine: none has a plugin op. generate_audio { nodeId } reads the frame
+// through check_motion's op, which the editor gate judges as itself.
+const BRIDGE_ONLY = new Set(["status", "get_guide", "review_video", "analyze_audio", "add_audio", "generate_audio"]);
 
 export const OPS: ReadonlyMap<string, OpInfo> = new Map(
   GROUPS.flatMap((group) =>

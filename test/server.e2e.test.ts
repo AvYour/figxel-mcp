@@ -76,8 +76,10 @@ describe("dist/server.js over stdio", () => {
     expect(st.sessions).toEqual([]);
     expect(st.hint).toMatch(/Plugins → Development → Figxel\./);
     expect(st.hint).toContain("npx -y figxel-mcp@latest setup");
-    expect(st.token).toEqual({ tokenPresent: true, tokenPath: join(home, "token") });
-    expect(JSON.stringify(st)).not.toContain(readFileSync(join(home, "token"), "utf8").trim());
+    const token = readFileSync(join(home, "token"), "utf8").trim();
+    // The fingerprint (first and last four characters) lets a person compare it with the plugin window's; never the token.
+    expect(st.token).toEqual({ tokenPresent: true, tokenPath: join(home, "token"), fingerprint: `${token.slice(0, 4)}...${token.slice(-4)}` });
+    expect(JSON.stringify(st)).not.toContain(token);
     // The name every client shows for this server, and the key its config uses.
     expect(client.getServerVersion()?.name).toBe("figxel");
   });

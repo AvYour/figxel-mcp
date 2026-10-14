@@ -12,12 +12,17 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BridgeError } from "../../shared/errors.js";
-import { registerPrompts } from "../prompts.js";
+import type { MotionProcess } from "../motion-process.js";
+import { PROMPTS, registerPrompts } from "../prompts.js";
 import { errorResult } from "../results.js";
 import { CATALOG_TOPIC, GUIDE_TOPIC_NAMES, guideText, resolveTopic, SKILLS } from "../skills.js";
 import { readAnnotations } from "./annotations.js";
 
-export function registerGuide(server: McpServer, wanted: (op: string) => boolean): void {
+/**
+ * `motion` hears which skill each answer and each prompt carried: the keyframe
+ * tools wait until the motion or storyboard skill was read (motion-process.ts).
+ */
+export function registerGuide(server: McpServer, wanted: (op: string) => boolean, motion?: MotionProcess): void {
   if (wanted("get_guide")) {
     server.registerTool(
       "figma_get_guide",
@@ -31,7 +36,8 @@ export function registerGuide(server: McpServer, wanted: (op: string) => boolean
           `\`topic\` names a skill (${SKILLS.map((s) => s.short).join(", ")}) ` +
           `or one of its sections (\`spec\` is the figma_create_from_spec grammar); \`section\` picks a section of that skill; ` +
           `"${CATALOG_TOPIC}" lists every skill with what it is for and its sections. Every answer ends with the exact ` +
-          "calls for the skill's other sections and for the other skills. Works without the plugin.",
+          "calls for the skill's other sections and for the other skills. Works without the plugin. Under " +
+          "BRIDGE_PROCESS=strict the keyframe tools wait until this session read the motion or storyboard skill.",
         inputSchema: {
           topic: z.enum(GUIDE_TOPIC_NAMES).optional().describe(`A skill, one of its sections, or "${CATALOG_TOPIC}". Default "workflow".`),
           section: z.string().optional().describe("A section of the skill named by topic; every answer's footer lists them."),
@@ -40,7 +46,13 @@ export function registerGuide(server: McpServer, wanted: (op: string) => boolean
       },
       async (args: { topic?: string; section?: string }) => {
         try {
-          return { content: [{ type: "text", text: guideText(resolveTopic(args.topic, args.section)) }] };
+          const resolved = resolveTopic(args.topic, args.section);
+          const text = guideText(resolved);
+          if (resolved.kind !== "catalog") {
+            const asked = `topic: "${args.topic ?? "workflow"}"${args.section !== undefined ? `, section: "${args.section}"` : ""}`;
+            motion?.noteSkill(resolved.skill.short, `figma_get_guide { ${asked} }`);
+          }
+          return { content: [{ type: "text", text }] };
         } catch (e) {
           if (e instanceof BridgeError) return errorResult(e, { readOnly: true });
           throw e;
@@ -51,5 +63,5 @@ export function registerGuide(server: McpServer, wanted: (op: string) => boolean
 
   // Prompts: the same skills as a starting message a user can pick from the
   // client's menu (Claude Desktop's attachment menu, Claude Code's slash list).
-  registerPrompts(server);
+  registerPrompts(server, PROMPTS, (row) => motion?.noteSkill(row.skill, `the prompt ${row.name}`));
 }

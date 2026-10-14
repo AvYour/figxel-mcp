@@ -509,6 +509,45 @@ describe("beat_offset (with bpm)", () => {
       { nodeId: "2:2", name: "S2", from: 36, to: 72, beats: 2.06 },
     ]);
   });
+
+  describe("with the music's own beats (beatTimes, from figma_analyze_audio)", () => {
+    // A real track drifts off any one tempo: about 98 BPM from 0.1 s, each beat a little uneven.
+    const drifting = [0.1, 0.72, 1.31, 1.93, 2.52];
+
+    it("replaces the bpm grid: a peak a frame from a real beat is fine, though 2 frames off the 100 BPM grid", () => {
+      const byBpm = run(punchFrom(36), { bpm: 100 });
+      expect(byBpm.beats!.hits).toContainEqual({ frame: 38, nearestBeat: 36, offsetFrames: 2, nodeId: "2:1", kind: "punch peak" });
+      const byBeats = run(punchFrom(36), { bpm: 100, beatOffset: 0.2, beatTimes: drifting });
+      // The peak on f38 (1.267 s) is a frame before the beat at 1.31 s (f39); the punch's start is on no beat.
+      expect(byBeats.beats!.hits).toContainEqual({ frame: 38, nearestBeat: 39, offsetFrames: -1, nodeId: "2:1", kind: "punch peak" });
+      expect(of(byBeats.issues, "beat_offset")).toEqual([]);
+      expect(byBeats.beats).toMatchObject({ source: "beatTimes", beatCount: 5, beatOffset: 0.1, beatsPerBar: 4 });
+      expect(byBeats.beats!.bpm).toBeCloseTo(60 / 0.605, 1);
+      expect(byBeats.beats!.note).toMatch(/5 given beats .*`bpm` and `beatOffset` were not used: `beatTimes` replaces that grid/);
+      expect(byBpm.beats!.source).toBe("bpm");
+    });
+
+    it("turns the beat check on alone, and still warns when a punch starts on a real beat", () => {
+      const beatsAt = [0, 0.6, 1.2, 1.8, 2.4];
+      const r = run(punchFrom(36), { beatTimes: beatsAt });
+      expect(of(r.issues, "beat_offset").find((i) => i.severity === "warning")).toMatchObject({ frame: 36, frames: [36, 38] });
+      expect(run(punchFrom(34), { beatTimes: beatsAt }).issues.filter((i) => i.rule === "beat_offset")).toEqual([]);
+    });
+
+    it("extends past the given beats by their median gap: an accent after the last beat is still judged", () => {
+      const late = snap([{ name: "Down", type: "FRAME", width: 952, height: 432, tracks: [track("SCALE_XY", K(0, "1,1"), K(F(70), "1,1", L), K(F(72), "1.06,1.06", "cubic:0.33,0,0.67,1"), K(F(82), "1,1", OUT))] }], 3);
+      // Beats every 0.6 s up to 1.2 s; extended, 2.4 s is frame 72 — the peak lands on it.
+      const r = run(late, { beatTimes: [0, 0.6, 1.2] });
+      expect(r.beats!.hits).toContainEqual({ frame: 72, nearestBeat: 72, offsetFrames: 0, nodeId: "2:1", kind: "punch peak" });
+    });
+
+    it("the tool takes beatTimes in increasing seconds and refuses a list that goes back", () => {
+      expect(auditOptions({ beatTimes: [0.5, 1.1, 1.7] })).toMatchObject({ beatTimes: [0.5, 1.1, 1.7] });
+      expect(() => auditOptions({ beatTimes: [0.5, 0.5, 1.7] })).toThrow(/`beatTimes` must increase: beatTimes\[1\] = 0.5 is not after 0.5/);
+      expect(z.object(CHECK_MOTION_SHAPE).strict().safeParse({ beatTimes: [1] }).success).toBe(false);
+      expect(z.object(CHECK_MOTION_SHAPE).strict().safeParse({ beatTimes: [0, 0.5] }).success).toBe(true);
+    });
+  });
 });
 
 // ── read_time / dimmed_text ─────────────────────────────────────────────────
@@ -736,6 +775,37 @@ describe("the result follows figma_check_layout's contract", () => {
     const r = run(busy(), { includeActivity: true });
     expect(r.activity).toHaveLength(r.expectedFrames);
     expect(Math.max(...r.activity!)).toBeGreaterThan(100);
+  });
+});
+
+// ── accept: a finding the frame's plan declares intended ────────────────────
+
+describe("accept: a finding the frame's plan declares intended is listed apart", () => {
+  /** Opens on a still for 10 frames, then moves: cold_open is its only warning. */
+  const stillOpen = () => snap([{ name: "Slow start", tracks: [track("TRANSLATION_X", K(0, 0), K(F(10), 0, L), K(F(60), 300, L))] }]);
+  const why = "the brief opens on a held product shot";
+
+  it("moves a covered finding out of issues, counts and ok, with its reason", () => {
+    const plain = run(stillOpen());
+    expect(plain.issues.filter((i) => i.severity !== "info").map((i) => i.rule)).toEqual(["cold_open"]);
+    expect(plain.ok).toBe(false);
+    const r = run(stillOpen(), { accept: [{ rule: "cold_open", reason: why, from: 0, to: F(3) }] });
+    expect(r.ok).toBe(true);
+    expect(of(r.issues, "cold_open")).toEqual([]);
+    expect(r.counts.warning).toBe(0);
+    expect(r.accepted).toEqual([expect.objectContaining({ rule: "cold_open", severity: "warning", frame: 0, frames: [0, 3], reason: why })]);
+  });
+
+  it("covers only its own rule, every frame of the finding inside its window, and a rule's narrower names", () => {
+    // f0–f3 reaches past a window that ends on f2; another rule covers nothing.
+    expect(run(stillOpen(), { accept: [{ rule: "cold_open", reason: why, to: F(2) }] })).toMatchObject({ ok: false });
+    expect(run(stillOpen(), { accept: [{ rule: "cold_open", reason: why, to: F(2) }] }).accepted).toBeUndefined();
+    expect(run(stillOpen(), { accept: [{ rule: "dead_span", reason: why }] }).ok).toBe(false);
+    const cut = snap([{ name: "Still", tracks: [switchAt(30, 1, 0)] }]);
+    expect(run(cut).issues.map((i) => i.rule)).toContain("cut_at_rest");
+    const r = run(cut, { accept: [{ rule: "vanish_mid_move", reason: "hard cuts are the grammar" }] });
+    expect(r.accepted!.map((i) => i.rule)).toEqual(["cut_at_rest"]);
+    expect(of(r.issues, "cut_at_rest")).toEqual([]);
   });
 });
 

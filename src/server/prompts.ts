@@ -180,14 +180,16 @@ export const PROMPTS: readonly PromptRow[] = [
       (has(placement)
         ? `\nPlacement: ${placement.trim()}. Read that placement's current spec for its safe zones and delivery format, and write each figure down with its source and date; if you cannot read it, follow the skill's branch for unverified zones.`
         : "") +
-      "\n\nOwn the brief: follow the storyboard skill below through the build bible before the first keyframe, then " +
-      "build with the motion skill and review with the critique skill. Decide without asking me step by step; use " +
-      "realistic placeholder content where facts are missing and list it at the end.",
+      "\n\nWork as a senior motion graphic designer who owns the brief: follow the storyboard skill below through the " +
+      "build bible, then store the plan on the piece's frame with figma_set_motion_plan before the first keyframe (the " +
+      "keyframe tools refuse a frame without one). Build with the motion skill, pass figma_check_motion, review the " +
+      "previews with the critique skill, and render the delivery with figma_export_video { final: true }. Decide " +
+      "without asking me step by step; use realistic placeholder content where facts are missing and list it at the end.",
   },
   {
     name: "animate_in_figma",
     title: "Animate in Figma",
-    description: "Animate layers on a Figma frame's timeline like a motion designer: pick the gear, block the poses, shape the curves, polish, and check every frame before rendering.",
+    description: "Animate layers on a Figma frame's timeline as a senior motion designer: pick the gear, plan the beats, block the poses, shape the curves, polish, and check every frame before the final render.",
     args: [
       { name: "nodeId", description: "The layer or top-level frame to animate — an id or a Figma link. Default: the selection." },
       { name: "brief", description: 'What the motion should do or say, e.g. "the switch turning on".' },
@@ -198,9 +200,12 @@ export const PROMPTS: readonly PromptRow[] = [
     preamble: ({ nodeId, brief }) =>
       `Animate ${has(nodeId) ? `the Figma node ${nodeId.trim()}` : "the selected layers"} in the open Figma file` +
       (has(brief) ? `: ${brief.trim()}.` : ", as I asked in this conversation.") +
-      "\n\nPick the gear and say it first. UI micro-motion stays light: the product's own duration and curve tokens " +
-      "and one check. A piece longer than about 2 s is planned with the storyboard skill before the first keyframe. " +
-      "Own the decisions; check the keys with figma_check_motion before you render with figma_export_video.",
+      "\n\nWork as a senior motion graphic designer who owns the brief. Pick the gear and say it first, then run its " +
+      "stages in order: brief; the plan, stored with figma_set_motion_plan before the first keyframe (the keyframe " +
+      "tools refuse a frame without one); styleframes; blocking on the beats; splining; polish; figma_check_motion " +
+      "until ok: true; a preview render judged with figma_review_video; then the delivery with figma_export_video " +
+      "{ final: true }. UI micro-motion stays light: the product's own duration and curve tokens, a one-beat plan and " +
+      "one check. A piece longer than about 2 s is planned with the storyboard skill first. Own the decisions.",
   },
   {
     name: "critique_design",
@@ -312,15 +317,20 @@ export const PROMPTS: readonly PromptRow[] = [
   },
 ];
 
-/** Register every row: arguments in order, then `checkpoint` where the row takes it. */
-export function registerPrompts(server: McpServer, rows: readonly PromptRow[] = PROMPTS): void {
+/**
+ * Register every row: arguments in order, then `checkpoint` where the row takes
+ * it. `onUse` hears each row a client gets, so the skill it carries counts as read.
+ */
+export function registerPrompts(server: McpServer, rows: readonly PromptRow[] = PROMPTS, onUse?: (row: PromptRow) => void): void {
   for (const row of rows) {
     partsOf(row);
     const args = [...row.args, ...(row.checkpoint ? [CHECKPOINT_ARG] : [])];
     const argsSchema: Record<string, z.ZodType<string | undefined>> = {};
     for (const a of args) argsSchema[a.name] = a.required ? z.string().describe(a.description) : z.string().optional().describe(a.description);
-    server.registerPrompt(row.name, { title: row.title, description: row.description, argsSchema }, (values: PromptArgs) => ({
-      messages: [{ role: "user", content: { type: "text", text: promptText(row, values) } }],
-    }));
+    server.registerPrompt(row.name, { title: row.title, description: row.description, argsSchema }, (values: PromptArgs) => {
+      const text = promptText(row, values);
+      onUse?.(row);
+      return { messages: [{ role: "user", content: { type: "text", text } }] };
+    });
   }
 }

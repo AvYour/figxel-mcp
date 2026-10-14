@@ -39,6 +39,7 @@ import {
   type MotionSnapshot,
   type SnapshotNode,
 } from "../shared/motion-curves.js";
+import type { MotionPlanAccept } from "../shared/motion-plan.js";
 
 // ── the rule catalogue ───────────────────────────────────────────────────────
 
@@ -57,6 +58,13 @@ export const VARIANTS: Readonly<Record<string, RuleId>> = {
   off_grid: "unrendered_extreme",
   dimmed_text: "read_time",
 };
+
+/** Every name an issue's `rule` can carry: what a motion plan's `accept` names. */
+export const ISSUE_RULES = [...RULE_IDS, ...Object.keys(VARIANTS)] as [string, ...string[]];
+
+/** brand_late's and cta_short's defaults [C-235] [C-241]: a plan's check may be stricter, never looser. */
+export const DEFAULT_BRAND_BY_S = 3;
+export const DEFAULT_CTA_MIN_S = 2.5;
 
 export type Severity = "error" | "warning" | "info";
 const ORDER: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
@@ -111,6 +119,8 @@ export interface AuditOptions {
   bpm?: number;
   beatOffset?: number;
   beatsPerBar?: number;
+  /** The music's own beats, s (figma_analyze_audio's beatTimes): when given, they replace the grid of `bpm` and `beatOffset`. */
+  beatTimes?: readonly number[];
   rules?: readonly string[];
   minSeverity?: Severity;
   limit?: number;
@@ -121,6 +131,8 @@ export interface AuditOptions {
   brandBy?: number;
   ctaMinS?: number;
   includeActivity?: boolean;
+  /** The frame's plan's declared exceptions: a matching warning or info is listed in `accepted`, not against ok. */
+  accept?: readonly MotionPlanAccept[];
 }
 
 export interface MotionIssue {
@@ -157,10 +169,14 @@ export interface AuditResult {
   more?: number;
   census: { easings: Record<string, number>; offGrid: number; cutPairs: number; approximated: string[] };
   beats?: {
+    /** Where the grid came from: a tempo, or the beats of the music itself. */
+    source: "bpm" | "beatTimes";
     bpm: number;
     beatOffset: number;
     beatsPerBar: number;
     framesPerBeat: number;
+    /** With `beatTimes`: how many beats were given. */
+    beatCount?: number;
     hits: BeatHit[];
     scenes: Array<{ nodeId: string; name: string; from: number; to: number; beats: number }>;
     note?: string;
@@ -169,6 +185,9 @@ export interface AuditResult {
   truncated?: boolean;
   note?: string;
   limits: string[];
+  /** Findings the plan's `accept` covers, each with its reason: out of `issues`, `counts` and `ok`. */
+  accepted?: Array<MotionIssue & { reason: string }>;
+  acceptedMore?: number;
 }
 
 // ── the model: every node's numbers on every frame ──────────────────────────
@@ -543,7 +562,27 @@ function longestRun(from: number, to: number, pred: (f: number) => boolean): { l
   return best;
 }
 
-const words = (text: string) => text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+/** Words in a line of copy: a token with a letter or a digit, so numbers and prices count [C-241]. */
+export const words = (text: string) => text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+
+/**
+ * Seconds a line needs fully readable: max(5/6 s, `perWord` per word) [C-241].
+ * read_time judges every text layer by it, and figma_set_motion_plan every beat's copy.
+ */
+export function readNeedS(text: string, perWord: number = DEFAULT_THRESHOLDS.readSecondsPerWord): number {
+  return Math.max(5 / 6, words(text) * perWord);
+}
+
+/**
+ * The frame of the beat or eighth nearest frame `f`, on a grid of `bpm` from
+ * `beatOffset` seconds: what beat_offset measures an accent against, and what
+ * figma_set_motion_plan holds a planned accent to.
+ */
+export function nearestGridFrame(f: number, fps: number, bpm: number, beatOffset = 0): number {
+  const half = 60 / bpm / 2;
+  const j = Math.round((f / fps - beatOffset) / half);
+  return Math.round((beatOffset + j * half) * fps);
+}
 
 // ── the audit ────────────────────────────────────────────────────────────────
 
@@ -1282,7 +1321,7 @@ class Audit {
       let ever = false;
       for (let f = this.kFrom; f <= this.kTo && !ever; f++) ever = shown(f);
       if (!ever) continue;
-      const need = Math.max(5 / 6, words(u.text) * T.readSecondsPerWord);
+      const need = readNeedS(u.text, T.readSecondsPerWord);
       // Reading adds up across a brief punch, so the frames are counted, not the longest stretch.
       let total = 0;
       let firstRead = -1;
@@ -1409,7 +1448,7 @@ class Audit {
     const { m, fps, opts } = this;
     const brand = this.target(opts.brandId, "brandId");
     if (brand && this.on("brand_late")) {
-      const by = opts.brandBy ?? 3;
+      const by = opts.brandBy ?? DEFAULT_BRAND_BY_S;
       let first = -1;
       for (let f = 0; f <= m.last && first < 0; f++) if (brand.op[f]! >= 0.95 && brand.size[f]! >= 0.98) first = f;
       if (first < 0 || first / fps > by + 1e-9) {
@@ -1429,7 +1468,7 @@ class Audit {
     }
     const cta = this.target(opts.ctaId, "ctaId");
     if (cta && this.on("cta_short")) {
-      const need = opts.ctaMinS ?? 2.5;
+      const need = opts.ctaMinS ?? DEFAULT_CTA_MIN_S;
       const run = longestRun(0, m.last, (f) => readable(cta, f));
       if (run.length / fps + 1e-9 < need) {
         this.add(
@@ -1639,24 +1678,53 @@ function census(a: Audit): AuditResult["census"] {
   return { easings, offGrid, cutPairs, approximated: [...approximated] };
 }
 
+/** The sorted list's entry nearest t. */
+function nearestIn(sorted: readonly number[], t: number): number {
+  let lo = 0;
+  let hi = sorted.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid]! < t) lo = mid + 1;
+    else hi = mid;
+  }
+  const after = sorted[lo]!;
+  const before = sorted[lo - 1];
+  return before !== undefined && t - before <= after - t ? before : after;
+}
+
+/**
+ * The music's own beats as a grid over the whole timeline: the given beats,
+ * extended at both ends by their median gap, and the eighths between them.
+ */
+function beatGrid(times: readonly number[], durationS: number): { beats: number[]; eighths: number[]; beatS: number } {
+  const sorted = [...times].sort((x, y) => x - y);
+  const gaps = sorted.slice(1).map((t, i) => t - sorted[i]!).sort((x, y) => x - y);
+  const beatS = gaps.length % 2 ? gaps[gaps.length >> 1]! : (gaps[gaps.length / 2 - 1]! + gaps[gaps.length / 2]!) / 2;
+  const beats = [...sorted];
+  for (let t = sorted[0]! - beatS; t > -beatS; t -= beatS) beats.unshift(t);
+  for (let t = sorted[sorted.length - 1]! + beatS; t < durationS + beatS; t += beatS) beats.push(t);
+  const eighths: number[] = [];
+  beats.forEach((t, i) => {
+    eighths.push(t);
+    if (i + 1 < beats.length) eighths.push((t + beats[i + 1]!) / 2);
+  });
+  return { beats, eighths, beatS };
+}
+
 function beats(a: Audit): AuditResult["beats"] {
   const { m, fps, opts } = a;
-  const bpm = opts.bpm;
-  if (bpm === undefined) return undefined;
-  const offset = opts.beatOffset ?? 0;
+  const given = opts.beatTimes && opts.beatTimes.length >= 2 ? beatGrid(opts.beatTimes, m.durationS) : undefined;
+  if (opts.bpm === undefined && !given) return undefined;
+  const beatS = given ? given.beatS : 60 / opts.bpm!;
+  const bpm = given ? r2(60 / beatS) : opts.bpm!;
+  const offset = given ? r4(Math.min(...opts.beatTimes!)) : (opts.beatOffset ?? 0);
   const perBar = opts.beatsPerBar ?? 4;
-  const beatS = 60 / bpm;
   const framesPerBeat = r4(fps * beatS);
   const T = a.T;
-  // The grid of beats and eighths, as frames.
-  const nearest = (f: number) => {
-    const half = beatS / 2;
-    const j = Math.round((f / fps - offset) / half);
-    return Math.round((offset + j * half) * fps);
-  };
+  // The grid of beats and eighths, as frames: from the music's beats when given, else from the tempo.
+  const nearest = (f: number) => (given ? Math.round(nearestIn(given.eighths, f / fps) * fps) : nearestGridFrame(f, fps, bpm, offset));
   const beatFrame = (t: number) => {
-    const j = Math.round((t - offset) / beatS);
-    const tb = offset + j * beatS;
+    const tb = given ? nearestIn(given.beats, t) : offset + Math.round((t - offset) / beatS) * beatS;
     return Math.abs(t - tb) <= 0.5 / fps ? Math.round(tb * fps) : -1;
   };
   const hits: BeatHit[] = [];
@@ -1744,8 +1812,25 @@ function beats(a: Audit): AuditResult["beats"] {
     }
   }
   hits.sort((x, y) => x.frame - y.frame);
+  if (given) {
+    const ignored = [...(opts.bpm !== undefined ? ["`bpm`"] : []), ...(opts.beatOffset !== undefined ? ["`beatOffset`"] : [])];
+    return {
+      source: "beatTimes",
+      bpm,
+      beatOffset: offset,
+      beatsPerBar: perBar,
+      framesPerBeat,
+      beatCount: opts.beatTimes!.length,
+      hits,
+      scenes,
+      note:
+        `Accents are checked against the ${opts.beatTimes!.length} given beats and the eighths between them, extended past the first and last by their median gap (${r4(beatS)} s, about ${bpm} BPM).` +
+        (ignored.length ? ` ${ignored.join(" and ")} ${ignored.length > 1 ? "were" : "was"} not used: \`beatTimes\` replaces that grid.` : ""),
+    };
+  }
   const whole = Math.abs(framesPerBeat - Math.round(framesPerBeat)) < 1e-6;
   return {
+    source: "bpm",
     bpm,
     beatOffset: offset,
     beatsPerBar: perBar,
@@ -1758,7 +1843,124 @@ function beats(a: Audit): AuditResult["beats"] {
   };
 }
 
+// ── the moments a sound designer marks ───────────────────────────────────────
+// figma_generate_audio derives its cues from these (src/server/audio-cues.ts):
+// the same per-frame model the rules judge, read for moves, cuts and text.
+
+export interface SoundMove {
+  nodeId: string;
+  name: string;
+  field: string;
+  /** The move's first and last frames. */
+  f0: number;
+  f1: number;
+  travelPx: number;
+  /** The largest step between two frames, px. */
+  peakPx: number;
+  /** The layer's centre across the frame, 0 (left) to 1 (right), from its rest box. */
+  x: number;
+}
+
+export interface SoundCut {
+  nodeId: string;
+  name: string;
+  frame: number;
+  /** A child of the frame switched on: a new scene. */
+  scene: boolean;
+}
+
+export interface SoundAppear {
+  nodeId: string;
+  name: string;
+  frame: number;
+  words: number;
+  text: string;
+  x: number;
+}
+
+export interface SoundEvents {
+  fps: number;
+  durationS: number;
+  width: number;
+  height: number;
+  moves: SoundMove[];
+  cuts: SoundCut[];
+  appears: SoundAppear[];
+}
+
+const CONTAINER = /^(FRAME|GROUP|COMPONENT|INSTANCE|SECTION)$/;
+
+/** Every move, cut and text entrance of an animated frame, frame-exact at `fps`. */
+export function soundEvents(snapshot: MotionSnapshot, fps = 30): SoundEvents {
+  const m = buildModel(snapshot, fps);
+  const W = m.root.w;
+  const H = m.root.h;
+  const across = (n: NodeM) => {
+    let x = n.w / 2;
+    for (let p: NodeM | null = n; p && p !== m.root; p = p.parent) x += p.s.x ?? 0;
+    return W > 0 ? Math.min(1, Math.max(0, x / W)) : 0.5;
+  };
+  const found: SoundMove[] = [];
+  const cuts = new Map<number, SoundCut>();
+  const cut = (c: SoundCut) => {
+    const had = cuts.get(c.frame);
+    if (!had || (c.scene && !had.scene)) cuts.set(c.frame, c);
+  };
+  const big = 0.5 * Math.max(W, H);
+  for (const n of m.nodes) {
+    if (n === m.root || n.tracks.size === 0) continue;
+    for (const [field, tr] of n.tracks) {
+      if (BODY.test(field) || field === "ROTATION") {
+        for (const seg of moves(tr, fps, m.last)) {
+          let seen = false;
+          for (let f = seg.f0; f <= seg.f1 && !seen; f++) seen = n.op[f]! >= 0.2;
+          const travel = fieldPx(n, field, diff(seg.a.v, seg.b.v));
+          if (!seen || travel < 1) continue;
+          let peak = 0;
+          for (let f = seg.f0 + 1; f <= seg.f1; f++) peak = Math.max(peak, fieldPx(n, field, diff(tr.values[f - 1], tr.values[f])));
+          found.push({ nodeId: n.id, name: n.name, field, f0: seg.f0, f1: seg.f1, travelPx: r1(travel), peakPx: r1(peak), x: r2(across(n)) });
+        }
+      }
+      // A cut: a scene (a container directly in the frame) switched on, or a large layer switched on or moved in one frame.
+      const scene = n.parent === m.root && CONTAINER.test(n.s.type);
+      const large = Math.max(n.w, n.h) >= big;
+      if (field === "OPACITY" && (scene || large)) {
+        for (const cp of findCutPairs(tr.keys, fps)) {
+          if (cp.frame <= m.last && (tr.keys[cp.index]!.v?.[0] ?? 0) > (tr.keys[cp.index - 1]!.v?.[0] ?? 0)) cut({ nodeId: n.id, name: n.name, frame: cp.frame, scene });
+        }
+      } else if (large && GEOMETRY.test(field)) {
+        for (const cp of findCutPairs(tr.keys, fps)) if (cp.frame <= m.last && n.op[cp.frame]! >= 0.5) cut({ nodeId: n.id, name: n.name, frame: cp.frame, scene: false });
+      }
+    }
+  }
+  const appears: SoundAppear[] = [];
+  for (const n of m.nodes) {
+    if (n.s.type !== "TEXT") continue;
+    const seen = (f: number) => n.op[f]! * (n.size[f]! >= 0.5 ? 1 : 0);
+    for (let f = 1; f <= m.last; f++) {
+      if (seen(f - 1) < 0.5 && seen(f) >= 0.5) {
+        const text = (n.s.characters ?? n.name).replace(/\s+/g, " ").trim();
+        appears.push({ nodeId: n.id, name: n.name, frame: f, words: words(text), text: text.slice(0, 40), x: r2(across(n)) });
+      }
+    }
+  }
+  found.sort((a, b) => a.f0 - b.f0 || a.name.localeCompare(b.name));
+  appears.sort((a, b) => a.frame - b.frame || a.name.localeCompare(b.name));
+  return { fps, durationS: m.durationS, width: W, height: H, moves: found, cuts: [...cuts.values()].sort((a, b) => a.frame - b.frame), appears };
+}
+
 // ── entry point ──────────────────────────────────────────────────────────────
+
+/**
+ * Whether a plan's `accept` entry covers an issue: the same rule, or the rule
+ * it is a narrower name of, and every frame of the issue inside the entry's
+ * window. An error is never accepted.
+ */
+function covers(a: MotionPlanAccept, i: MotionIssue, fps: number): boolean {
+  if (i.severity === "error" || (a.rule !== i.rule && a.rule !== VARIANTS[i.rule])) return false;
+  const [f0, f1] = i.frames ?? [i.frame, i.frame];
+  return (a.from === undefined || f0 >= frameAtOrAfter(a.from, fps)) && (a.to === undefined || f1 <= frameAtOrBefore(a.to, fps));
+}
 
 /** Judge a snapshot. Throws INVALID_PARAM only for a brandId or ctaId outside the frame. */
 export function auditMotion(snapshot: MotionSnapshot, opts: AuditOptions = {}): AuditResult {
@@ -1784,7 +1986,15 @@ export function auditMotion(snapshot: MotionSnapshot, opts: AuditOptions = {}): 
   if (m.nodes.some((n) => (n.s.animationStyles ?? 0) > 0)) limits.push("animation styles are listed, not evaluated");
 
   const min = opts.minSeverity ?? "info";
-  const issues = audit.issues.sort((x, y) => ORDER[x.severity] - ORDER[y.severity] || x.frame - y.frame || x.name.localeCompare(y.name));
+  const sorted = audit.issues.sort((x, y) => ORDER[x.severity] - ORDER[y.severity] || x.frame - y.frame || x.name.localeCompare(y.name));
+  // What the plan declares intended is listed apart, with its reason, and counts against nothing.
+  const accepted: Array<MotionIssue & { reason: string }> = [];
+  const issues: MotionIssue[] = [];
+  for (const i of sorted) {
+    const by = (opts.accept ?? []).find((a) => covers(a, i, fps));
+    if (by) accepted.push({ ...i, reason: by.reason });
+    else issues.push(i);
+  }
   const counts: Record<Severity, number> = { error: 0, warning: 0, info: 0 };
   for (const i of issues) counts[i.severity]++;
   const shown = issues.filter((i) => ORDER[i.severity] <= ORDER[min]);
@@ -1815,5 +2025,7 @@ export function auditMotion(snapshot: MotionSnapshot, opts: AuditOptions = {}): 
         ? { note: `Only the first ${snapshot.maxNodes} layers were read (maxNodes); later layers were not judged.` }
         : {}),
     limits,
+    ...(accepted.length ? { accepted: accepted.slice(0, limit) } : {}),
+    ...(accepted.length > limit ? { acceptedMore: accepted.length - limit } : {}),
   };
 }

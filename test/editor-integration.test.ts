@@ -57,8 +57,9 @@ describe("the FigJam and Slides tools, wired", () => {
     expect(OPS.get("get_slide_grid")).toMatchObject({ group: "read", write: false });
     expect(OPS.get("set_slide_transition")).toMatchObject({ group: "style", write: true });
     expect(OPS.get("edit_table")!.destructive).toBe(true);
-    // 129, plus figma_check_motion, figma_review_video, figma_create_storyboard and figma_create_animatic.
-    expect(OPS.size).toBe(133);
+    // 129, plus figma_check_motion, figma_review_video, figma_create_storyboard and figma_create_animatic,
+    // figma_set_motion_plan, and figma_analyze_audio, figma_add_audio and figma_generate_audio.
+    expect(OPS.size).toBe(137);
   });
 
   it("every catalog op the plugin answers is implemented there, with the same write flag", () => {
@@ -166,5 +167,38 @@ describe("figma_check_motion, figma_review_video and figma_create_storyboard, wi
       expect((r.content[0] as { text: string }).text, op).toContain(`"${op}" is a ${group} op`);
     }
     expect(forwarded).toEqual([]);
+  });
+});
+
+// The audio tools work on files: no plugin op of their own. generate_audio
+// { nodeId } reads the frame through check_motion's op, gated by its own row.
+describe("figma_analyze_audio, figma_add_audio and figma_generate_audio, wired", () => {
+  const AUDIO = ["analyze_audio", "add_audio", "generate_audio"];
+
+  it("sit in the export group, answered by the bridge, with no plugin op", () => {
+    for (const op of AUDIO) {
+      expect(OPS.get(op), op).toMatchObject({ group: "export", readOnly: true, write: false, destructive: false, bridgeOnly: true });
+      expect(PLUGIN_OPS[op], op).toBeUndefined();
+    }
+  });
+
+  it("register once each, before figma_batch, and a batch refuses them as export ops", async () => {
+    const { names, handlers, forwarded } = registered();
+    const batchAt = names.indexOf("figma_batch");
+    for (const op of AUDIO) {
+      expect(names.filter((n) => n === toolName(op)), op).toHaveLength(1);
+      expect(names.indexOf(toolName(op)), op).toBeLessThan(batchAt);
+    }
+    const r = await handlers.get("figma_batch")!({ steps: JSON.stringify([{ op: "generate_audio", params: { durationS: 1, cues: [{ t: 0, type: "tick" }] } }]) }, extra);
+    expect((r.content[0] as { text: string }).text).toContain('"generate_audio" is a export op');
+    expect(forwarded).toEqual([]);
+  });
+
+  it("generate_audio { nodeId } asks the plugin for check_motion's snapshot, nothing else", async () => {
+    const { handlers, forwarded } = registered();
+    const r = await handlers.get("figma_generate_audio")!({ durationS: 1, nodeId: "12-34" }, extra);
+    // The fake bridge answers { ok: true }: no snapshot, so the call fails after asking once.
+    expect(r.isError).toBe(true);
+    expect(forwarded).toEqual([{ op: "check_motion", params: { nodeId: "12:34" } }]);
   });
 });

@@ -20,7 +20,7 @@ For a set of views (pages, slides, styleframes), compare their reads side by sid
 
 The keys first, because they need no render:
 
-1. **figma_check_motion { nodeId, fps, bpm }** with the delivery frame rate, and the tempo when there is one. Add `holds` for intended stillness (in seconds here) and `brandId` / `ctaId` to time the brand and the call to action. Fix every warning before rendering; the rules come from the findings of a measured test run.
+1. **figma_check_motion { nodeId, fps }** with the delivery frame rate. The frame's plan supplies the tempo, the `holds` of intended stillness, the `brandId` / `ctaId` that time the brand and the call to action, and `accept`, the findings the brief intends. Fix every other warning before rendering; the rules come from the findings of a measured test run.
 2. **One render per round,** at the delivery frame rate, in job mode with your own id per round: figma_export_video { nodeId, format: "MP4", fps: <delivery fps>, jobId: "<piece>-r<n>" }. If it answers `status: "rendering"`, call figma_export_video { jobId: "<piece>-r<n>" } again to collect it; never start a second render while one runs. Job mode exists because a client that ends calls at about 60 s once took a running render down with the call. Keep the Figma window restored, not minimized: a minimized window stalled a render for about 40 minutes. Figma ends a render it has not finished in about 4 minutes with TIMEOUT: render the round again, at a smaller `width` if it repeats.
 3. **figma_review_video on the file, in batches you can see.** The tool returns at most `maxImages` pictures inline (default 4, at most 8), in the order sheet, close-ups, stills, and the contact sheet always takes the first slot. Every picture is also written to disk, but a file on disk counts as seen only where the client can open files. So:
    - First call: figma_review_video { path, expectFrames, cuts, holds, closeups, maxImages: 8 } — the metrics, the sheet and up to 6 close-ups: windows around every transition, hit and handoff the bible lists; the spacing between tiles is the speed.
@@ -31,11 +31,11 @@ The keys first, because they need no render:
    - The metrics flag freezes, one-frame flickers, flashes and jumps; their defaults come from the run's measured numbers.
 4. **Layout over time** comes from numbers, not from stills: for each drift, push or anticipation, take the move's extreme offset from its keys (figma_check_motion { includeActivity: true } lists the fastest frames, the keys give the values), add it to the layer's rest bounds from figma_get_nodes_info, and compare with the bible's minimum spacing and the `safeArea`. Stills only confirm what the numbers flag. figma_check_layout { nodeId, audit: ["craft"] } sees the rest state alone; at least 7 of the run's collisions existed only in motion.
 
-For an animatic, `cuts` are the panels' `inFrame` values from the latest figma_create_animatic result, panel 1 left out. For UI micro-motion, a small GIF is enough: figma_export_video { nodeId, format: "GIF", fps: 12, width: 480, frameIndices: [0, 6, 12] }.
+For an animatic, `cuts` are the panels' `inFrame` values from the latest figma_create_animatic result, panel 1 left out. With music, check the keys against its beats, figma_check_motion { nodeId, fps, beatTimes }; review the picture on the silent render, then once more on the file figma_add_audio wrote (its picture is the same stream). For UI micro-motion, a small GIF is enough: figma_export_video { nodeId, format: "GIF", fps: 12, width: 480, frameIndices: [0, 6, 12] }.
 
 ## When ffmpeg is missing
 
-figma_review_video needs ffmpeg and ffprobe on the machine that runs the bridge and answers UNSUPPORTED without them; the stills of figma_export_video need ffmpeg too. Then judge from figma_check_motion's numbers and from stills of the styleframes (figma_export_node), and say in the report that the motion itself was not seen.
+figma_review_video needs ffmpeg and ffprobe on the machine that runs the bridge (on PATH, or named by BRIDGE_FFMPEG and BRIDGE_FFPROBE) and answers UNSUPPORTED without them; the stills of figma_export_video need ffmpeg too, and figma_status's `video` says whether each runs. If the user just installed ffmpeg, ask them to restart the MCP client. Until then, judge from figma_check_motion's numbers and from stills of the styleframes (figma_export_node), and say in the report that the motion itself was not seen.
 
 ## Before you write a finding
 

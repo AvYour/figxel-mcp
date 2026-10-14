@@ -24,7 +24,9 @@ npx -y figxel-mcp@latest setup
 
 1. **Plugins → Development → Import plugin from manifest…**, and choose the manifest setup printed. Figma's Help Center calls the item "Import new plugin from manifest..." `[C-274]`. This is needed only once: Figma reads the plugin's files from that path each time the plugin runs, so an update needs no re-import `[C-275]`.
 2. Run the plugin: **Plugins → Development → Figxel**.
-3. Paste the token into the plugin window and press **Save**.
+3. Paste the token into the plugin window and press **Save**. Once connected, the window shows the token's fingerprint (its first and last four characters) next to **Connected**; setup prints the same fingerprint, and `figma_status` shows the one of the server your app runs. When they differ, the plugin is connected to another server.
+
+Step 1 has an optional shortcut: with Figma desktop closed, `npx -y figxel-mcp@latest setup --register` writes into Figma's settings file (`%APPDATA%\Figma\settings.json` on Windows) the same entries an import writes `[C-275]` `[C-319]`, after a backup next to it (`--dry-run` shows the change first; `setup --unregister` removes the entries). Steps 2 and 3 stay, because nothing outside Figma can run a plugin `[C-016]`. Whether Figma then lists the plugin is not yet verified live `[C-323]`, and macOS is experimental because the file there is not yet measured `[C-324]`; the [README quickstart](../README.md#quickstart) has the caveats.
 
 The step-by-step version with the setup output is the [README quickstart](../README.md#quickstart).
 
@@ -103,7 +105,7 @@ Cursor reads `~/.cursor/mcp.json` (every project) or `.cursor/mcp.json` (one pro
 }
 ```
 
-On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Cursor's MCP page states no limit on the number of tools `[C-284]`; it has not been measured with Figxel's 132 tools. If Cursor refuses that many, trim them (see [Model notes](#model-notes)).
+On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Cursor's MCP page states no limit on the number of tools `[C-284]`; it has not been measured with Figxel's 136 tools. If Cursor refuses that many, trim them (see [Model notes](#model-notes)).
 
 ### VS Code
 
@@ -130,7 +132,7 @@ code --add-mcp '{"name":"figxel","command":"npx","args":["-y","figxel-mcp@latest
 
 In PowerShell, edit the file instead: quoting JSON for a native command differs there.
 
-**Too many tools.** A VS Code chat request can have at most 128 tools enabled, and fails above that with "Cannot have more than 128 tools per request." `[C-286]`. Figxel registers 132 tools by default, so it is over the limit on its own. Deselect tools (or whole servers) in the chat's tools picker, or turn on virtual tools with the setting `github.copilot.chat.virtualTools.threshold` `[C-286]`. Starting the server with a smaller `BRIDGE_TOOLSET` also works (see [Model notes](#model-notes)).
+**Too many tools.** A VS Code chat request can have at most 128 tools enabled, and fails above that with "Cannot have more than 128 tools per request." `[C-286]`. Figxel registers 136 tools by default, so it is over the limit on its own. Deselect tools (or whole servers) in the chat's tools picker, or turn on virtual tools with the setting `github.copilot.chat.virtualTools.threshold` `[C-286]`. Starting the server with a smaller `BRIDGE_TOOLSET` also works (see [Model notes](#model-notes)).
 
 Prompts run as `/figxel.design_in_figma`, and resources are attached through **Add Context** `[C-178]`.
 
@@ -188,7 +190,7 @@ Windsurf's MCP documentation now redirects to Devin Desktop's, which reads `mcpS
 
 On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Whether an existing Windsurf install still reads an older config file is not documented `[C-289]`.
 
-**Too many tools.** Cascade can use at most 100 tools at any one time `[C-289]`, and Figxel registers 132 by default, so trim them with `BRIDGE_TOOLSET` (see [Model notes](#model-notes)).
+**Too many tools.** Cascade can use at most 100 tools at any one time `[C-289]`, and Figxel registers 136 by default, so trim them with `BRIDGE_TOOLSET` (see [Model notes](#model-notes)).
 
 ### Hermes
 
@@ -284,7 +286,7 @@ Claude Code follows a symlinked skill folder `[C-175]`; whether it treats a Wind
 
 The bridge itself has no duration limit (spec [§5.5](superpowers/specs/2026-10-06-figma-mcp-design.md#55-defeating-limits--the-no-quota-strategy-in-practice)), so the app's default is what stops a long `figma_create_from_spec`. Raise it in apps with short defaults. Whatever the app does when it gives up, retrying a write tool with the same `idempotencyKey` never runs it twice.
 
-**Some apps cut a call at 60 s, and a video render can take longer.** An app built on the TypeScript MCP SDK with its defaults gives up on a request after 60 s, and progress resets that timer only when the app opts in `[C-030]`. On 2026-10-09 a `figma_export_video` call made through Claude Desktop was cut at about 60.4 s, twice, and the cancel discarded the render `[C-197]`. So `figma_export_video` runs as a job: a call waits at most `wait` seconds (default 40) and then answers `status: "rendering"` with a `jobId`. The render goes on, and calling `figma_export_video { jobId }` again collects it. A client's timeout or cancel ends only the waiting call `[C-249]`. Nothing has to be configured for this; an agent only has to call again.
+**Some apps cut a call at 60 s, and a video render can take longer.** An app built on the TypeScript MCP SDK with its defaults gives up on a request after 60 s, and progress resets that timer only when the app opts in `[C-030]`. On 2026-10-09 a `figma_export_video` call made through Claude Desktop was cut at about 60.4 s, twice, and the cancel discarded the render `[C-197]`. So `figma_export_video` runs as a job: a call waits at most `wait` seconds (default 40, and never more than 45 unless `BRIDGE_VIDEO_MAX_WAIT_S` raises that cap for an app with a longer timeout) and then answers `status: "rendering"` with a `jobId`. The render goes on, and calling `figma_export_video { jobId }` again collects it. A client's timeout or cancel ends only the waiting call `[C-249]`. Nothing has to be configured for this; an agent only has to call again.
 
 **Raising the limit in Claude Code** still helps the other long calls. Set `MCP_TOOL_TIMEOUT` (milliseconds) in the environment that starts Claude Code, or a per-server `timeout` in the server's entry; either is a hard wall-clock limit per call that progress does not extend. A stdio server like this one gets no 60 s request timer there (HTTP and SSE servers do), and a separate idle check stops a stdio call that sends neither a result nor progress for 30 minutes; its own variable is `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` `[C-176]`.
 
@@ -295,6 +297,6 @@ MCP_TOOL_TIMEOUT=3600000 claude          # PowerShell: $env:MCP_TOOL_TIMEOUT = "
 ## Model notes
 
 - **Tool schemas are kept portable.** Every tool's input schema stays inside a conservative JSON Schema subset (no `anyOf`/`$ref`/`const`/`format`…, every object has `properties`, every array has `items`), so apps can translate it for any provider. `test/schema-portability.test.ts` enforces this in CI for every tool, including ones added later.
-- **Some apps cap the number of tools.** VS Code allows 128 per chat request `[C-286]` and Devin Desktop's Cascade 100 at a time `[C-289]`, while Figxel registers 132 by default. OpenAI's function-calling guide suggests fewer than 20 functions at the start of a turn, as a soft suggestion `[C-290]`.
+- **Some apps cap the number of tools.** VS Code allows 128 per chat request `[C-286]` and Devin Desktop's Cascade 100 at a time `[C-289]`, while Figxel registers 136 by default. OpenAI's function-calling guide suggests fewer than 20 functions at the start of a turn, as a soft suggestion `[C-290]`.
 - **Smaller and local models do better with fewer tools.** Trim per app, in the app's own tool picker if it has one, or with an environment variable in that app's server entry: `BRIDGE_TOOLSET=core` (20 tools) or a group list such as `read,export` ([tools.md § Trimming the toolset](reference/tools.md#trimming-the-toolset)). `figma_get_guide` stays registered in every toolset but `none`, so a trimmed agent still gets the skills.
 - **Nothing depends on the model.** `figma_status` is the first call for any model: it works without a plugin and says what to do next.

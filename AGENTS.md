@@ -96,6 +96,7 @@ All must exit 0; CI runs them on Node 22 and 24 on Ubuntu, Windows and macOS (ma
 | Document | Role |
 |---|---|
 | [`README.md`](README.md) | Entry point for users: what Figxel does, requirements, Quickstart, configuration, privacy, troubleshooting. Shown on npm too, so it carries no internal history |
+| [`docs/usage.md`](docs/usage.md) | **How to use Figxel, for people**: the first session, briefs and gears, example requests with what to expect, reviewing and undoing the agent's work, `BRIDGE_PROCESS`, tips |
 | [`docs/reference/roadmap.md`](docs/reference/roadmap.md) | Status, phase plan, next steps, the Phase 0 order, locked decisions, and why Figxel uses a plugin |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development setup, conventions, tracked claims, locked documents, pull requests, releasing |
 | [`SECURITY.md`](SECURITY.md) | How to report a security problem; the security design itself is spec §9 |

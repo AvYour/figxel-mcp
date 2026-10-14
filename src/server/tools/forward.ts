@@ -14,7 +14,7 @@ import { OPS, toolName } from "../../shared/ops.js";
 import type { Bridge } from "../bridge.js";
 import { fileNameKey, normalizeIdParams, type LinkedFile } from "../figma-url.js";
 import { ProgressForwarder } from "../mcp-progress.js";
-import { errorResult, okResult } from "../results.js";
+import { errorResult, okResult, reachedNothing } from "../results.js";
 
 export type Extra = RequestHandlerExtra<ServerRequest, ServerNotification>;
 
@@ -170,13 +170,40 @@ export async function addressCall(bridge: Bridge, op: string, params: Record<str
 }
 
 // Every document write this process sends counts here. figma_export_video
-// hands a render out again only while the count is unchanged since it started
+// hands a render out again only while no write has run since it started
 // (tools/motion.ts): after a write, the file shows a state that is gone.
+//
+// A write counts from the moment it is sent, so one still in flight makes a
+// render stale. One refused before it reached the document — BUSY while a
+// render holds Figma, NO_SESSION, or a plugin refusal with `created: []` — is
+// struck off again: it changed nothing, and counting it threw a good render
+// away (2026-10-14 audit). Writes are numbered, so striking one off never
+// hides another sent meanwhile.
 let writes = 0;
+const voided = new Set<number>();
 
-/** How many write ops this process has sent to Figma so far. */
+/** The number of the last write this process sent to Figma. */
 export function writeEpoch(): number {
   return writes;
+}
+
+/** Writes sent after `epoch` that may have changed the document: in flight, done, or failed half-way. */
+export function writesSince(epoch: number): number {
+  let n = 0;
+  for (let w = epoch + 1; w <= writes; w++) if (!voided.has(w)) n++;
+  return n;
+}
+
+/** Number a write as it is sent. */
+export function writeSent(): number {
+  return ++writes;
+}
+
+/** A write that provably reached nothing: it no longer makes renders stale. */
+export function writeVoided(n: number): void {
+  voided.add(n);
+  // Old entries matter only to renders started before them; keep the set small.
+  if (voided.size > 10_000) for (const w of voided) if (w <= writes - 10_000) voided.delete(w);
 }
 
 export async function forwardTool(
@@ -196,7 +223,7 @@ export async function forwardTool(
     // Refused before Figma was asked: nothing changed, and the key is the one to retry with.
     return errorResult(err instanceof BridgeError ? err.withKey(args.idempotencyKey) : err, { unchanged: true });
   }
-  if (OPS.get(op)?.write) writes++;
+  const writeNo = OPS.get(op)?.write ? writeSent() : undefined;
   const progress = new ProgressForwarder(
     {
       progressToken: extra._meta?.progressToken,
@@ -222,7 +249,9 @@ export async function forwardTool(
     return shaped ?? okResult(data);
   } catch (err) {
     if (!extra.signal.aborted) await progress.finish();
-    const failed = errorResult(reached ? afterDispatch(err) : err, { readOnly: OPS.get(op)?.readOnly ?? false });
+    const outcome = reached ? afterDispatch(err) : err;
+    if (writeNo !== undefined && reachedNothing(outcome)) writeVoided(writeNo);
+    const failed = errorResult(outcome, { readOnly: OPS.get(op)?.readOnly ?? false });
     return warning ? withWarning(undefined, failed, warning) : failed;
   }
 }

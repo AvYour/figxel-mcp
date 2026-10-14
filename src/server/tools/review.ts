@@ -11,7 +11,7 @@
 // shell. Its images come back on stdout and are written here, inside the
 // export roots, like every other export: ffmpeg itself writes nothing.
 
-import { execFile, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
@@ -19,15 +19,15 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BridgeError, ErrorCode } from "../../shared/errors.js";
-import { PRODUCT_NAME } from "../../shared/version.js";
 import { frameAtOrAfter, frameAtOrBefore } from "../../shared/motion-curves.js";
 import { frameSeek } from "../../shared/video.js";
 import { resolveSavePath, writeExport, type ExportRoots } from "../exports.js";
+import { DEFAULT_MEDIA_TOOLS, isMissing, nodeExecFile, noFfmpegHint, type ExecFileLike, type MediaTools } from "../ffmpeg.js";
 import { errorResult } from "../results.js";
 import { analyse, analysisHeight, ANALYSIS_WIDTH, FrameMeter, type Finding, type MetricsReport } from "../video-metrics.js";
 import { readAnnotations } from "./annotations.js";
 import { INLINE_LIMIT } from "./export.js";
-import { grabFrame, probeVideo, type ExecFileLike, type VideoProbe } from "./motion.js";
+import { grabFrame, probeVideo, type VideoProbe } from "./motion.js";
 import { fitDescription } from "./params.js";
 
 /** A sheet past this many tiles stops being readable as one image; `every` is raised to fit. */
@@ -47,7 +47,6 @@ export interface ChildLike {
 
 export type SpawnLike = (file: string, args: readonly string[], options: { windowsHide: boolean; stdio: ["ignore", "pipe", "pipe"] }) => ChildLike;
 
-const nodeExecFile: ExecFileLike = (file, args, options, callback) => execFile(file, [...args], options, callback);
 const nodeSpawn: SpawnLike = (file, args, options) => spawn(file, [...args], options);
 
 /**
@@ -55,13 +54,13 @@ const nodeSpawn: SpawnLike = (file, args, options) => spawn(file, [...args], opt
  * computed here rather than left to scale's -2, so the byte size of a frame is
  * known before the first byte arrives. Three frames live at a time.
  */
-function decodeGray(run: SpawnLike, video: string, width: number, height: number, onFrame: (frame: Uint8Array) => void): Promise<number> {
+function decodeGray(run: SpawnLike, video: string, width: number, height: number, onFrame: (frame: Uint8Array) => void, ffmpeg = DEFAULT_MEDIA_TOOLS.ffmpeg): Promise<number> {
   const size = width * height;
   return new Promise((resolve, reject) => {
     let child: ChildLike;
     try {
       child = run(
-        "ffmpeg",
+        ffmpeg,
         ["-v", "error", "-i", video, "-vf", `scale=${width}:${height}:flags=area,format=gray`, "-f", "rawvideo", "-pix_fmt", "gray", "-"],
         { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] },
       );
@@ -100,10 +99,10 @@ function decodeGray(run: SpawnLike, video: string, width: number, height: number
 }
 
 /** One PNG on stdout from a filter graph: a sheet or a close-up. */
-function filterImage(run: ExecFileLike, video: string, graph: string): Promise<Buffer> {
+function filterImage(run: ExecFileLike, video: string, graph: string, ffmpeg = DEFAULT_MEDIA_TOOLS.ffmpeg): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     run(
-      "ffmpeg",
+      ffmpeg,
       ["-v", "error", "-i", video, "-vf", graph, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"],
       { encoding: "buffer", maxBuffer: PNG_MAX_BUFFER, windowsHide: true },
       (err, stdout, stderr) => {
@@ -116,9 +115,9 @@ function filterImage(run: ExecFileLike, video: string, graph: string): Promise<B
 }
 
 /** Whether this ffmpeg was built with the filter — drawtext needs libfreetype [C-205]. */
-function hasFilter(run: ExecFileLike, name: string): Promise<boolean> {
+function hasFilter(run: ExecFileLike, name: string, ffmpeg = DEFAULT_MEDIA_TOOLS.ffmpeg): Promise<boolean> {
   return new Promise((resolve) => {
-    run("ffmpeg", ["-hide_banner", "-h", `filter=${name}`], { encoding: "buffer", maxBuffer: 1024 * 1024, windowsHide: true }, (err, stdout) =>
+    run(ffmpeg, ["-hide_banner", "-h", `filter=${name}`], { encoding: "buffer", maxBuffer: 1024 * 1024, windowsHide: true }, (err, stdout) =>
       resolve(!err && stdout.toString("utf8").includes(`Filter ${name}`)),
     );
   });
@@ -180,6 +179,8 @@ export interface ReviewOptions {
   /** Font files to try for frame labels. */
   fonts?: readonly string[];
   exists?: (path: string) => boolean;
+  /** BRIDGE_FFMPEG / BRIDGE_FFPROBE (config.ts); names on PATH by default. */
+  media?: MediaTools;
 }
 
 const closeup = z
@@ -232,11 +233,15 @@ const thresholds = z
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
 const round4 = (v: number) => Math.round(v * 10_000) / 10_000;
-const isMissing = (err: unknown) => (err as { code?: unknown } | null)?.code === "ENOENT";
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-const NO_FFMPEG_HINT =
-  `Install ffmpeg (it brings ffprobe) on the machine that runs ${PRODUCT_NAME} and put it on PATH. Without it, figma_check_motion still judges the keyframes, and figma_export_node shows the resting state.`;
+/** What to do without ffmpeg, and what still works meanwhile. */
+const noFfmpeg = (tools: MediaTools) =>
+  `${noFfmpegHint(tools)} Without it, figma_check_motion still judges the keyframes, and figma_export_node shows the resting state.`;
+
+/** "ffprobe is not on PATH", or, for a program BRIDGE_FFPROBE names, that it could not be started there. */
+const cannotStart = (name: "ffmpeg" | "ffprobe", command: string) =>
+  command === DEFAULT_MEDIA_TOOLS[name] ? `${name} is not on PATH` : `${name} could not be started (${command})`;
 
 /**
  * Register figma_review_video. Wired by the integrator in tools/index.ts:
@@ -249,10 +254,11 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
   const decode = opts.spawn ?? nodeSpawn;
   const exists = opts.exists ?? existsSync;
   const fonts = opts.fonts ?? fontCandidates();
+  const tools = opts.media ?? DEFAULT_MEDIA_TOOLS;
   // Asked once per server: the ffmpeg on PATH does not change under a running process.
   let labelling: Promise<string | undefined> | undefined;
   const labelFont = () =>
-    (labelling ??= hasFilter(run, "drawtext").then((ok) => {
+    (labelling ??= hasFilter(run, "drawtext", tools.ffmpeg).then((ok) => {
       if (!ok) return undefined;
       for (const f of fonts) {
         const option = exists(f) ? fontOption(f) : undefined;
@@ -326,9 +332,9 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
       // ── what the file is ──
       let probe: VideoProbe;
       try {
-        probe = await probeVideo(run, video);
+        probe = await probeVideo(run, video, { ffprobe: tools.ffprobe });
       } catch (err) {
-        if (isMissing(err)) return errorResult(new BridgeError(ErrorCode.UNSUPPORTED, "ffprobe is not on PATH, so the video cannot be read.", { hint: NO_FFMPEG_HINT }), { readOnly: true });
+        if (isMissing(err)) return errorResult(new BridgeError(ErrorCode.UNSUPPORTED, `${cannotStart("ffprobe", tools.ffprobe)}, so the video cannot be read.`, { hint: noFfmpeg(tools) }), { readOnly: true });
         return invalid(`ffprobe cannot read ${video}: ${messageOf(err)}`, "Is it a video? figma_export_video writes .mp4, .gif or .webm.");
       }
       const notes: string[] = [];
@@ -342,7 +348,7 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
         const height = analysisHeight(probe.width, probe.height);
         const meter = new FrameMeter(ANALYSIS_WIDTH * height);
         try {
-          decoded = await decodeGray(decode, video, ANALYSIS_WIDTH, height, (f) => meter.push(f));
+          decoded = await decodeGray(decode, video, ANALYSIS_WIDTH, height, (f) => meter.push(f), tools.ffmpeg);
           const judged = analyse(meter.series, {
             fps: probe.fps,
             cuts: (args.cuts as number[] | undefined) ?? [],
@@ -352,7 +358,7 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
           metrics = judged.metrics;
           findings.push(...judged.findings);
         } catch (err) {
-          if (isMissing(err)) return errorResult(new BridgeError(ErrorCode.UNSUPPORTED, "ffmpeg is not on PATH, so the video cannot be decoded.", { hint: NO_FFMPEG_HINT }), { readOnly: true });
+          if (isMissing(err)) return errorResult(new BridgeError(ErrorCode.UNSUPPORTED, `${cannotStart("ffmpeg", tools.ffmpeg)}, so the video cannot be decoded.`, { hint: noFfmpeg(tools) }), { readOnly: true });
           notes.push(`The metrics pass failed: ${messageOf(err)}`);
         }
       }
@@ -393,13 +399,13 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
         return { path };
       };
       const picture = async (what: () => Promise<Buffer>, file: string): Promise<Record<string, unknown>> => {
-        if (ffmpegMissing) return { error: "ffmpeg not on PATH" };
+        if (ffmpegMissing) return { error: cannotStart("ffmpeg", tools.ffmpeg) };
         try {
           return await keep(await what(), file);
         } catch (err) {
           if (isMissing(err)) {
             ffmpegMissing = true;
-            return { error: "ffmpeg not on PATH" };
+            return { error: cannotStart("ffmpeg", tools.ffmpeg) };
           }
           return { error: messageOf(err) };
         }
@@ -420,7 +426,7 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
       const tiles = Array.from({ length: count }, (_, index) => ({ index, frame: index * every, t: round4((index * every) / probe.fps) }));
       out.sheet = {
         ...(await picture(
-          () => filterImage(run, video, tileGraph({ tileWidth, tileHeight, ...(label ? { label } : {}), select: `not(mod(n\\,${every}))`, columns, count })),
+          () => filterImage(run, video, tileGraph({ tileWidth, tileHeight, ...(label ? { label } : {}), select: `not(mod(n\\,${every}))`, columns, count }), tools.ffmpeg),
           `${stem}-sheet.png`,
         )),
         every,
@@ -438,7 +444,7 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
         }
         const k1 = Math.min(frames - 1, k0 + (c.frames ?? 24) - 1);
         const graph = tileGraph({ tileWidth, tileHeight, ...(label ? { label } : {}), select: `between(n\\,${k0}\\,${k1})`, columns: c.columns ?? 8, count: k1 - k0 + 1 });
-        closeups.push({ frames: [k0, k1], ...(await picture(() => filterImage(run, video, graph), `${stem}-closeup-${k0}-${k1}.png`)) });
+        closeups.push({ frames: [k0, k1], ...(await picture(() => filterImage(run, video, graph, tools.ffmpeg), `${stem}-closeup-${k0}-${k1}.png`)) });
       }
       if (closeups.length) out.closeups = closeups;
 
@@ -449,11 +455,11 @@ export function registerReview(server: McpServer, roots: ExportRoots, wanted: (o
           continue;
         }
         // A quarter frame early lands on frame k itself [C-195].
-        stills.push({ frame: k, t: round4(k / probe.fps), ...(await picture(() => grabFrame(run, video, frameSeek(k, probe.fps)), `${stem}-f${k}.png`)) });
+        stills.push({ frame: k, t: round4(k / probe.fps), ...(await picture(() => grabFrame(run, video, frameSeek(k, probe.fps), { ffmpeg: tools.ffmpeg }), `${stem}-f${k}.png`)) });
       }
       if (stills.length) out.stills = stills;
 
-      if (ffmpegMissing) notes.push("ffmpeg is not on PATH, so no images were cut.");
+      if (ffmpegMissing) notes.push(`${cannotStart("ffmpeg", tools.ffmpeg)}, so no images were cut. ${noFfmpegHint(tools)}`);
       if (metrics) out.metrics = metrics;
       out.findings = findings;
       if (notes.length) out.note = notes.join(" ");

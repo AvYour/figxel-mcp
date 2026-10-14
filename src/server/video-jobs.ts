@@ -20,8 +20,11 @@ export type JobStatus = "rendering" | "done" | "failed" | "cancelled";
 
 export interface VideoJob<T> {
   readonly id: string;
-  /** Session, node, settings and target file: what makes two calls ask for the same render. */
-  readonly key: string;
+  /**
+   * File, node, settings and target file: what makes two calls ask for the
+   * same render. Re-keyed by the exported frame once the render has shown it.
+   */
+  key: string;
   /** The node the call named, as addressed. */
   readonly nodeId: string;
   readonly format: string;

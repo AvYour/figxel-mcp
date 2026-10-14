@@ -57,6 +57,10 @@ function helloInfo(): HelloInfo {
     file: { name: figma.root.name, key: fileKey() },
     page: { id: figma.currentPage.id, name: figma.currentPage.name },
     user,
+    // A reconnect may reach a new server process while an op the old one sent
+    // still runs here (a render, for minutes): say so, and the new one answers
+    // BUSY instead of queueing calls behind it until they STALL.
+    running: running ? { op: running.op, id: running.id, elapsedMs: Math.max(0, Date.now() - runningSince) } : null,
   };
 }
 
@@ -67,6 +71,7 @@ const emit = (msg: EventMsg) => post({ kind: "wire", msg });
 const queue: RequestMsg[] = [];
 const cancelled = new Set<string>();
 let running: RequestMsg | null = null;
+let runningSince = 0;
 
 function reply(id: string, result: StoredResult, extra: { replayed?: boolean } = {}): void {
   if (result.ok) {
@@ -135,6 +140,7 @@ async function drain(): Promise<void> {
   while (queue.length > 0) {
     const req = queue.shift()!;
     running = req;
+    runningSince = Date.now();
     try {
       await execute(req);
     } finally {

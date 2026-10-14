@@ -35,10 +35,11 @@
 | Show the user | figma_select, figma_zoom_to |
 | Remove your own work | figma_delete_nodes (ids you created) |
 | Prototype | figma_set_reactions, figma_get_reactions, figma_set_scroll_behavior, figma_set_prototype_flows |
-| Motion (timeline animation) | figma_get_motion_context, figma_set_keyframes, figma_remove_keyframes (every track read back) |
+| Motion (timeline animation) | figma_get_motion_context, figma_set_motion_plan (the brief and beats the keyframe tools wait for), figma_set_keyframes, figma_remove_keyframes (every track read back) |
 | Plan a motion piece | figma_create_storyboard (panels, timing, `offBeat` and `readTime` lists), figma_create_animatic (the board as timed plates, ready to render); both still unverified in Design, so their writes are refused there unless BRIDGE_ALLOW_UNVERIFIED is set; the storyboard skill then builds them by hand |
 | Check keyframes before rendering | figma_check_motion (pops, one frame carrying a move, dead stretches, read times, beats) |
-| See it move | figma_export_video (job mode: `jobId`, `wait`; exact frames with `frameIndices`), then figma_review_video on the file (contact sheet, close-ups, stills, metrics; at most `maxImages` pictures inline, so batch them; no second render) |
+| See it move | figma_export_video (job mode: `jobId`, `wait`; exact frames with `frameIndices`; `final: true` for the delivery, after a passing figma_check_motion), then figma_review_video on the file (contact sheet, close-ups, stills, metrics; at most `maxImages` pictures inline, so batch them; no second render) |
+| Sound for a motion piece (Figma's export has none) | figma_analyze_audio (the user's own track: tempo, `beatTimes`, loudness), figma_generate_audio (a simple bed and effects made offline; `nodeId` derives the effects from the keys), figma_add_audio (tracks onto the render, the picture copied); only audio the user has the rights to |
 
 On a FigJam board (topic figjam):
 

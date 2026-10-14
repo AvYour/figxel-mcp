@@ -28,19 +28,22 @@ Motion is animation along a frame's timeline (Figma's Motion beta). It is not a 
 - Several tracks of one layer go in one call; the cap is 50 tracks per call and 100 keys per track.
 
 ## Rendering
-- figma_export_video is a job [C-249]. It waits up to `wait` seconds (default 40); a longer render answers status "rendering" with a `jobId`, and figma_export_video { jobId } collects it. Name your own `jobId` for a long render and never start a second export while one runs: Figma renders one thing at a time, and meanwhile other Figma calls answer BUSY (figma_review_video and figma_get_guide still work).
-- Keep the Figma window restored while it renders (behind other windows is fine): a minimized window stopped a render for about 40 minutes [C-198]. A 1080 × 1920 piece took 28–47 s to render [C-197].
-- Figma ends a render it has not finished in about 4 minutes. That answer is TIMEOUT, not UNSUPPORTED: the frame is fine, so ask the user to keep Figma restored and render again; if it times out again, render fewer frames (a lower fps or width, a shorter timeline) [C-198].
-- `frameIndices` returns exact frames as PNG when ffmpeg is on the server machine's PATH; `frameCount` against `expectedFrames` checks the length. For a contact sheet, close-ups and metrics, run figma_review_video on the file.
+- figma_export_video is a job [C-249]. It waits up to `wait` seconds (default 40, at most 45 unless the server allows more); a longer render answers status "rendering" with a `jobId`, and figma_export_video { jobId } collects it. Name your own `jobId` for a long render and never start a second export while one runs: Figma renders one thing at a time, and meanwhile other Figma calls answer BUSY (figma_review_video and figma_get_guide still work).
+- A render is a preview unless the call says `final: true`. The delivery render, figma_export_video { nodeId, fps, final: true }, waits under BRIDGE_PROCESS=strict until the last whole figma_check_motion on the frame passed at that fps against its plan, with no change to the file since (any write, an undo, an edit by hand); until then it answers PROCESS_REQUIRED and names the check.
+- Keep the Figma window restored while it renders (behind other windows is fine): a minimized window stopped a render for about 40 minutes [C-198]. A 1080 × 1920 piece took 28–47 s to render [C-197]. The server waits for a render however long it takes; past 5 minutes with no result, the hint says how to end the wait.
+- Figma ends a render it has not finished in about 4 minutes. That answer is TIMEOUT, not UNSUPPORTED: the frame is fine, so ask the user to keep Figma restored and render again [C-198]; a large render may need fewer frames (a lower fps or width, a shorter timeline). Figma's exporter can also get stuck, and then every render times out, small or large, until Figma restarts [C-318]. On a second TIMEOUT in a row, or one for a small render [C-337], the hint says so: ask the user to save, quit and reopen Figma and run the plugin again; fewer frames do not help. figma_status shows `videoExport.timeoutsInARow` per file.
+- A frame with nothing animated is refused INVALID_PARAM before Figma renders. Any other refusal ("Video export failed") is INTERNAL: render again once; if it fails again, ask for a Figma restart.
+- `frameIndices` returns exact frames as PNG, the long side at most 1024 px [C-336], when ffmpeg runs on the server machine (on PATH, or named by BRIDGE_FFMPEG); stills not cut within the call's wait come back as `framesPending`, and figma_export_video { jobId, frameIndices } cuts them. `frameCount` against `expectedFrames` checks the length. For a contact sheet, close-ups and metrics, run figma_review_video on the file.
 
 ## Recipe — a switch that turns on (UI micro-motion)
 The duration and the curve come from the product: its motion tokens when it has them [C-224] [C-225]; otherwise the motion its other screens already have (figma_get_motion_context on them); otherwise a duration from the distance travelled [C-225] and a decelerating curve for an arrival, stated in the handoff. Below, <d> is that duration in seconds and <curve> that easing.
-1. figma_get_motion_context { nodeId: <frame> }: what already moves inside it, and how long the timeline is.
-2. figma_set_keyframes { nodeId: <knob>, tracks: [
+1. figma_get_motion_context { nodeId: <frame> }: what already moves inside it, how long the timeline is, and its plan in `motionPlans`.
+2. Without a plan, a one-beat one, since the keyframe tools refuse a frame without it: figma_set_motion_plan { nodeId: <frame>, brief: { audience, message, format, durationS: <the timeline's length>, fps: 30 }, beats: [{ name: "switch on", from: 0, to: <the timeline's length>, onScreen: "[the switch]", action: "the knob slides right as the track fills", transition: "holds on" }] }.
+3. figma_set_keyframes { nodeId: <knob>, tracks: [
      {"field":"TRANSLATION_X","keyframes":[{"t":0,"value":"0"},{"t":<d>,"value":"20","easing":"<curve>"}]}] }
    figma_set_keyframes { nodeId: <track>, tracks: [
      {"field":"fill:0","keyframes":[{"t":0,"value":"<off hex>"},{"t":<d>,"value":"<on hex>","easing":"<curve>"}]}] }
-3. Siblings that move as a group start 2 frames or more apart [C-242].
-4. figma_check_motion { nodeId: <frame>, fps: 30 }: fix every warning.
-5. Look: figma_export_video { nodeId: <frame>, format: "GIF", fps: 12, width: 480, frameIndices }, with the frames the brief's checks need (the start, the end, and any frame a check flagged). For a piece, render MP4 at the delivery fps instead and review it with the critique skill.
-6. Take a track back with figma_remove_keyframes { nodeId, fields: ["TRANSLATION_X"] }.
+4. Siblings that move as a group start 2 frames or more apart [C-242].
+5. figma_check_motion { nodeId: <frame>, fps: 30 }: fix every warning.
+6. Look: figma_export_video { nodeId: <frame>, format: "GIF", fps: 12, width: 480, frameIndices }, with the frames the brief's checks need (the start, the end, and any frame a check flagged). For a piece, render MP4 at the delivery fps instead and review it with the critique skill.
+7. Take a track back with figma_remove_keyframes { nodeId, fields: ["TRANSLATION_X"] }.

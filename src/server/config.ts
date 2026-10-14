@@ -4,7 +4,7 @@
 import { randomBytes } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { DEFAULT_PORT } from "../shared/protocol.js";
 import { parseToolset, type Toolset } from "../shared/ops.js";
 import { HOME_DIRNAME, LEGACY_HOME_DIRNAME, SERVER_NAME } from "../shared/version.js";
@@ -16,11 +16,22 @@ export class ConfigError extends Error {
 export type LogLevel = "debug" | "info" | "warn" | "error";
 const LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 
+/**
+ * BRIDGE_PROCESS — how the tools hold an agent to the motion process
+ * (src/server/motion-process.ts): "strict" refuses a keyframe write or a final
+ * render whose earlier steps are missing, "guided" runs it and lists them as
+ * `processWarnings`, "off" tracks nothing.
+ */
+export const PROCESS_MODES = ["strict", "guided", "off"] as const;
+export type ProcessMode = (typeof PROCESS_MODES)[number];
+
 export interface Config {
   toolset: Toolset;
   allowEval: boolean;
   /** BRIDGE_ALLOW_UNVERIFIED: writes not yet verified in a file's editor run anyway (src/shared/editors.ts). */
   allowUnverified: boolean;
+  /** BRIDGE_PROCESS: the motion process gate, "strict" by default. */
+  processMode: ProcessMode;
   autolaunch: boolean;
   sessionWaitMs: number;
   home: string;
@@ -34,6 +45,15 @@ export interface Config {
   exportRoots: string[];
   port: number;
   logLevel: LogLevel;
+  /** BRIDGE_FFMPEG / BRIDGE_FFPROBE: the programs the video tools run (ffmpeg.ts). Names on PATH by default. */
+  ffmpeg: string;
+  ffprobe: string;
+  /**
+   * BRIDGE_VIDEO_MAX_WAIT_S: the longest one figma_export_video call waits,
+   * whatever its `wait` asks. Default 45, a margin under clients that cut a
+   * call at 60 s [C-030]; raise it only for a client with a longer timeout.
+   */
+  videoMaxWaitS: number;
 }
 
 type Env = Record<string, string | undefined>;
@@ -77,6 +97,16 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
   if (!LEVELS.includes(logLevel)) {
     throw new ConfigError(`BRIDGE_LOG_LEVEL="${env.BRIDGE_LOG_LEVEL}" must be one of ${LEVELS.join(", ")}`);
   }
+  // Like the toolset: a misspelt mode stops the server rather than falling back to a weaker one.
+  const processMode = (env.BRIDGE_PROCESS?.trim() || "strict") as ProcessMode;
+  if (!PROCESS_MODES.includes(processMode)) {
+    throw new ConfigError(`BRIDGE_PROCESS="${env.BRIDGE_PROCESS}" must be one of ${PROCESS_MODES.join(", ")}`);
+  }
+
+  // A program name is looked up on PATH; a path is used as given. BRIDGE_FFMPEG
+  // alone, as a path, also looks for ffprobe in the same folder.
+  const ffmpeg = env.BRIDGE_FFMPEG?.trim() || "ffmpeg";
+  const ffprobe = env.BRIDGE_FFPROBE?.trim() || siblingProbe(ffmpeg) || "ffprobe";
 
   return {
     toolset,
@@ -85,6 +115,8 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
     // recorded them. Like eval, it belongs to the process the MCP client talks
     // to — a measuring run turns it on for its own calls only [C-129].
     allowUnverified: flag(env, "BRIDGE_ALLOW_UNVERIFIED"),
+    // Per process too: the gate keeps the state of the client this process serves.
+    processMode,
     // Inert since 2026-10-07: auto-launch was removed (ADR #32) because it had
     // to raise Figma over whatever the operator was doing. The flag is still
     // parsed so an existing .env does not fail validation; nothing reads it.
@@ -97,7 +129,18 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
     exportRoots,
     port: int(env, "BRIDGE_PORT", DEFAULT_PORT, 0, 65535),
     logLevel,
+    ffmpeg,
+    ffprobe,
+    videoMaxWaitS: int(env, "BRIDGE_VIDEO_MAX_WAIT_S", 45, 0, 600),
   };
+}
+
+/** `…/ffmpeg(.exe)` → `…/ffprobe(.exe)`; undefined for a bare name, which PATH resolves. */
+function siblingProbe(ffmpeg: string): string | undefined {
+  if (!/[\\/]/.test(ffmpeg)) return undefined;
+  const name = basename(ffmpeg);
+  if (!/ffmpeg/i.test(name)) return undefined;
+  return join(dirname(ffmpeg), name.replace(/ffmpeg/i, "ffprobe"));
 }
 
 const TOKEN_RE = /^[0-9a-f]{64}$/;

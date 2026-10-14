@@ -2,20 +2,24 @@
 //
 //   figxel-mcp                 MCP stdio mode (dist/server.js is the bin)
 //   figxel-mcp setup [--json]  token, plugin copy in <home>/plugin, what to do next (setup.ts)
+//     --register | --unregister [--force] [--dry-run]   Figma's own list of development plugins (figma-register.ts)
 //   figxel-mcp --print-token   create the token if absent, print it, exit
 //   figxel-mcp --version | --help
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { tokenFingerprint } from "../shared/token.js";
 import { PACKAGE_NAME, PLUGIN_NAME, SERVER_NAME, VERSION } from "../shared/version.js";
 import { Bridge, type BridgeOptions } from "./bridge.js";
 import { ConfigError, createLogger, loadConfig, migrateLegacyToken, readOrCreateToken, type Config, type Logger } from "./config.js";
+import { MotionProcess } from "./motion-process.js";
 import { stripSchemaDialect } from "./schema-dialect.js";
 import { registerResources, registerSkillResources } from "./resources.js";
 import { registerTools, type Registration } from "./tools/index.js";
 import { SERVER_INSTRUCTIONS } from "./guides.js";
-import { formatSetupReport, helpText, parseCommand, refreshInstalledPlugin, runSetup } from "./setup.js";
+import { bundledPluginDir, formatSetupReport, helpText, installedPluginDir, parseCommand, refreshInstalledPlugin, runSetup } from "./setup.js";
+import { formatRegistrationReport, pluginToRegister, runFigmaRegistration, withRegistration } from "./figma-register.js";
 
 // What every client receives at initialize: the working contract and the
 // pointer to figma_get_guide, not a feature list. A guide in the repository
@@ -53,6 +57,7 @@ export async function createApp(
     port: config.port,
     sessionWaitMs: config.sessionWaitMs,
     allowUnverified: config.allowUnverified,
+    tokenPath: config.tokenPath,
     onPluginLog: (level, message) => {
       if (!server.isConnected()) return;
       void server.server
@@ -61,10 +66,12 @@ export async function createApp(
     },
     ...bridgeOverrides,
   });
-  const registration = registerTools(server, bridge, config, startedAt, logger);
+  // One per process, as the client it serves: reading the motion skill on any surface counts for its tools.
+  const motionProcess = new MotionProcess(config.processMode);
+  const registration = registerTools(server, bridge, config, startedAt, logger, motionProcess);
   registerResources(server, bridge);
   // Whatever the toolset: a client that surfaces resources reaches the skills even with BRIDGE_TOOLSET=none.
-  registerSkillResources(server);
+  registerSkillResources(server, (skill, uri) => motionProcess.noteSkill(skill.short, `the resource ${uri}`));
   await bridge.start();
 
   // Remove the draft-07 `$schema` the SDK adds to every tool schema with
@@ -136,11 +143,27 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   try {
     config = loadConfig();
     logger = createLogger(config.logLevel);
+    // --unregister and any --dry-run leave the home folder alone: no token, no plugin copy.
+    const figma = command.kind === "setup" ? command.figma : undefined;
+    if (command.kind === "setup" && figma && (figma.dryRun || figma.action === "unregister")) {
+      const r = runFigmaRegistration(pluginToRegister(installedPluginDir(config.home), bundledPluginDir()), figma);
+      process.stdout.write(command.json ? `${JSON.stringify(r, null, 2)}\n` : formatRegistrationReport(r));
+      if (r.outcome === "refused") process.exitCode = 1;
+      return;
+    }
     const migrated = migrateLegacyToken(config);
     if (migrated) logger.info(`copied the token from ${migrated} to ${config.tokenPath}; the plugin keeps the token it has`);
     token = readOrCreateToken(config.tokenPath);
     if (command.kind === "setup") {
       const report = runSetup(config, token);
+      if (figma) {
+        // After the copy, so Figma is pointed at files that exist.
+        const r = runFigmaRegistration(pluginToRegister(report.pluginDir, bundledPluginDir()), figma);
+        const both = withRegistration(report, r);
+        process.stdout.write(command.json ? `${JSON.stringify(both, null, 2)}\n` : `${formatSetupReport(both)}\n${formatRegistrationReport(r)}`);
+        if (r.outcome === "refused") process.exitCode = 1;
+        return;
+      }
       process.stdout.write(command.json ? `${JSON.stringify(report, null, 2)}\n` : formatSetupReport(report));
       return;
     }
@@ -154,7 +177,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   if (command.kind === "print-token") {
     process.stdout.write(`${token}\n`);
-    process.stderr.write(`Token file: ${config.tokenPath}\nPaste this token into the ${PLUGIN_NAME} plugin in Figma.\n`);
+    process.stderr.write(
+      `Token file: ${config.tokenPath} (fingerprint ${tokenFingerprint(token)})\n` +
+        `Paste this token into the ${PLUGIN_NAME} plugin in Figma; its window then shows the same fingerprint.\n`,
+    );
     return;
   }
 
@@ -163,7 +189,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   const app = await createApp(config, token, logger);
   logger.info(
-    `${PACKAGE_NAME} ${VERSION}: toolset ${config.toolset.kind}, ${app.registration.registered.length} tool(s) registered`,
+    `${PACKAGE_NAME} ${VERSION}: toolset ${config.toolset.kind}, ${app.registration.registered.length} tool(s) registered, motion process ${config.processMode}`,
   );
 
   let shuttingDown = false;

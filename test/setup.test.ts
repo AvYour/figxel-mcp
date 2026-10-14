@@ -27,6 +27,7 @@ import {
   serverLaunch,
   type SetupReport,
 } from "../src/server/setup.js";
+import { tokenFingerprint } from "../src/shared/token.js";
 import { PACKAGE_NAME, PLUGIN_MENU_PATH, SERVER_NAME, SETUP_COMMAND } from "../src/shared/version.js";
 
 const SERVER = fileURLToPath(new URL("../dist/server.js", import.meta.url));
@@ -63,7 +64,7 @@ describe("the command line", () => {
 
   it("anything else is an error, not a server waiting on stdin", () => {
     expect(parseCommand(["setpu"])).toEqual({ kind: "error", message: 'unknown argument "setpu"' });
-    expect(parseCommand(["setup", "--force"])).toEqual({ kind: "error", message: 'setup takes only --json, not "--force"' });
+    expect(parseCommand(["setup", "--bogus"])).toEqual({ kind: "error", message: 'setup takes only --json, --register, --unregister, --force, --dry-run, not "--bogus"' });
     expect(parseCommand(["--print-token", "x"])).toEqual({ kind: "error", message: 'unknown argument "x"' });
   });
 
@@ -130,6 +131,18 @@ describe("setup", () => {
     }
     expect(text).toContain('"figxel": { "command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"] }');
     expect(text).toContain("entries for Windows");
+  });
+
+  it("prints the token file and the token's fingerprint, which the plugin window and figma_status show too", () => {
+    const home = temp();
+    const r = setupIn(home, "win32");
+    expect(r.tokenPath).toBe(join(home, "token"));
+    expect(r.tokenFingerprint).toBe(`${TOKEN.slice(0, 4)}...${TOKEN.slice(-4)}`);
+    expect(r.tokenFingerprint).toBe(tokenFingerprint(TOKEN));
+    const text = formatSetupReport(r);
+    expect(text).toContain(`  from ${join(home, "token")}, fingerprint ${r.tokenFingerprint}`);
+    expect(text).toMatch(/when they differ, the plugin is talking to another server/);
+    expect(tokenFingerprint(null)).toBe("none");
   });
 
   it("on Linux there is no Claude Desktop entry, and the others use npx directly", () => {

@@ -25,7 +25,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ErrorCode as McpErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { PLUGIN_MENU_PATH, PRODUCT_NAME, SERVER_NAME } from "../shared/version.js";
 import type { Bridge, BridgeStatus } from "./bridge.js";
-import { SKILL_PREFIX, SKILLS } from "./skills.js";
+import { SKILL_PREFIX, SKILLS, type Skill } from "./skills.js";
 
 /** The selection resource's URI scheme. */
 export const SELECTION_SCHEME = SERVER_NAME;
@@ -153,14 +153,21 @@ export function registerResources(server: McpServer, bridge: Bridge): void {
 const SKILL_MIME = "text/markdown";
 const FOR_ASSISTANT = { audience: ["assistant" as const] };
 
-/** One static resource per SKILL.md; one template whose list names every reference. */
-export function registerSkillResources(server: McpServer): void {
+/**
+ * One static resource per SKILL.md; one template whose list names every
+ * reference. `onRead` hears every read, so a skill read here counts as one read
+ * through figma_get_guide (the motion process, motion-process.ts).
+ */
+export function registerSkillResources(server: McpServer, onRead?: (skill: Skill, uri: string) => void): void {
   for (const skill of SKILLS) {
     server.registerResource(
       skill.name,
       `skill://${skill.name}/SKILL.md`,
       { title: `${skill.short} (${PRODUCT_NAME} skill)`, description: skill.description, mimeType: SKILL_MIME, size: skill.file.size, annotations: FOR_ASSISTANT },
-      async (uri) => ({ contents: [{ uri: uri.href, mimeType: SKILL_MIME, text: skill.file.text }] }),
+      async (uri) => {
+        onRead?.(skill, uri.href);
+        return { contents: [{ uri: uri.href, mimeType: SKILL_MIME, text: skill.file.text }] };
+      },
     );
   }
   const references = SKILLS.flatMap((skill) => skill.sections.map((section) => ({ skill, section })));
@@ -188,6 +195,7 @@ export function registerSkillResources(server: McpServer): void {
       const found = references.find(({ skill, section }) => skill.name === String(variables.skill) && section.slug === String(variables.section));
       // The SDK's own answer for an unknown URI, so a miss reads the same either way.
       if (!found) throw new McpError(McpErrorCode.InvalidParams, `Resource ${uri.href} not found`);
+      onRead?.(found.skill, uri.href);
       return { contents: [{ uri: uri.href, mimeType: SKILL_MIME, text: found.section.file.text }] };
     },
   );

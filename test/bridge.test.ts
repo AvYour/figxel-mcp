@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { BridgeError } from "../src/shared/errors.js";
 import { CLOSE, DEFAULT_LIMITS } from "../src/shared/protocol.js";
-import { NO_SESSION_HINT, TOKEN_HINT, type Bridge } from "../src/server/bridge.js";
+import { NO_SESSION_HINT, TOKEN_HINT, tokenHint, type Bridge } from "../src/server/bridge.js";
+import { Base64Sink, bytesOf } from "../src/server/binary.js";
 import { connectedMock, newToken, sleep, startBridge, startMock, type MockPlugin } from "./helpers.js";
 
 const cleanup: (() => unknown)[] = [];
@@ -89,7 +90,8 @@ describe("handshake (protocol.md §1)", () => {
     expect(bridge.status().lastAuthFailureAt).not.toBeNull();
     const err = await rejection(bridge.request("get_metadata", {}));
     expect(err.code).toBe("NO_SESSION");
-    expect(err.hint).toBe(TOKEN_HINT);
+    expect(err.hint).toBe(tokenHint(bridge.tokenWhere));
+    expect(err.hint!.startsWith(TOKEN_HINT)).toBe(true);
   });
 
   it("closes a silent connection with 4008", async () => {
@@ -135,7 +137,8 @@ describe("requests (protocol.md §3–§4)", () => {
     const data = (await bridge.request("get_metadata", {})) as { name: string };
     expect(data.name).toBe("Mock File");
     expect(requestsSeen(mock)[0]).not.toHaveProperty("idempotencyKey");
-    expect(requestsSeen(mock)[0]!.id).toMatch(/^r-\d+$/);
+    // Unique across processes: a random prefix per bridge, then a counter (the 2026-10-14 audit's probe p2).
+    expect(requestsSeen(mock)[0]!.id).toMatch(/^r-[0-9a-f]{8}-\d+$/);
   });
 
   it("gives every write op an idempotencyKey and returns it", async () => {
@@ -262,13 +265,24 @@ describe("back-pressure (protocol.md §4)", () => {
 });
 
 describe("binary payloads (protocol.md §2 chunk)", () => {
-  it("reassembles a chunked result", async () => {
+  it("reassembles a chunked result: an export op's bytes as a Buffer, never one long base64 string", async () => {
     const { bridge, mock } = await setup({ limits: { chunkBytes: 1000 } });
-    const data = (await bridge.request("export_node", { fakeBytes: 5000 })) as { base64: string; bytes: number; chunks?: number };
+    const data = (await bridge.request("export_node", { fakeBytes: 5000 })) as { binary: Buffer; bytes: number; chunks?: number };
     expect(data.bytes).toBe(5000);
-    expect(Buffer.from(data.base64, "base64")).toEqual(Buffer.alloc(5000, 7));
+    expect(Buffer.isBuffer(data.binary)).toBe(true);
+    expect(data.binary).toEqual(Buffer.alloc(5000, 7));
+    expect(bytesOf(data)).toEqual(Buffer.alloc(5000, 7));
+    expect(data).not.toHaveProperty("base64");
     expect(data).not.toHaveProperty("chunks");
     expect(mock.received.filter((m) => m.t === "request")).toHaveLength(1);
+  });
+
+  it("decodes chunks that split a base64 quantum", () => {
+    const bytes = Buffer.from(Array.from({ length: 1000 }, (_, i) => i % 251));
+    const b64 = bytes.toString("base64");
+    const sink = new Base64Sink();
+    for (let i = 0; i < b64.length; i += 7) sink.push(b64.slice(i, i + 7)); // 7 is not a multiple of 4
+    expect(sink.finish()).toEqual(bytes);
   });
 });
 

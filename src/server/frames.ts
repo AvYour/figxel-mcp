@@ -22,6 +22,8 @@ const hello = z.object({
   // Without this the schema stripped the field, and figma_status reported
   // build.plugin: null for every plugin — measured live on 2026-10-08.
   buildId: str.optional(),
+  // A render an earlier server process sent, still running in the sandbox.
+  running: z.object({ op: str, id: nonEmpty, elapsedMs: z.number().min(0) }).nullable().optional(),
 });
 
 const wireError = z.object({ code: str, message: str, hint: str.optional() });

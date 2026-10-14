@@ -18,6 +18,7 @@ import { FIGJAM_OPS, registerFigjamSpecTypes } from "./figjam.js";
 import { META_OPS } from "./meta.js";
 import { LAYOUT_OPS, MODIFY_OPS } from "./modify.js";
 import { MOTION_OPS } from "./motion.js";
+import { MOTION_PLAN_OPS } from "./motion-plan.js";
 import { MOTION_SNAPSHOT_OPS } from "./motion-snapshot.js";
 import { READ_OPS } from "./read.js";
 import { SHAPE_OPS } from "./shapes.js";
@@ -65,6 +66,7 @@ export const PLUGIN_OPS: Record<string, PluginOp> = {
   ...SHAPE_OPS,
   ...TOKEN_OPS,
   ...MOTION_OPS,
+  ...MOTION_PLAN_OPS,
   ...MOTION_SNAPSHOT_OPS,
   ...FIGJAM_OPS,
   ...SLIDES_OPS,

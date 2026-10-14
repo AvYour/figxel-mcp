@@ -16,7 +16,8 @@ The bible is the one source the build follows: every decision written down as da
    - masks: a plain FRAME that clips, with no fill and no auto-layout; auto-layout only on rows whose spacing animates, each with a fixed width and height;
    - blur: a LAYER_BLUR set on the layer before any key, and the key on that blur's own index, "effect:<i>:RADIUS"; Figma's blur has no direction [C-184], so where a fast move needs a directional cue, stretch it along its travel (SCALE on that axis) or trail echo copies;
    - pivots: any scale or rotation about a point other than the layer's centre is a probe item, with the result and its counter-translation written here;
-   - holds, in frames (figma_review_video's unit), converted to seconds for figma_check_motion;
+   - holds, in frames (figma_review_video's unit), converted to seconds for the plan's `holds`;
+   - each finding the brief intends (a still open, a hard-cut grammar, a loop), with its reason, for the plan's `accept`;
    - the z-order, the safe zone, the smallest text size in frame pixels, the fonts that load.
 4. **The container tree.** One container per scene, full-frame, listed bottom to top, each switched on and off by cut pairs on the container itself. Every switch happens under full cover or onto an identical picture.
 5. **Packages.** One per scene: its layers (name, type, parent, position, size, content), its styleframe to clone, build rules, the moves in words with their roles and frames, and each mechanism's check and fallback from the probe.

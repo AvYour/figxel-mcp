@@ -1,6 +1,6 @@
 # Motion checks — the checklist the run's critics wrote
 
-Every item below comes from a finding of the 2026-10-09 run or from a standard; thresholds marked "run" were set on that run at 30 fps on a 1080 × 1920 frame. Work in order: A needs only the keys, B to G need one render and the bible's frames-to-check. Where the brief or the bible declares a choice (a still open, a hard-cut grammar, a loop), the check holds the piece to that declaration instead.
+Every item below comes from a finding of the 2026-10-09 run or from a standard; thresholds marked "run" were set on that run at 30 fps on a 1080 × 1920 frame. Work in order: A needs only the keys, B to G need one render and the bible's frames-to-check. Where the brief or the bible declares a choice (a still open, a hard-cut grammar, a loop), the plan's `accept` records it with its reason, figma_check_motion lists it apart, and the check holds the piece to that declaration instead.
 
 | Lens | Groups |
 |---|---|
@@ -10,7 +10,7 @@ Every item below comes from a finding of the 2026-10-09 run or from a standard; 
 | the brief's own lens (BL) | the message read at speed, the brand time and the CTA hold, as numbers (`read_time`, `brand_late`, `cta_short`) |
 | originality (OR) | round 1 only, the last section below |
 
-**Set-up for a round.** figma_check_motion { nodeId, fps, bpm, holds, brandId, ctaId } first (`holds` in seconds). Then one render at the delivery fps in job mode, figma_export_video { nodeId, fps, saveTo, jobId: "<piece>-r<n>" }, and figma_review_video on the file in batches you can see: the metrics, the sheet and up to 6 close-ups in one call, then stills 7 at a time, each call with `maxImages: 8` (section `sampling`). Close-ups and stills come from the frames-to-check table, a close-up starting a few frames before every cut and handoff. Write each finding in the critique schema, "where" as the layer's name and id plus "t s (fN–fM)". Without ffmpeg on the server machine, run A and the styleframe stills, and say in the report that the motion itself was not seen.
+**Set-up for a round.** figma_check_motion { nodeId, fps } first: it applies the plan's `bpm`, `holds`, `brandId`, `ctaId` and `accept`. Then one render at the delivery fps in job mode, figma_export_video { nodeId, fps, saveTo, jobId: "<piece>-r<n>" }, and figma_review_video on the file in batches you can see: the metrics, the sheet and up to 6 close-ups in one call, then stills 7 at a time, each call with `maxImages: 8` (section `sampling`). Close-ups and stills come from the frames-to-check table, a close-up starting a few frames before every cut and handoff. Write each finding in the critique schema, "where" as the layer's name and id plus "t s (fN–fM)". Without ffmpeg on the server machine, run A and the styleframe stills, and say in the report that the motion itself was not seen.
 
 ## A. From the keys (figma_check_motion rule in brackets)
 1. **One-frame pops.** No unblurred, uncovered frame carries 40 % or more of a move (the tool's calibrated line; section `easing` of the motion skill), and no unblurred step passes about 150 px (`concentrated_step`, `pop_in`, `strobe`).
@@ -60,7 +60,7 @@ figma_check_layout sees only the rest state, so these are computed from the keys
 6. **Accents read:** thick enough for the viewing size, with 3:1 or more against their ground, and visible from their first frame.
 
 ## F. Rhythm
-1. Hits on downbeats, secondary hits on beats or on whole-frame subdivisions, at a stated BPM, or on the timed voice-over.
+1. Hits on downbeats, secondary hits on beats or on whole-frame subdivisions, at a stated BPM or on the music's own beats (figma_check_motion { beatTimes } from figma_analyze_audio), or on the timed voice-over.
 2. The end structure the brief names: an end card (with a breath before it, if planned), a loop seam, a held last pose.
 3. Each scene's activity (the frame-difference curve) stays above any planned breath, so the breath reads as a contrast; a scene stiller than the breath reads as dead.
 4. The device count per stretch stays within the bible's restraint rules.
@@ -69,10 +69,10 @@ figma_check_layout sees only the rest state, so these are computed from the keys
 1. The last frame is settled and clean; for a loop, it is one step before frame 0's pose (the motion skill's `formats` section).
 2. `frameCount` equals `expectedFrames`: the render includes the end frame, ceil(d · fps) + 1 in every format.
 3. Stills are cut by frame index (`stills`, `frameIndices`), never by a rounded time.
-4. The master meets the placement's spec; the audio, if any, is joined downstream.
+4. The master meets the placement's spec. With sound: it was joined after the last picture fix (figma_add_audio), its warnings are answered, its true peak is at or under −1 dBTP, effects sit on their cuts and accents, and the piece still reads with the sound off. The audio is the user's licensed track or a generated one, named in the report.
 5. After every round of fixes, re-check each changed span and its neighbours: the run's fixes caused 4 new issues in round 2 and 3 in round 3.
 
 ## Originality: at the directions, on the styleframes, and in round 1
 Before anything moves, hold the chosen direction against card 0 (the storyboard's obvious version), the generated looks and the motion habits of generated work. In review round 1, do it again on the render: answer every `template_move` and `easing_census` info from figma_check_motion (fixed, or kept with a reason in the report), and compare the piece's transitions and accents with card 0 and the bible's vocabulary. A match is either a brand given, with its evidence, or a finding.
 
-Evidence (claim ids, for maintainers): [C-206] [C-246] [C-243] [C-240] [C-242] [C-196] [C-222] [C-259] [C-261] [C-258] [C-230] [C-241] [C-075] [C-207] [C-221] [C-244] [C-194] [C-208] [C-219] [C-209] [C-260]
+Evidence (claim ids, for maintainers): [C-206] [C-246] [C-243] [C-240] [C-242] [C-196] [C-222] [C-259] [C-261] [C-258] [C-230] [C-241] [C-075] [C-207] [C-221] [C-244] [C-194] [C-208] [C-219] [C-209] [C-260] [C-184] [C-332]

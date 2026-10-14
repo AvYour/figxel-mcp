@@ -18,15 +18,18 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync 
 import { homedir } from "node:os";
 import { join, posix, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tokenFingerprint } from "../shared/token.js";
 import { HOME_DIRNAME, PACKAGE_NAME, PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, SERVER_NAME, SETUP_COMMAND, VERSION } from "../shared/version.js";
 import { ConfigError, type Config, type Logger } from "./config.js";
+import { parseRegistrationFlags, REGISTRATION_FLAGS, type RegistrationRequest } from "./figma-register.js";
 
 // ---------------------------------------------------------------------------
 // The command line
 
 export type Command =
   | { kind: "serve" }
-  | { kind: "setup"; json: boolean }
+  /** `figma`: --register or --unregister, which figma-register.ts carries out. */
+  | { kind: "setup"; json: boolean; figma?: RegistrationRequest }
   | { kind: "print-token" }
   | { kind: "version" }
   | { kind: "help" }
@@ -43,9 +46,11 @@ export function parseCommand(argv: readonly string[]): Command {
   const [first, ...rest] = argv;
   if (first === undefined) return { kind: "serve" };
   if (first === "setup") {
-    const unknown = rest.filter((a) => a !== "--json");
-    if (unknown.length > 0) return { kind: "error", message: `setup takes only --json, not "${unknown[0]}"` };
-    return { kind: "setup", json: rest.includes("--json") };
+    const unknown = rest.filter((a) => a !== "--json" && !REGISTRATION_FLAGS.includes(a));
+    if (unknown.length > 0) return { kind: "error", message: `setup takes only --json, ${REGISTRATION_FLAGS.join(", ")}, not "${unknown[0]}"` };
+    const figma = parseRegistrationFlags(rest);
+    if ("error" in figma) return { kind: "error", message: figma.error };
+    return { kind: "setup", json: rest.includes("--json"), ...(figma.request ? { figma: figma.request } : {}) };
   }
   if (first === "--print-token" && rest.length === 0) return { kind: "print-token" };
   return { kind: "error", message: `unknown argument "${first === "--print-token" ? rest[0] : first}"` };
@@ -61,6 +66,14 @@ export function helpText(): string {
     `  ${bin} setup            create the token, copy the Figma plugin into the home folder,`,
     "                              and print the token, the manifest to import and client entries",
     `  ${bin} setup --json     the same, as JSON`,
+    `  ${bin} setup --register [--force] [--dry-run]`,
+    "                              setup, then list the plugin under Plugins → Development by writing",
+    "                              Figma desktop's settings file, so there is nothing to import.",
+    "                              Quit Figma first; the file is backed up next to itself.",
+    "                              --force moves a registration of the plugin from another folder;",
+    "                              --dry-run prints the change and writes nothing",
+    `  ${bin} setup --unregister [--dry-run]`,
+    "                              remove that registration again (only the plugin's own entries)",
     `  ${bin} --print-token    print the plugin token (created if absent)`,
     `  ${bin} --version        print the version`,
     `  ${bin} --help           print this help`,
@@ -192,6 +205,8 @@ export interface SetupReport {
   home: string;
   token: string;
   tokenPath: string;
+  /** The token's first and last four characters (shared/token.ts): the plugin window and figma_status show the same. */
+  tokenFingerprint: string;
   pluginDir: string;
   manifestPath: string;
   /** The plugin files this run wrote; empty when the copy was already current. */
@@ -237,6 +252,7 @@ export function runSetup(config: Pick<Config, "home" | "tokenPath">, token: stri
     home: config.home,
     token,
     tokenPath: config.tokenPath,
+    tokenFingerprint: tokenFingerprint(token),
     pluginDir,
     manifestPath,
     pluginFilesWritten: written,
@@ -270,6 +286,9 @@ export function formatSetupReport(r: SetupReport): string {
     "",
     "Token (the plugin asks for it once):",
     `  ${r.token}`,
+    `  from ${r.tokenPath}, fingerprint ${r.tokenFingerprint}`,
+    "  The plugin window shows the fingerprint of the token it saved, and figma_status shows this server's:",
+    "  when they differ, the plugin is talking to another server.",
     "",
     "Plugin manifest:",
     `  ${r.manifestPath}`,
