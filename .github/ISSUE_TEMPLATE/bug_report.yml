@@ -105,5 +105,5 @@ body:
       options:
         - label: I removed my Figma user name and id, file and page names, and personal paths from everything above.
           required: true
-        - label: I searched the existing issues and the README's Troubleshooting section.
+        - label: I searched the existing issues and the troubleshooting guide (docs/troubleshooting.md).
           required: true

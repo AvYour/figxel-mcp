@@ -12,7 +12,7 @@ It assumes Figxel is set up; the [README Quickstart](../README.md#quickstart) ta
 2. In your AI app, ask: *"Call figma_status."*
 3. The answer lists every connected file with its editor (Figma Design, FigJam or Figma Slides) and the tools that do not run there (`unavailableTools`).
 
-If it says no plugin is connected, run the plugin again. If it asks for a restart (`restart: "plugin"` or `restart: "client"`), close the plugin window and run it again, or restart your AI app, as the hint says. [Troubleshooting](../README.md#troubleshooting) covers the rest.
+If it says no plugin is connected, run the plugin again. If it asks for a restart (`restart: "plugin"` or `restart: "client"`), close the plugin window and run it again, or restart your AI app, as the hint says. [Troubleshooting](troubleshooting.md) covers the rest.
 
 ### 2. Pick a file and a spot
 
@@ -106,7 +106,7 @@ This needs an AI app that can read your project's files. What to expect:
 
 - Content and fonts come from the code, never invented. The agent checks that Figma has the code's fonts (`figma_get_fonts`) and flags any text that fell back to another font.
 - Components the file already has are reused as instances; a new one becomes a component once, then instances. Your SVG icons are imported as they are (`figma_import_svg`), never redrawn.
-- Local images can be imported only from the exports folder or a folder listed in `BRIDGE_EXPORT_ROOTS` ([Configuration](../README.md#configuration)), so the agent asks you to add the folder, or copies the file there.
+- Local images can be imported only from the exports folder or a folder listed in `BRIDGE_EXPORT_ROOTS` ([Configuration](configuration.md)), so the agent asks you to add the folder, or copies the file there.
 - One question you will get: when a value in the code and a Figma token disagree, it asks which one wins.
 
 The other direction works too: paste a Figma link and ask the agent to implement the design in your stack. It reads the design and its render, downloads the assets (`figma_download_assets`), and compares its result with the render.
@@ -215,7 +215,7 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 
 ## The motion process setting
 
-`BRIDGE_PROCESS` decides how strictly the tools hold an agent to the motion process. With **`strict`**, the default, `figma_set_keyframes` and `figma_remove_keyframes` answer `PROCESS_REQUIRED` until the agent has read the motion skill in this session and the frame has a plan (`figma_set_motion_plan`), and a final render (`final: true`) waits for a passing `figma_check_motion` at its frame rate since the frame's last keyframe change; previews always render, and a refusal changes nothing. With **`guided`**, those calls run and their results list the skipped steps as `processWarnings`, which suits a quick retime of an animation planned elsewhere. With **`off`**, nothing is checked. The plan is stored in the file and survives restarts; the rest belongs to the running server, so after your app restarts the agent reads the skill and runs the check again. Keyframes you change by hand are not seen, so ask for a fresh `figma_check_motion` before the final render. Set the variable in the server entry's environment, as [Configuration](../README.md#configuration) shows.
+`BRIDGE_PROCESS` decides how strictly the tools hold an agent to the motion process. With **`strict`**, the default, `figma_set_keyframes` and `figma_remove_keyframes` answer `PROCESS_REQUIRED` until the agent has read the motion skill in this session and the frame has a plan (`figma_set_motion_plan`), and a final render (`final: true`) waits for a passing `figma_check_motion` at its frame rate since the frame's last keyframe change; previews always render, and a refusal changes nothing. With **`guided`**, those calls run and their results list the skipped steps as `processWarnings`, which suits a quick retime of an animation planned elsewhere. With **`off`**, nothing is checked. The plan is stored in the file and survives restarts; the rest belongs to the running server, so after your app restarts the agent reads the skill and runs the check again. Keyframes you change by hand are not seen, so ask for a fresh `figma_check_motion` before the final render. Set the variable in the server entry's environment, as [Configuration](configuration.md#where-to-set-them) shows.
 
 ## Tips
 
@@ -231,7 +231,7 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 
 ## Where to go next
 
-- [README](../README.md): setup, [Configuration](../README.md#configuration), [Privacy](../README.md#privacy) and [Troubleshooting](../README.md#troubleshooting).
+- [README](../README.md): setup and [Privacy](../README.md#privacy). Every setting is in [Configuration](configuration.md), and known problems in [Troubleshooting](troubleshooting.md).
 - [Using Figxel From Any AI App](clients.md): setup per app, tool-call timeouts, and [installing the skills](clients.md#installing-the-skills) into apps that load them.
 - [Using Figxel as an Agent](agents/using-the-mcp.md): how the agent works and why each rule exists.
 - [The skills](../src/skills/): the exact text the agent reads.

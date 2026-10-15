@@ -2,13 +2,28 @@
 
 Figxel is not tied to one app or one model. It is a standard MCP server over stdio, so **any app that speaks MCP can use it, whatever model the app runs**: Claude, GPT, Gemini, GLM or a local model. What differs between apps is how you register the server, how many tools the app accepts and how long it waits for a tool call.
 
-**Several apps can use Figma at the same time.** The first Figxel process to start holds the Figma connection (the *hub*). Every later one, from Claude Code, VS Code, Codex or a second chat, *shares* it as a proxy. If the hub's app quits, another process takes over within seconds and the plugin reconnects by itself. `figma_status` shows which role a process has (`bridge.role`: `hub` / `proxy`) and, for a proxy, which process it shares (`bridge.hubPid`).
+**Several apps can use Figma at the same time.** The first Figxel process to start holds the Figma connection (the *hub*). Every later one, from Claude Code, VS Code, Codex or a second chat, *shares* it as a proxy. If the hub's app quits, another process takes over within seconds and the plugin reconnects by itself ([spec §4.2](superpowers/specs/2026-10-06-figma-mcp-design.md#42-one-process-not-two)). `figma_status` shows which role a process has (`bridge.role`: `hub` / `proxy`) and, for a proxy, which process it shares (`bridge.hubPid`).
 
 > After an update, **restart every app that runs Figxel**, so that they all run the same version. A process too old to share the hub's connection reports `PORT_IN_USE` until its app restarts the server (Hermes: `/reload-mcp`), and `figma_status` asks for a client restart when the hub is older than the installed version.
 
 Each app fact below carries the id of its entry in the [claim registry](reference/claims.md), which records the source and the date it was checked (2026-10-14 for most of them).
 
 ---
+
+## How it works
+
+```
+Your AI app (Claude Desktop, Claude Code, Cursor, VS Code, Codex, …)
+        │  MCP over stdio
+        ▼
+figxel-mcp (Node.js): MCP server + local bridge on ws://127.0.0.1:38452
+        │  WebSocket, loopback only, token handshake
+        ▼
+Figxel plugin in Figma desktop: ui.html (WebSocket) ⇄ code.js (Plugin API)
+```
+
+- **Your AI app starts the server** with `npx`. Nothing runs as a background service.
+- **The plugin connects to the server** on your own machine. It has to be running in Figma: open it once per Figma session. It then reconnects by itself (within 3 s) every time an app starts the server, so you do not reopen it per chat.
 
 ## Before any app
 
@@ -20,14 +35,23 @@ Quit Figma desktop completely (on Windows, closing its window leaves it running:
 npx -y figxel-mcp@latest setup --register
 ```
 
-`-y` skips npx's install prompt `[C-282]`. Setup creates the plugin token, copies the Figma plugin into `~/.figxel/plugin` (the home folder; `BRIDGE_HOME` moves it), lists the plugin in Figma desktop by writing into Figma's settings file (`%APPDATA%\Figma\settings.json` on Windows) the same entries an import writes, after a backup next to it `[C-275]` `[C-319]` `[C-323]`, and prints the token and ready-made entries for Claude Desktop, Claude Code and any other app. `--dry-run` shows the change first; `setup --unregister` removes the entries. macOS is experimental because the file there is not yet measured `[C-324]`. Then, in Figma desktop, open or create a file and:
+`-y` skips npx's install prompt `[C-282]`. Setup creates the plugin token, copies the Figma plugin into `~/.figxel/plugin` (the home folder; `BRIDGE_HOME` moves it), lists the plugin in Figma desktop by writing into Figma's settings file (`%APPDATA%\Figma\settings.json` on Windows) the same entries an import writes, after a backup next to it `[C-275]` `[C-319]` `[C-323]`, and prints the token and ready-made entries for Claude Desktop, Claude Code and any other app. [Install details](#install-details) has the backup, the options and the manual import. Then, in Figma desktop, open or create a file and:
 
 1. Run the plugin: **Plugins → Development → Figxel**. Nothing outside Figma can run a plugin, so you start it once per Figma session `[C-016]`.
 2. Paste the token into the plugin window and press **Save**. Once connected, the window shows the token's fingerprint (its first and last four characters) next to **Connected**; setup prints the same fingerprint, and `figma_status` shows the one of the server your app runs. When they differ, the plugin is connected to another server.
 
-If Figxel is not under **Plugins → Development** (or you would rather not let setup touch Figma's settings), run `npx -y figxel-mcp@latest setup` without `--register` and import the plugin by hand: **Plugins → Development → Import plugin from manifest…**, then choose the manifest setup printed. Figma's Help Center calls the item "Import new plugin from manifest..." `[C-274]`. Either way this is needed only once: Figma reads the plugin's files from that path each time the plugin runs, so an update needs no re-import `[C-275]`.
+The README's [Quickstart](../README.md#quickstart) is the same flow in four steps.
 
-The step-by-step version with the setup output is the [README quickstart](../README.md#quickstart).
+### Install details
+
+What `setup --register` does to Figma's settings, its options, and the manual import.
+
+- **It changes only Figxel's entries, after a backup.** Setup backs up Figma's settings file first (`settings.json.figxel-backup-<time>`, next to it), refuses while Figma runs because Figma writes that file itself `[C-321]`, and refuses a file that is not in the measured form `[C-319]`.
+- **`--dry-run`** shows the change without writing anything.
+- **An earlier import stays.** If you already imported Figxel from another folder, setup keeps that registration and says so; `--force` moves it to `~/.figxel/plugin` `[C-323]`.
+- **`setup --unregister`** removes the entries setup wrote. Quit Figma first, as for `--register`.
+- **Windows and macOS.** The settings file was measured on Windows; on macOS `--register` is experimental, because the file there is not yet measured `[C-324]`. There is no Linux build of Figma `[C-273]`.
+- **The manual import.** If Figxel is not under **Plugins → Development** (or you would rather not let setup touch Figma's settings), run `npx -y figxel-mcp@latest setup` without `--register` and import the plugin by hand: **Plugins → Development → Import plugin from manifest…**, then choose the manifest setup printed: `~/.figxel/plugin/manifest.json`, or `C:\Users\<you>\.figxel\plugin\manifest.json` on Windows. Figma's Help Center calls the item "Import new plugin from manifest..." `[C-274]`. Either way this is needed only once: Figma reads the plugin's files from that path each time the plugin runs, so an update needs no re-import `[C-275]`.
 
 ### The server entry
 
@@ -270,6 +294,23 @@ done
 ```
 
 Claude Code follows a symlinked skill folder `[C-175]`; whether it treats a Windows junction the same way is not yet measured. Check that the app lists the five skills; if Claude Code does not, replace the junctions with symbolic links. `npx skills add` also takes a local path `[C-179]`, but its README does not say whether such an install stays linked to the folder `[C-179]`, so after a pull, check that the installed copy changed.
+
+---
+
+## Updating and uninstalling
+
+### Updating
+
+- **With `@latest` in the entry** (as in [The server entry](#the-server-entry)), npx asks the registry for the newest version each time your app starts the server `[C-283]`. To update, restart the app.
+- **The plugin follows the server.** When a new version starts, the server copies its plugin into `~/.figxel/plugin`. Close the Figxel plugin window in Figma and run it again; Figma reads the plugin files on each run, so there is nothing to re-import `[C-275]`.
+- **`figma_status` tells you what is stale.** Its hint says whether to re-run the plugin or restart the app.
+- **Keep every app on the same entry.** Two apps running different versions copy their own plugin into `~/.figxel/plugin` in turn, each time one of them starts the server.
+
+### Uninstalling
+
+1. Remove the `figxel` entry from each AI app's configuration.
+2. In Figma desktop, remove Figxel from your development plugins (under **Plugins → Development**). If setup registered it (`setup --register`), you can instead quit Figma and run `npx -y figxel-mcp@latest setup --unregister`, which removes the entries setup wrote.
+3. Delete the home folder, `~/.figxel` (`%USERPROFILE%\.figxel` on Windows). It holds the token, the plugin copy and, by default, your exports: move any exports you want to keep first.
 
 ---
 

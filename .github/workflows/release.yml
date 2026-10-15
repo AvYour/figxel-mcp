@@ -46,7 +46,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Zip the plugin
         run: zip -X -j "figxel-plugin-${GITHUB_REF_NAME}.zip" dist/plugin/* LICENSE
+      # A release made by hand before this run (when npm publishing was blocked) gets the zip instead.
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "figxel-plugin-${GITHUB_REF_NAME}.zip" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "figxel-plugin-${GITHUB_REF_NAME}.zip" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "figxel-plugin-${GITHUB_REF_NAME}.zip" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+          fi

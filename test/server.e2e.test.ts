@@ -2,7 +2,7 @@
 
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { createServer } from "node:net";
+import { connect, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -167,6 +167,27 @@ describe("process lifecycle (spec §4.6)", () => {
     return { child, rpc, out: () => stdout, err: () => stderr };
   }
   const exited = (child: ChildProcess) => new Promise<number | null>((r) => child.once("exit", (code) => r(code)));
+  // The server writes its token, then listens; on a loaded machine that takes longer than any fixed wait.
+  const accepts = (port: number) =>
+    new Promise<boolean>((r) => {
+      const s = connect(port, "127.0.0.1");
+      s.once("connect", () => (s.destroy(), r(true)));
+      s.once("error", () => r(false));
+    });
+  async function tokenOf(home: string, port: number): Promise<string> {
+    const until = Date.now() + 10_000;
+    while (Date.now() < until) {
+      let token = "";
+      try {
+        token = readFileSync(join(home, "token"), "utf8").trim();
+      } catch {
+        // not written yet
+      }
+      if (token && (await accepts(port))) return token;
+      await sleep(50);
+    }
+    throw new Error("the server did not write its token and listen within 10 s");
+  }
   const initialize = { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "raw", version: "0" } };
 
   it("keeps stdout pure JSON-RPC, even while the plugin logs", async () => {
@@ -174,8 +195,7 @@ describe("process lifecycle (spec §4.6)", () => {
     const port = await freePort();
     const p = startRaw(home, port, { BRIDGE_LOG_LEVEL: "debug" });
     p.rpc(1, "initialize", initialize);
-    await sleep(500);
-    const token = readFileSync(join(home, "token"), "utf8").trim();
+    const token = await tokenOf(home, port);
     const mock = startMock({ token, port });
     cleanup.push(() => mock.close());
     await mock.welcomed();
@@ -209,8 +229,7 @@ describe("process lifecycle (spec §4.6)", () => {
     const port = await freePort();
     const first = startRaw(home, port);
     first.rpc(1, "initialize", initialize);
-    await sleep(500);
-    const token = readFileSync(join(home, "token"), "utf8").trim();
+    const token = await tokenOf(home, port);
     const mock = startMock({ token, port, fileName: "Shared File" });
     cleanup.push(() => mock.close());
     await mock.welcomed();

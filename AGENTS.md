@@ -95,12 +95,14 @@ All must exit 0; CI runs them on Node 22 and 24 on Ubuntu, Windows and macOS (ma
 
 | Document | Role |
 |---|---|
-| [`README.md`](README.md) | Entry point for users: what Figxel does, requirements, Quickstart, configuration, privacy, troubleshooting. Shown on npm too, so it carries no internal history |
+| [`README.md`](README.md) | Entry point for users: what Figxel does and why, requirements, Quickstart, demos, an FAQ, and short notes on configuration, troubleshooting and privacy that link to the full pages. Shown on npm too, so it carries no internal history |
 | [`docs/usage.md`](docs/usage.md) | **How to use Figxel, for people**: the first session, briefs and gears, example requests with what to expect, reviewing and undoing the agent's work, `BRIDGE_PROCESS`, tips |
 | [`docs/reference/roadmap.md`](docs/reference/roadmap.md) | Status, phase plan, next steps, the Phase 0 order, locked decisions, and why Figxel uses a plugin |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development setup, conventions, tracked claims, locked documents, pull requests, releasing |
 | [`SECURITY.md`](SECURITY.md) | How to report a security problem; the security design itself is spec §9 |
-| [`docs/clients.md`](docs/clients.md) | Per-app setup: the server entry, config files per OS, tool limits, timeouts, installing the skills |
+| [`docs/clients.md`](docs/clients.md) | Per-app setup: how it works, setup and its install details, the server entry, config files per OS, tool limits, timeouts, installing the skills, updating and uninstalling |
+| [`docs/configuration.md`](docs/configuration.md) | Every setting (the `BRIDGE_*` environment variables), its default, and where to set it |
+| [`docs/troubleshooting.md`](docs/troubleshooting.md) | The full list of known problems and their fixes, and the privacy details behind the README's short notes |
 | [`docs/superpowers/specs/`](docs/superpowers/specs/) | The design spec — source of truth for architecture, safety, roadmap |
 | [`docs/reference/tools.md`](docs/reference/tools.md) | **Source of truth for the tool list.** Counts in headings are parsed by a script |
 | [`docs/reference/protocol.md`](docs/reference/protocol.md) | Wire-level protocol between bridge and plugin |

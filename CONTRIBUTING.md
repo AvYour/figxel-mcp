@@ -192,7 +192,7 @@ On macOS and Linux, make sure the hook file is executable: `chmod +x .githooks/p
 
 - **Keep it small and focused**: one concern per pull request. For a new tool or a larger change, open an issue first so the shape can be agreed.
 - **Test it.** Add or update tests; `npm run check` and `node scripts/check-language.mjs` must pass.
-- **Update the documents that own the change**: `docs/reference/tools.md` (and the editor table in `src/shared/editors.ts`) for a tool, `docs/reference/protocol.md` for the wire protocol, `src/skills/` for agent guidance, `README.md` for anything a user sees.
+- **Update the documents that own the change**: `docs/reference/tools.md` (and the editor table in `src/shared/editors.ts`) for a tool, `docs/reference/protocol.md` for the wire protocol, `src/skills/` for agent guidance, `README.md` and the user pages in `docs/` (`usage.md`, `clients.md`, `configuration.md`, `troubleshooting.md`) for anything a user sees.
 - **List new external facts** for the maintainers to register (see [Proposing a new claim](#proposing-a-new-claim)).
 - **Say what ran live**, if anything: the operating system, the Figma desktop version, the spike, and its file under `spikes/results/`. Remove personal data (your Figma user name and id, file names, paths with your user name) from anything you attach.
 - **Write commit messages in English**, in the style of the history: `feat:`, `fix:`, `docs:`, `chore:`.

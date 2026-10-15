@@ -5,204 +5,192 @@
   </picture>
 </p>
 
-# Figxel
+<p align="center"><strong>Let your AI agent read, design and animate in your Figma files.</strong></p>
 
-**Let your AI agent read and edit your Figma files.** Figxel is a local MCP server that works with Figma desktop. Through a small plugin that you run in Figma, an AI app such as Claude, Cursor or VS Code can read, build and change designs in Figma Design, FigJam and Figma Slides files. It also ships skills that teach the agent to design, storyboard, animate and critique its own work.
+<p align="center">
+  <a href="https://www.npmjs.com/package/figxel-mcp"><img src="https://img.shields.io/npm/v/figxel-mcp" alt="npm version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/figxel-mcp" alt="license: MIT"></a>
+  <a href="https://github.com/AvYour/figxel-mcp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/AvYour/figxel-mcp/ci.yml?branch=main&amp;label=CI" alt="CI status"></a>
+</p>
+
+<p align="center">
+  <img src="assets/demo/build.gif" alt="An AI agent building a landing hero in Figma through Figxel" width="720">
+  <br>
+  <sub>One prompt in, real editable layers out: an agent builds a landing hero in Figma desktop.</sub>
+</p>
+
+**Figxel** is a local MCP server with a small Figma desktop plugin. With it, an AI app such as Claude, Cursor or VS Code can read, build and animate real designs in the file you have open, guided by skills that teach it to work like a designer.
 
 > Figxel is not affiliated with, endorsed or sponsored by Figma, Inc. Figma is a trademark of Figma, Inc.
 
-npm package: `figxel-mcp` · license: MIT · version 0.1.0, the first public release · tested live on Windows; macOS has not been run live yet (see [Troubleshooting](#troubleshooting)).
+Tested live on Windows; macOS has not been run live yet.
 
-Ids such as `[C-273]` point to the [claim registry](docs/reference/claims.md), where every external fact these documents rely on has its source and the date it was checked.
+> **Temporary:** 0.1.1 is waiting to be published to npm. Until then `npx figxel-mcp@latest` installs 0.1.0, whose `setup` does not know `--register`: run `setup` without it and import the plugin by hand (see [Install details](docs/clients.md#install-details)).
+
+## Why Figxel
+
+- **It works with the AI app you already use.** Claude, Cursor, VS Code, Codex, Gemini CLI or any other app that runs local MCP servers, whatever model it runs.
+- **It reads and writes your real Figma file.** A plugin runs in Figma desktop, so the agent makes editable layers, components and variables in the file you have open.
+- **The agent works like a designer.** Its skills teach it to write a brief, compare directions and check every section it builds. For motion the tools enforce the process: a plan before the first keyframe, a passing check before the final render.
+- **It is local and open source.** The server runs on your machine and listens only on `127.0.0.1`. MIT licensed.
 
 ## What you can do
 
-Ask your agent, in plain words, and it uses these tools:
+Ask in plain words; the agent picks the tools.
 
-- **Read a design.** Layer trees with paging, design context for writing code, screenshots and exports (PNG, JPG, SVG, PDF), variables, styles, fonts and search.
-- **Build and edit.** A whole section in one call from a JSON spec (`figma_create_from_spec`), or frame by frame: text, shapes, images, SVG, auto-layout, constraints, fills, strokes and effects. Each tool call is one Ctrl+Z step in Figma.
-- **Work with a design system.** Components, variants, instances and component properties; paint, text, effect and grid styles; variables with modes and scopes; library assets imported by key.
-- **Prototype and animate.** Reactions and prototype flows, keyframe animation (`figma_set_keyframes`), and video export to MP4, GIF or WebM (`figma_export_video`) `[C-026]`. `figma_review_video` cuts a render into contact sheets and stills so the agent can judge it frame by frame (it needs ffmpeg).
-- **Animate like a motion designer, enforced.** By default the tools hold an agent to a motion designer's order: it reads the motion skill and records the piece's brief and beats with `figma_set_motion_plan` before the first keyframe, and the final render waits until `figma_check_motion` passes. Previews always render. `BRIDGE_PROCESS` (see [Configuration](#configuration)) turns the refusals into warnings or off.
-- **Storyboard.** `figma_create_storyboard` lays out timed panels for a motion piece. `figma_create_animatic` plays a board back at its planned pace; it is built and unit-tested, and refuses to write until its live run is recorded.
-- **Check its own work.** `figma_check_layout` measures a frame for text that overflows instead of wrapping, clipped or overlapping content, low contrast, placeholder copy, raw colours where the file has styles or variables, and finish defects. `figma_check_motion` checks keyframes against motion rules. Both return numbers and a suggested fix, not opinions.
-- **FigJam and Figma Slides.** Reads run in every editor today. The board and deck tools (stickies, connectors, tables, slides, transitions and more) are built and unit-tested, but their writes stay refused until a live run on a real board or deck verifies them. `figma_status` lists what runs in each open file.
-- **Follow a process, not just call tools.** Eleven skills (workflow, design, storyboard, motion, critique, design system, design to code, code to design, prototype, FigJam and Slides) reach every app through `figma_get_guide`, ten MCP prompts and `skill://` resources.
+- **Read a design**: layers, design context for writing code, screenshots and exports (PNG, JPG, SVG, PDF), variables, styles and fonts.
+- **Build and edit**: a whole section in one call (`figma_create_from_spec`) or frame by frame. Each call is one Ctrl+Z step in Figma.
+- **Work with a design system**: components and variants, styles, variables with modes, and library assets.
+- **Prototype and animate**: prototype flows, keyframes, storyboards and video export, checked with `figma_check_motion`.
+- **Check its own work**: `figma_check_layout` finds overflowing text, clipped or overlapping content, low contrast and placeholder copy, and suggests the fix.
+- **FigJam and Figma Slides**: reads work today; board and deck writes stay refused until a live run verifies them.
+- **Follow a process**: eleven skills, from design and motion to critique, reach every app through `figma_get_guide`, MCP prompts and `skill://` resources.
 
-That is 133 tools by default, plus `figma_eval` (raw Plugin API JavaScript) when you opt in. The full list is in the [tool catalog](docs/reference/tools.md).
-
-### What it does not do
-
-- It cannot start the plugin for you. Figma has no command line or link that runs a plugin `[C-016]`, so you open it once per Figma session.
-- It does not lift your Figma plan's limits. The Plugin API applies the same plan rules as the editor `[C-045]`: a Starter file still has at most 3 pages `[C-048]` and no variable modes `[C-047]`.
-- It has no reach into Figma's hosted services: Code Connect, AI generation, and library search for components and styles are out of a plugin's reach ([tools.md § Not implemented](docs/reference/tools.md#not-implemented)).
-- It does not run on Linux, because Figma desktop has no Linux build `[C-273]`.
-
-## How it works
-
-```
-Your AI app (Claude Desktop, Claude Code, Cursor, VS Code, Codex, …)
-        │  MCP over stdio
-        ▼
-figxel-mcp (Node.js): MCP server + local bridge on ws://127.0.0.1:38452
-        │  WebSocket, loopback only, token handshake
-        ▼
-Figxel plugin in Figma desktop: ui.html (WebSocket) ⇄ code.js (Plugin API)
-```
-
-- **Your AI app starts the server** with `npx`. Nothing runs as a background service.
-- **The plugin connects to the server** on your own machine. It has to be running in Figma: open it once per Figma session. It then reconnects by itself (within 3 s) every time an app starts the server, so you do not reopen it per chat.
-- **Several apps share one connection.** The first server process to bind the port holds the Figma connection and the others share it. When the app that holds it exits, another takes over within seconds ([spec §4.2](docs/superpowers/specs/2026-10-06-figma-mcp-design.md#42-one-process-not-two)).
+That is 133 tools by default: see the [tool catalog](docs/reference/tools.md).
 
 ## Requirements
 
-- **Figma desktop** on macOS 12 or later, or Windows 10 or later (64-bit) or Windows on Arm `[C-273]`. Development plugins run only in the desktop app `[C-274]`.
-- **Node.js 22 or later.** Node 22 is maintained upstream until 2027-04-30 `[C-292]`.
-- **An AI app that runs local (stdio) MCP servers.** Any app works; [docs/clients.md](docs/clients.md) has the setup for the common ones.
-- **Optional: ffmpeg** (it brings ffprobe) on your PATH, or named by `BRIDGE_FFMPEG`, for `figma_review_video` and the frames `figma_export_video` returns. `figma_status` says whether it runs.
+- **Figma desktop** on macOS 12 or later, or Windows 10 or later (64-bit) or Windows on Arm `[C-273]`.
+- **Node.js 22 or later.**
+- **An AI app that runs local (stdio) MCP servers** ([setup per app](docs/clients.md)).
+- **Optional: ffmpeg** on your PATH, so the agent can review its video renders frame by frame.
 
 ## Quickstart
 
-**1. Quit Figma desktop, then run setup** in a terminal:
+1. **Quit Figma desktop completely, then run setup** in a terminal. On Windows, closing Figma's window is not enough: quit it from its icon in the notification area `[C-341]`.
 
-```bash
-npx -y figxel-mcp@latest setup --register
-```
+   ```bash
+   npx -y figxel-mcp@latest setup --register
+   ```
 
-Quit Figma completely first: closing its window leaves it running in the background on Windows, so quit it from its icon in the notification area too `[C-341]`. Setup then:
+   Setup creates a token, copies the plugin into `~/.figxel/plugin`, lists it in Figma's development plugins `[C-323]`, and prints the token and the entries for your AI app.
 
-- creates a token and copies the plugin into `~/.figxel/plugin`;
-- **lists the plugin in Figma desktop** by writing into Figma's own settings file the entries an import would write, so there is nothing to import `[C-319]` `[C-323]`;
-- prints the token and the entries for your AI app. `-y` skips npx's install prompt `[C-282]`.
+2. **Run the plugin.** Open Figma and a file, choose **Plugins → Development → Figxel**, paste the token and press **Save**. You paste the token once, and run the plugin once per Figma session ([why](#why-do-i-have-to-start-the-plugin-myself)).
 
-It backs up Figma's settings file first (`settings.json.figxel-backup-<time>`, next to it), refuses while Figma runs because Figma writes that file itself `[C-321]`, refuses a file that is not in the measured form, and changes only Figxel's entries. Add `--dry-run` to see the change without writing. If you already imported Figxel from another folder, setup keeps that registration and says so; `--force` moves it to `~/.figxel/plugin`. `setup --unregister` removes the entries again. This was measured on Windows; on macOS it is experimental `[C-324]`, and there is no Linux build of Figma `[C-273]`.
+3. **Add the server to your AI app.** In Claude Desktop, **Settings → Developer → Edit Config** opens `claude_desktop_config.json` `[C-277]`. Add Figxel under `mcpServers`:
 
-**2. Run the plugin in Figma desktop.** Open Figma and a file, choose **Plugins → Development → Figxel**, paste the token setup printed, and press **Save** — once: the plugin window then shows the same token fingerprint as setup. Running the plugin stays a manual step, once per Figma session `[C-016]`.
+   ```json
+   {
+     "mcpServers": {
+       "figxel": { "command": "npx", "args": ["-y", "figxel-mcp@latest"] }
+     }
+   }
+   ```
 
-*If Figxel is not in that menu* (or you would rather not let setup touch Figma's settings), run `npx -y figxel-mcp@latest setup` without `--register` and import the plugin by hand: in the Figma menu choose **Plugins → Development → Import plugin from manifest…** (Figma's Help Center calls it "Import new plugin from manifest...") and pick `~/.figxel/plugin/manifest.json`, or `C:\Users\<you>\.figxel\plugin\manifest.json` on Windows `[C-274]`. Either way you do this once: the path stays the same across updates `[C-275]`.
+   On Windows, start it through `cmd`, because an app that starts `npx` without a shell fails there `[C-281]`:
 
-**3. Add the server to your AI app.**
+   ```json
+   {
+     "mcpServers": {
+       "figxel": { "command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"] }
+     }
+   }
+   ```
 
-Claude Desktop: open Settings → Developer → Edit Config, which opens `claude_desktop_config.json` `[C-277]` (`~/Library/Application Support/Claude/` on macOS, `%APPDATA%\Claude\` on Windows, also for the Microsoft Store build `[C-278]`). Add the entry inside `mcpServers`:
+   In Claude Code, this command works on every operating system `[C-279]` `[C-280]`:
 
-```json
-{
-  "mcpServers": {
-    "figxel": { "command": "npx", "args": ["-y", "figxel-mcp@latest"] }
-  }
-}
-```
+   ```bash
+   claude mcp add -s user figxel -- npx -y figxel-mcp@latest
+   ```
 
-On Windows, use `cmd /c` instead: a program that starts `npx` without a shell fails there, while `cmd` starts it `[C-281]`.
+   Other apps: [docs/clients.md](docs/clients.md).
 
-```json
-{
-  "mcpServers": {
-    "figxel": { "command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"] }
-  }
-}
-```
+4. **Try it.** Restart your AI app (quit Claude Desktop completely `[C-277]`) and ask it to *call figma_status*: it should list your open file. Then ask for real work, such as *"Design a landing hero for Slow Wheel, a fictional pottery studio."* [Using Figxel](docs/usage.md) shows how to brief the agent and review its work.
 
-Claude Code, on every operating system `[C-279]`:
+Setup's backup of Figma's settings, `--dry-run`, `--force`, `--unregister`, the manual import and the macOS status: [Install details](docs/clients.md#install-details).
 
-```bash
-claude mcp add -s user figxel -- npx -y figxel-mcp@latest
-```
+## See it in action
 
-On Windows this plain form works because Claude Code starts servers through `cmd.exe` itself `[C-280]`. Setup prints a `cmd /c` variant for Windows; the plain form is the one measured in Claude Code.
+> Design a landing hero for Slow Wheel, a fictional pottery studio.
 
-Other apps: see [Use it from your AI app](#use-it-from-your-ai-app).
+The build at the top of this page, finished: four sections in four calls, then `figma_check_layout` found seven warnings (low contrast, a chip outside its frame, a sizing conflict) and the agent fixed them in one undoable `figma_batch`.
 
-**4. Try it.** Restart your AI app (quit Claude Desktop completely, then start it again `[C-277]`), and ask it to *call figma_status*. It should list your open file. Then ask for real work, for example *"In this file, design a landing page hero for a fictional pottery studio."* The agent reads its skill through `figma_get_guide` before it designs, animates or reviews. Apps that show MCP prompts also offer ten starting points such as `design_in_figma` and `storyboard_motion` ([what each one does](docs/agents/using-the-mcp.md#prompts)). [Using Figxel](docs/usage.md) shows how to brief the agent, with example requests and how to review its work.
+<p align="center"><img src="assets/demo/slow-wheel-hero.png" alt="The finished Slow Wheel landing hero, as exported from Figma" width="720"></p>
 
-Installing the skills into an app that loads Agent Skills is optional: [docs/clients.md § Installing the skills](docs/clients.md#installing-the-skills).
+> Animate this end card for a fictional run club: hook, schedule, call to action.
 
-## Use it from your AI app
+Keyframes set in Figma, rendered by `figma_export_video` and checked frame by frame with `figma_review_video`:
 
-Every app runs the same stdio command, `npx -y figxel-mcp@latest` (`cmd /c npx -y figxel-mcp@latest` on Windows for apps that start it without a shell `[C-281]`). The per-app steps are in [docs/clients.md](docs/clients.md):
+<p align="center"><img src="assets/demo/motion.gif" alt="An AI agent animating a run club end card in Figma through Figxel" width="720"></p>
 
-- **Claude Desktop:** `mcpServers` in `claude_desktop_config.json` `[C-277]`. See the [Quickstart](#quickstart).
-- **Claude Code:** `claude mcp add -s user figxel -- npx -y figxel-mcp@latest` `[C-279]`.
-- **Cursor:** `mcpServers` in `~/.cursor/mcp.json` or a project's `.cursor/mcp.json` `[C-284]`.
-- **VS Code:** its own `servers` format or the portable `mcpServers` one `[C-285]`. A chat request takes at most 128 tools, so trim the toolset (see [Configuration](#configuration)) `[C-286]`.
-- **Codex:** a `[mcp_servers.figxel]` table in `~/.codex/config.toml`, or `codex mcp add` `[C-287]`. Run setup first; see [Troubleshooting](#troubleshooting).
-- **Gemini CLI:** `mcpServers` in `~/.gemini/settings.json`. `gemini mcp add` writes to the current project unless you pass `-s user` `[C-288]`.
-- **Windsurf (Devin Desktop):** `mcpServers` in its `mcp_config.json`. Cascade allows 100 tools at a time, so trim the toolset `[C-289]`.
-- **Any other MCP app** that runs a local stdio server: the command above. See [docs/clients.md](docs/clients.md).
+More to try, with what to expect, in [Using Figxel](docs/usage.md#example-requests):
 
-## Updating
-
-- **With `@latest` in the entry** (as above), npx asks the registry for the newest version each time your app starts the server `[C-283]`. To update, restart the app.
-- **The plugin follows the server.** When a new version starts, the server copies its plugin into `~/.figxel/plugin`. Close the Figxel plugin window in Figma and run it again; Figma reads the plugin files on each run, so there is nothing to re-import `[C-275]`.
-- **`figma_status` tells you what is stale.** Its hint says whether to re-run the plugin or restart the app.
-- **Keep every app on the same entry.** Two apps running different versions copy their own plugin into `~/.figxel/plugin` in turn, each time one of them starts the server.
-
-## Uninstall
-
-1. Remove the `figxel` entry from each AI app's configuration.
-2. In Figma desktop, remove Figxel from your development plugins (under **Plugins → Development**). If setup registered it (`setup --register`), you can instead quit Figma and run `npx -y figxel-mcp@latest setup --unregister`, which removes the entries setup wrote.
-3. Delete the home folder, `~/.figxel` (`%USERPROFILE%\.figxel` on Windows). It holds the token, the plugin copy and, by default, your exports: move any exports you want to keep first.
+- *"Set up colour, spacing and type tokens for this file, then make a Button component with size and state variants."*
+- *"Rebuild the settings screen from `src/app/settings/page.tsx` in Figma."*
+- *"Critique the selected frame as a panel of senior designers, then fix what you find."*
+- *"Summarize the stickies on this FigJam board by theme."*
 
 ## Configuration
 
-Settings are environment variables, set in the environment your AI app starts the server with: an `env` setting in the server entry in Codex `[C-287]` and Gemini CLI `[C-288]`, `--env KEY=value` in Claude Code `[C-279]`, and the other apps as [docs/clients.md](docs/clients.md) shows. Flags accept only `0` or `1`, and an invalid value stops the server with a message on stderr.
+Settings are environment variables in your AI app's server entry. The two you are most likely to change:
 
-| Variable | Default | What it does |
-|---|---|---|
-| `BRIDGE_TOOLSET` | `full` | Which tools to register: `full`, `core` (a curated 20-tool set), `none` (only `figma_status`), or a comma list of groups: `meta`, `read`, `create`, `modify`, `style`, `export`, `eval`. Use it for apps with a tool limit, such as VS Code (128 `[C-286]`) and Windsurf (100 `[C-289]`), or untick tools in the app's own picker. Group sizes: [tools.md](docs/reference/tools.md) |
-| `BRIDGE_ALLOW_EVAL` | `0` | `1` registers `figma_eval`, which runs Plugin API JavaScript. The toolset must include the `eval` group (`full` does) |
-| `BRIDGE_ALLOW_UNVERIFIED` | `0` | `1` lets this process run writes that are not yet verified in a file's editor. Meant for measuring runs |
-| `BRIDGE_PROCESS` | `strict` | How the motion process is enforced `[C-338]`. `strict`: keyframe tools answer `PROCESS_REQUIRED` until the agent has read the motion skill and stored a plan for the frame (`figma_set_motion_plan`), and a final video render (`final: true`) waits for a passing `figma_check_motion`. `guided`: those calls run and their results list the skipped steps as `processWarnings`. `off`: no checks. Any other value stops the server |
-| `BRIDGE_HOME` | `~/.figxel` | Holds the token, the plugin copy and the exports |
-| `BRIDGE_EXPORT_DIR` | `<home>/exports` | Where a relative `saveTo` path goes |
-| `BRIDGE_EXPORT_ROOTS` | *(empty)* | More folders that exports may write to. Separate them with `;` on Windows and `:` on macOS and Linux |
-| `BRIDGE_SESSION_WAIT_MS` | `5000` | How long a call waits for a reconnecting plugin before it answers `NO_SESSION` (0–600000) |
-| `BRIDGE_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. Logs go to stderr, which your app keeps in its MCP log |
-| `BRIDGE_FFMPEG` | `ffmpeg` | The ffmpeg program, as a name on PATH or a full path. A full path also finds `ffprobe` in the same folder |
-| `BRIDGE_FFPROBE` | `ffprobe` | The ffprobe program, when it is not beside `BRIDGE_FFMPEG` or on PATH |
-| `BRIDGE_VIDEO_MAX_WAIT_S` | `45` | The longest one `figma_export_video` call waits for a render (0–600), whatever its `wait` asks. Raise it only for an app whose tool-call timeout is longer than 60 s |
-| `BRIDGE_PORT` | `38452` | For tests only: the plugin always connects to 38452 |
+- **`BRIDGE_TOOLSET`** trims the tool list for apps with a tool limit, such as VS Code (128 tools `[C-286]`) and Windsurf (100 `[C-289]`): `core` registers 20 tools.
+- **`BRIDGE_PROCESS`** sets how strictly the motion process is enforced: `strict` (the default), `guided` (warnings instead of refusals) or `off`.
 
-`BRIDGE_AUTOLAUNCH` is still accepted and does nothing; auto-launch was removed ([roadmap § Opening the plugin](docs/reference/roadmap.md#opening-the-plugin)).
-
-## Privacy
-
-- **Figxel runs on your machine.** The server listens only on `127.0.0.1`, the plugin connects only to it, and Figxel sends nothing to any other service. The agent's edits are ordinary edits in your Figma file.
-- **Your AI app sends what the agent reads to its model provider.** That includes file, page and layer names, text content, the images the agent exports to look at, and the Figma user name and id that `figma_status` shows. The plugin asks Figma for the current user (the `currentuser` permission) so that `figma_status` can name who is connected.
-- **Tools that take a URL** (`figma_import_image`, `figma_create_link_preview`) hand it to Figma, which loads it `[C-076]`.
-- **The token** lives in `~/.figxel/token` (readable only by you on macOS and Linux). The plugin keeps its copy in Figma's plugin storage on your machine, which is not synchronised `[C-276]`. The server never sends the token to your AI app, and never logs it.
-- **Exports** go to `~/.figxel/exports`, or to a folder you allow with `BRIDGE_EXPORT_ROOTS`. Nothing is written anywhere else.
-- **Before you post `figma_status` output in an issue,** remove your Figma user name and id, file and page names, and paths that contain your user name.
+Every setting, its default and where to set it: [docs/configuration.md](docs/configuration.md).
 
 ## Troubleshooting
 
-- **"No Figma plugin is connected" (`NO_SESSION`).** Run the plugin in Figma: **Plugins → Development → Figxel**. If it is not in that menu, quit Figma completely and run `npx -y figxel-mcp@latest setup --register` `[C-323]`, or run `npx -y figxel-mcp@latest setup` and import the manifest it prints `[C-274]`.
-- **"Its token does not match".** Run setup again, which prints the token and its fingerprint, and paste the token into the Figxel plugin window, then press **Save**. The window shows the fingerprint of the token it saved, and `figma_status` shows the server's (`token.fingerprint`).
-- **The plugin says "Connected" but your app says the token does not match, or `PORT_IN_USE`.** Two servers with different token files are running, and the plugin is connected to the other one. `figma_status` names that server's process and token file. Close the other app, or run setup in the same environment as your app (the same user and the same `BRIDGE_HOME`) and restart both.
-- **`PORT_IN_USE`.** Another program, or an older Figxel, holds port 38452. Close it; Figxel takes over within 5 s.
-- **The server does not start on Windows** (for example `spawn npx ENOENT` in the app's log). Use the `cmd /c npx …` form `[C-281]`. Claude Code does not need it `[C-280]`.
-- **Too many tools.** VS Code refuses a request with more than 128 tools `[C-286]` and Windsurf allows 100 `[C-289]`, and Figxel alone registers 133. Set `BRIDGE_TOOLSET` (see [Configuration](#configuration)) or untick tools in the app.
-- **Codex times out on the first start.** Codex waits 10 s for a server to start `[C-287]`, and a first `npx` run has to download the package. Run `npx -y figxel-mcp@latest setup` first: npx keeps the package under the same `figxel-mcp@latest` name the client entry uses `[C-283]`. Or raise `startup_timeout_sec` `[C-287]`.
-- **Long calls time out.** Each app has its own tool-call timeout; [docs/clients.md](docs/clients.md) shows how to raise it. A video render answers with a job id before a short timeout and is collected later.
-- **A video export stalls.** Keep the Figma window restored, not minimized, while it renders: a render stalled for about 40 minutes while the window was minimized, and Figma ends a render it has not finished after about 240 s `[C-198]`.
-- **Every video export times out.** Figma's exporter can get stuck so that every render ends in that limit, small or large; quitting and reopening Figma clears it `[C-318]`. Save your work, quit Figma, reopen it and run the plugin again. `figma_status` counts the timeouts in a row (`videoExport.timeoutsInARow`).
-- **Frames are missing after you installed ffmpeg.** Restart your AI app, or set `BRIDGE_FFMPEG` to its full path: a server may still run with the PATH it started with (not yet measured per app `[C-333]`).
-- **`figma_status` says `restart: "plugin"` or `restart: "client"`.** Close the Figxel plugin window and run it again, or restart your AI app, as the hint says.
-- **macOS.** CI runs the tests on macOS, but nothing has been run live there yet. If something fails, please [open an issue](https://github.com/AvYour/figxel-mcp/issues).
-- **Logs.** The server logs to stderr, which your app keeps; Claude Desktop writes `mcp-server-figxel.log` in `~/Library/Logs/Claude` or `%APPDATA%\Claude\logs` `[C-277]`.
+- **"No Figma plugin is connected" (`NO_SESSION`)**: run the plugin in Figma, **Plugins → Development → Figxel**. Not in that menu? See [Install details](docs/clients.md#install-details).
+- **"Its token does not match"**: run setup again, paste the token it prints into the plugin window and press **Save**.
+- **The server does not start on Windows** (`spawn npx ENOENT` in the app's log): use the `cmd /c npx …` form `[C-281]`.
+- **Too many tools** in VS Code or Windsurf: set `BRIDGE_TOOLSET` ([Configuration](#configuration)).
+- **`figma_status` asks for a restart**: run the plugin again, or restart your AI app, as its hint says.
+
+Port conflicts, timeouts, video exports, macOS and logs: [docs/troubleshooting.md](docs/troubleshooting.md).
+
+## Privacy
+
+- **Figxel runs on your machine.** The server listens only on `127.0.0.1`, the plugin connects only to it, and Figxel sends nothing to any other service.
+- **Your AI app sends what the agent reads to its model provider**: file, page and layer names, text, the images it exports to look at, and your Figma user name and id.
+- **Your token stays local.** It lives in `~/.figxel/token`; the server never sends it to your AI app and never logs it.
+
+More, including the tools that take a URL: [Privacy details](docs/troubleshooting.md#privacy-details).
+
+## Updating and uninstalling
+
+With `@latest` in the entry, restarting your AI app picks up a new version `[C-283]`; then close the Figxel plugin window and run it again. To uninstall, remove the `figxel` entry from each app, remove Figxel from Figma's development plugins and delete `~/.figxel`. Details: [Updating and uninstalling](docs/clients.md#updating-and-uninstalling).
+
+## FAQ
+
+### Is Figxel an official Figma product?
+
+No. Figxel is an independent open-source project; it is not affiliated with, endorsed or sponsored by Figma, Inc.
+
+### Which AI apps does it work with?
+
+Any app that runs local (stdio) MCP servers, with any model: Claude Desktop, Claude Code, Cursor, VS Code, Codex, Gemini CLI and more ([setup per app](docs/clients.md)). Apps with a tool limit need a smaller `BRIDGE_TOOLSET` ([Configuration](#configuration)).
+
+### Do I need a paid Figma plan?
+
+No. Plugins run on the Starter plan and with a Full seat on paid plans; a Dev, Collab or View seat cannot run them in Figma Design `[C-308]`. Your plan's limits still apply `[C-045]`: a Starter file has at most 3 pages `[C-048]` and no variable modes `[C-047]`.
+
+### Why do I have to start the plugin myself?
+
+Figma has no command or link that runs a plugin from outside `[C-016]`. Run it once per Figma session; it reconnects by itself when your AI app restarts the server.
+
+### Does my design data leave my machine?
+
+Figxel itself sends nothing off your machine. Your AI app sends what the agent reads to its model provider, as it does with anything else you share with it ([Privacy](#privacy)).
+
+### Does it run on Linux?
+
+No. Figma desktop has no Linux build, and development plugins run only in the desktop app `[C-273]` `[C-274]`.
 
 ## Documentation
 
 | Document | What is in it |
 |---|---|
 | [Using Figxel](docs/usage.md) | How to work with the agent: the first session, writing a brief, example requests, reviewing and undoing its work, tips |
-| [Using it from any AI app](docs/clients.md) | Setup per app, installing the skills, tool-call timeouts, sharing one Figma connection |
+| [Using it from any AI app](docs/clients.md) | Setup per app, install details, updating and uninstalling, installing the skills, tool-call timeouts, sharing one Figma connection |
+| [Configuration](docs/configuration.md) | Every setting, its default and where to set it |
+| [Troubleshooting](docs/troubleshooting.md) | Known problems with their fixes, and the privacy details |
 | [Using Figxel as an agent](docs/agents/using-the-mcp.md) | How an agent should work: the loop, the skills, prompts and resources, choosing a tool, the safety rules |
 | [Tool catalog](docs/reference/tools.md) | Every tool and its parameters, toolsets, resources, and which editor runs each tool |
 | [Protocol](docs/reference/protocol.md) | The wire protocol between the server and the plugin |
 | [Design spec](docs/superpowers/specs/2026-10-06-figma-mcp-design.md) | Architecture, configuration, limits, safety, errors, testing and decisions |
 | [Roadmap](docs/reference/roadmap.md) | Phases, next steps, locked decisions, and why Figxel uses a plugin |
-| [Claim registry](docs/reference/claims.md) | Every external fact the design relies on, with source and date |
+| [Claim registry](docs/reference/claims.md) | Every external fact the design relies on, with source and date: the ids such as `[C-273]` in these documents |
 | [Contributing](CONTRIBUTING.md) | Development setup, conventions, tracked claims, pull requests |
 
 Figxel was called figma-mcp during development, so dated documents (the design spec's file name, plans and spike results) keep that name.
