@@ -35,6 +35,8 @@ Quit Figma desktop completely (on Windows, closing its window leaves it running:
 npx -y figxel-mcp@latest setup --register
 ```
 
+Until 0.1.1 is published to npm, `figxel-mcp@latest` is 0.1.0, whose setup refuses `--register`: run setup from the [v0.1.1 GitHub Release](https://github.com/AvYour/figxel-mcp/releases/tag/v0.1.1) instead, with `npx -y https://github.com/AvYour/figxel-mcp/releases/download/v0.1.1/figxel-mcp-0.1.1.tgz setup --register`.
+
 `-y` skips npx's install prompt `[C-282]`. Setup creates the plugin token, copies the Figma plugin into `~/.figxel/plugin` (the home folder; `BRIDGE_HOME` moves it), lists the plugin in Figma desktop by writing into Figma's settings file (`%APPDATA%\Figma\settings.json` on Windows) the same entries an import writes, after a backup next to it `[C-275]` `[C-319]` `[C-323]`, and prints the token and ready-made entries for Claude Desktop, Claude Code and any other app. [Install details](#install-details) has the backup, the options and the manual import. Then, in Figma desktop, open or create a file and:
 
 1. Run the plugin: **Plugins → Development → Figxel**. Nothing outside Figma can run a plugin, so you start it once per Figma session `[C-016]`.
