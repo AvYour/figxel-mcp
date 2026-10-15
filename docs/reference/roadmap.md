@@ -92,6 +92,8 @@ Figxel takes the plugin path because it works inside the editor, on the files yo
 
 Figxel does not use Figma's private, internal protocol either: that route was rejected ([ADR #21](../superpowers/specs/2026-10-06-figma-mcp-design.md#13-decisions-adr-lite)).
 
+**The plugin stays a development plugin, installed by `setup`.** Figma Community does not list plugins that give AI programmatic access to files outside the official MCP server `[C-303]`; Figxel's plugin was submitted on 2026-10-15 and rejected the same day for overlapping with the Figma MCP server `[C-342]`.
+
 ### Opening the plugin
 
 **The plugin needs to be opened once per Figma session**, not per tool call and not per agent session. A plugin that does not close itself keeps running `[C-011]`, and Figxel's plugin reconnects to the server within 3 s every time an app starts it. Open Figma in the morning, run the plugin once, and the agent can work all day without a click.
