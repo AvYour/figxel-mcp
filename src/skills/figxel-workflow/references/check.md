@@ -19,8 +19,9 @@ Audits, on request: figma_check_layout { nodeId, audit: ["tokens", "names", "fon
 - tokens: unbound_color (warning), unbound_spacing / unbound_radius (info) — raw values where the file has tokens; `suggest` names the variable to bind.
 - names: duplicate_name (warning) — two components with one name on a page, or two variants with one name in a set.
 - fonts: wrong_font (warning) for free text outside expectFonts, ds_font_gap (info) inside instances or text styles; without expectFonts, `fonts` counts text per family.
+- handoff: before you hand a frame on. `handoff` gives the share of solid paints, texts, auto-layout spacing and corner radii bound to variables or styles, with a one-line verdict; detached_instance (warning) is a frame detached from a component — put an instance back; duplicate_style (info) is a local style that repeats another style or a variable — keep one source.
 
-After a library or a code-to-design build, run all three.
+After a library or a code-to-design build, run tokens, names and fonts; before a handoff, add handoff.
 
 ## Craft and tells — the finish a critic measures
 
@@ -34,4 +35,4 @@ figma_export_node — the render, for judgement: spacing rhythm, alignment, hier
 
 Motion: figma_check_motion { nodeId, fps } checks the keyframes frame by frame with no render — pops, one frame carrying most of a move, dead stretches, read times — and figma_review_video measures a rendered file. The critique skill runs all of it in rounds.
 
-Evidence (claim ids, for maintainers): [C-207] [C-248] [C-212] [C-270]
+Evidence (claim ids, for maintainers): [C-207] [C-248] [C-212] [C-270] [C-343]

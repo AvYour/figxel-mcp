@@ -2,6 +2,16 @@
 
 Notable changes to `figxel-mcp`, newest first. A version marked **Unreleased** has not been published yet; its heading gets the release date when it is tagged ([CONTRIBUTING.md § Releasing](CONTRIBUTING.md#releasing)).
 
+## 0.1.2 — Unreleased
+
+### Added
+
+- **`figma_check_layout { audit: ["handoff"] }`: can this frame be handed on?** It reports the share of the frame's solid paints, texts, auto-layout spacing and corner radii that are bound to the file's variables or styles, as numbers and a one-line verdict. It also flags a frame detached from a component (`detached_instance`, a warning that names the component), and a local style the frame uses that repeats another style or a colour variable (`duplicate_style`, info). A file with nothing to bind to yet is told so instead of being graded. Asked for by a designer after the launch.
+
+### Fixed
+
+- **The release workflow** uploads the plugin zip to a GitHub Release made by hand instead of failing on it.
+
 ## 0.1.1 — 2026-10-14
 
 ### Added

@@ -295,16 +295,16 @@ describe("the figma_check_layout schema", () => {
   });
   const call = async (args: Record<string, unknown>) => (await client.callTool({ name: "figma_check_layout", arguments: args })) as { isError?: boolean };
 
-  it("takes craft and tells, a safe area and a size floor, and forwards them as sent", async () => {
+  it("takes craft, tells and handoff, a safe area and a size floor, and forwards them as sent", async () => {
     forwarded.length = 0;
-    const args = { nodeId: "1:2", audit: ["tokens", "names", "fonts", "board", "craft", "tells"], safeArea: "64,250,952,1330", minTextSize: 28 };
+    const args = { nodeId: "1:2", audit: ["tokens", "names", "fonts", "board", "craft", "tells", "handoff"], safeArea: "64,250,952,1330", minTextSize: 28 };
     expect((await call(args)).isError).toBeFalsy();
     expect(forwarded).toEqual([{ op: "check_layout", params: expect.objectContaining(args) }]);
   });
 
-  it("refuses a seventh audit, an unknown one, a safe area that is not a string and a floor under 1 — before the plugin is asked", async () => {
+  it("refuses an eighth audit, an unknown one, a safe area that is not a string and a floor under 1 — before the plugin is asked", async () => {
     forwarded.length = 0;
-    expect((await call({ audit: ["craft", "tells", "tokens", "names", "fonts", "board", "craft"] })).isError).toBe(true);
+    expect((await call({ audit: ["craft", "tells", "tokens", "names", "fonts", "board", "handoff", "craft"] })).isError).toBe(true);
     expect((await call({ audit: ["craft", "vibes"] })).isError).toBe(true);
     expect((await call({ safeArea: [64, 250, 952, 1330] })).isError).toBe(true);
     expect((await call({ minTextSize: 0.5 })).isError).toBe(true);

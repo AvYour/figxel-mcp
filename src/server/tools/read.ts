@@ -160,15 +160,16 @@ export function registerRead(server: McpServer, bridge: Bridge, wanted: (op: str
     wanted,
     "check_layout",
     "Check a design for defects",
-    "After each section you build and before calling anything done: a designer's last look, in numbers " +
+    "After each section and before calling anything done: a designer's last look, in numbers " +
       "(figma_export_node shows the picture). Per node, with a number and fix: text overflowing, collapsed, " +
       "overlapping or painted over; content clipped or sticking out; a fill child in a hug parent; stacked frames; " +
       "placeholder copy (\"Lorem ipsum\", \"Acme\"); low contrast (WCAG); zero-size nodes, empty frames, default names; " +
-      "on a slide, content off it, bleeds, text its edge cuts. `audit` adds passes: tokens (raw values, with the " +
-      "variable to bind), names (duplicate components, variants), fonts (families; `expectFonts` flags others), board " +
-      "(FigJam: sections, stickies, connectors), craft (finish: near-equal sizes, unshared edges, near-touches, edges " +
-      "or strokes through text, old-style figures, contrast on shapes, faint hairlines, a sunk block; `safeArea`, " +
-      "`minTextSize`), tells (the generated look, info only). `ok: true` = no errors or warnings. Default: the " +
+      "on a slide, content off it, bleeds, cut text. `audit` adds passes: tokens (raw values, with the " +
+      "variable to bind), names (duplicate components, variants), fonts (`expectFonts` flags others), board " +
+      "(FigJam rules), craft (finish: near-equal sizes, unshared edges, near-touches, lines " +
+      "through text, old-style figures, shape contrast, faint hairlines, a sunk block; `safeArea`, `minTextSize`), " +
+      "tells (the generated look, info only), handoff (share bound to variables or styles, detached instances). " +
+      "`ok: true` = no errors or warnings. Default: the " +
       "selection, then the page (Slides: focused slide). Reads only.",
     {
       nodeId: z.string().optional().describe("The frame or section to check. Defaults to every selected node, then the page."),
@@ -177,10 +178,10 @@ export function registerRead(server: McpServer, bridge: Bridge, wanted: (op: str
       limit: z.number().int().min(1).max(1000).optional().describe("Max findings returned. Default 100."),
       maxNodes: z.number().int().min(1).max(50000).optional().describe("Stop after this many nodes. Default 3000."),
       audit: z
-        .array(z.enum(["tokens", "names", "fonts", "board", "craft", "tells"]))
-        .max(6)
+        .array(z.enum(["tokens", "names", "fonts", "board", "craft", "tells", "handoff"]))
+        .max(7)
         .optional()
-        .describe("QA passes to add: tokens, names, fonts, board, craft (finish defects), tells (the generated look; info only)."),
+        .describe("QA passes to add: tokens, names, fonts, board, craft (finish defects), tells (the generated look; info only), handoff (how much is bound to the system)."),
       expectFonts: z.array(z.string()).max(20).optional().describe('Font families the design should use, e.g. ["Inter"]; implies the fonts audit.'),
       safeArea: z
         .string()

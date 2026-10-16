@@ -26,7 +26,7 @@ Create a system when the file has none and the user wants one (topic "library" h
 - components: build the element (a spec with type "component", or an existing frame + figma_convert_to_component), then make it configurable with figma_add_component_property (TEXT for labels, BOOLEAN to show/hide an icon, INSTANCE_SWAP for a nested icon). Variants: name each component "Size=Large, State=Default", then figma_combine_as_variants. Instances change through figma_set_instance_properties — never detach to edit a label.
 - light/dark: figma_add_variable_mode + figma_set_variable_value per mode (extra modes need a paid Figma plan — Figma's refusal is returned as is). A mode shows nowhere until a frame uses it: figma_set_variable_mode { nodeIds: [<frame>], collectionName, mode: "Dark" }.
 
-figma_check_layout lists raw colours when the file has styles or variables they should be bound to; { audit: ["tokens"] } names each unbound colour, spacing and radius.
+figma_check_layout lists raw colours when the file has styles or variables they should be bound to; { audit: ["tokens"] } names each unbound colour, spacing and radius, and { audit: ["handoff"] } gives the share bound to the system, detached instances and duplicate styles.
 
 ## Sections of this skill
 - section `library` (references/library.md, or figma_get_guide { topic: "design-system", section: "library" }) — build a token and component library, in order.

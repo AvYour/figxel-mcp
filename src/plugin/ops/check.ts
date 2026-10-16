@@ -34,6 +34,7 @@ import { tracksToFieldNames } from "../motion-fields.js";
 import { byId, int, str, strList, type FigmaLike, type NodeLike } from "../read.js";
 import { ensureLoaded } from "../pages.js";
 import { tryGet } from "../safe.js";
+import { emptyTally, handoffReport, mergeTally, tallyNode, type HandoffTally } from "../handoff.js";
 import { judgeTells } from "../tells.js";
 import { selectionOf } from "./modify.js";
 
@@ -41,8 +42,8 @@ const api = () => (globalThis as unknown as { figma: FigmaLike }).figma;
 /** The API when there is one: checkLayout itself also runs on bare node trees (tests, other ops). */
 const maybeApi = () => (globalThis as unknown as { figma?: FigmaLike & Any }).figma;
 
-export type AuditKind = "tokens" | "names" | "fonts" | "board" | "craft" | "tells";
-export const AUDITS: readonly AuditKind[] = ["tokens", "names", "fonts", "board", "craft", "tells"];
+export type AuditKind = "tokens" | "names" | "fonts" | "board" | "craft" | "tells" | "handoff";
+export const AUDITS: readonly AuditKind[] = ["tokens", "names", "fonts", "board", "craft", "tells", "handoff"];
 
 export interface CheckOptions {
   /** The QA passes beyond the layout look: unbound tokens, duplicate names, font families. */
@@ -630,6 +631,8 @@ export async function checkLayout(
     census.safeArea = { x: (o?.x ?? 0) + s.x, y: (o?.y ?? 0) + s.y, width: s.width, height: s.height };
     census.safeAreaText = `"${s.x},${s.y},${s.width},${s.height}"`;
   }
+  // audit "handoff": how much of what is here is bound to the file's system (handoff.ts).
+  const handoff: HandoffTally | null = audit.has("handoff") ? emptyTally() : null;
   // Keyframes anywhere: the census measures one state of the motion, not the motion.
   const motion = { found: false, off: false };
 
@@ -851,6 +854,7 @@ export async function checkLayout(
     // An instance's paint and spacing are its component's: judged there, once,
     // not again on every copy of it.
     if (audit.has("tokens") && n.type !== "INSTANCE" && !insideInstance(n)) tokenFindings.push(...unboundTokens(n, a));
+    if (handoff && !insideInstance(n)) tallyNode(handoff, n, a);
 
     if (audit.has("fonts") && n.type === "TEXT") {
       const fromSystem = insideInstance(n);
@@ -950,6 +954,7 @@ export async function checkLayout(
     ...(system ? { system } : {}),
     ...(audit.has("tokens") && opts.deferTokens ? { tokenFindings } : {}),
     ...(audit.has("fonts") ? { fonts: Object.fromEntries([...fonts].sort((x, y) => y[1] - x[1])) } : {}),
+    ...(handoff ? { handoff } : {}),
   };
 }
 
@@ -1014,6 +1019,7 @@ const checkLayoutOp: PluginOp = {
     const fonts = new Map<string, number>();
     const signals = { bound: false, styleIds: new Set<string>() };
     const tokenFindings: TokenFinding[] = [];
+    const handoff = emptyTally();
     let checked = 0;
     let truncated = false;
     let animated = false;
@@ -1043,12 +1049,15 @@ const checkLayoutOp: PluginOp = {
       signals.bound ||= r.signals.bound;
       for (const s of r.signals.styleIds) signals.styleIds.add(s);
       tokenFindings.push(...(r.tokenFindings ?? []));
+      if (r.handoff) mergeTally(handoff, r.handoff);
     }
     // One verdict for the whole selection, from every root's signals: judged
     // per root, a root with nothing bound lost its findings in a file whose
     // other root proved the system exists — exactly the root to flag.
-    const system = audit.has("tokens") ? await designSystem(signals) : undefined;
-    if (system) issues.push(...(await judgeTokens(tokenFindings, system)));
+    const system = audit.has("tokens") || audit.has("handoff") ? await designSystem(signals) : undefined;
+    if (system && audit.has("tokens")) issues.push(...(await judgeTokens(tokenFindings, system)));
+    const handed = system && audit.has("handoff") ? await handoffReport(handoff, signals.styleIds, system) : undefined;
+    if (handed) issues.push(...handed.issues);
 
     const shown = issues.filter((i) => ORDER[i.severity] <= (ORDER[minSeverity] ?? 2)).sort((a, b) => ORDER[a.severity] - ORDER[b.severity]);
     const counts = { error: 0, warning: 0, info: 0 };
@@ -1073,7 +1082,9 @@ const checkLayoutOp: PluginOp = {
         ? {
             audit: {
               ran: [...audit],
-              ...(system ? { designSystem: system.found ? `found: ${system.why}` : `none (${system.why}) — token findings skipped` } : {}),
+              ...(system
+                ? { designSystem: system.found ? `found: ${system.why}` : `none (${system.why})${audit.has("tokens") ? " — token findings skipped" : ""}` }
+                : {}),
               // Bounds read a keyed layer's base (resting) values, not the state at the playhead [C-192].
               ...(animated
                 ? { note: "Layers here have keyframes: craft and tells measure one state — the values the document holds — not the motion. Render it to judge the motion." }
@@ -1082,6 +1093,7 @@ const checkLayoutOp: PluginOp = {
           }
         : {}),
       ...(audit.has("fonts") ? { fonts: Object.fromEntries([...fonts].sort((x, y) => y[1] - x[1])) } : {}),
+      ...(handed ? { handoff: handed.summary } : {}),
       ...(raw.length && hasSystem?.found
         ? {
             rawColors: {

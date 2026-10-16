@@ -173,7 +173,11 @@ describe("level", () => {
     expect(g.loudness).toMatchObject({ integratedLufs: null, truePeakDbtp: null });
   });
 
-  it("30 s of bed and effects in a few seconds", () => {
+  // Faster than real time with room to spare, not a fixed few seconds: alone it
+  // takes about 2–3 s, but under the full suite's parallel load it took 6.3 s on
+  // CI's Ubuntu runner and 7.8 s on a busy Windows machine, and a 5 s limit
+  // failed both. Half of real time still catches a regression that matters.
+  it("30 s of bed and effects renders in under half of real time", () => {
     const started = performance.now();
     generate({
       durationS: 30,
@@ -181,7 +185,7 @@ describe("level", () => {
       bed: { style: "warm-corporate", bpm: 100, sections: [{ from: 0, to: 10, energy: 0.4 }, { from: 10, to: 30, energy: 0.9 }] },
       cues: Array.from({ length: 12 }, (_, i) => ({ t: i * 2.4, type: (["whoosh", "hit", "tick", "riser"] as const)[i % 4]! })),
     });
-    expect(performance.now() - started).toBeLessThan(5000);
+    expect(performance.now() - started).toBeLessThan(15_000);
   });
 });
 
