@@ -25,8 +25,6 @@
 
 Tested live on Windows; macOS has not been run live yet.
 
-> **Temporary:** 0.1.1 is waiting to be published to npm, where `figxel-mcp@latest` is still 0.1.0. Until then the Quickstart's first step runs setup from the [v0.1.1 GitHub Release](https://github.com/AvYour/figxel-mcp/releases/tag/v0.1.1); the `@latest` entry in your AI app moves to 0.1.1 by itself once it is on npm.
-
 ## Why Figxel
 
 - **It works with the AI app you already use.** Claude, Cursor, VS Code, Codex, Gemini CLI or any other app that runs local MCP servers, whatever model it runs.
@@ -60,10 +58,10 @@ That is 133 tools by default: see the [tool catalog](docs/reference/tools.md).
 1. **Quit Figma desktop completely, then run setup** in a terminal. On Windows, closing Figma's window is not enough: quit it from its icon in the notification area `[C-341]`.
 
    ```bash
-   npx -y https://github.com/AvYour/figxel-mcp/releases/download/v0.1.1/figxel-mcp-0.1.1.tgz setup --register
+   npx -y figxel-mcp@latest setup --register
    ```
 
-   Once 0.1.1 is on npm this becomes `npx -y figxel-mcp@latest setup --register`. Setup creates a token, copies the plugin into `~/.figxel/plugin`, lists it in Figma's development plugins `[C-323]`, and prints the token and the entries for your AI app.
+   Setup creates a token, copies the plugin into `~/.figxel/plugin`, lists it in Figma's development plugins `[C-323]`, and prints the token and the entries for your AI app.
 
 2. **Run the plugin.** Open Figma and a file, choose **Plugins → Development → Figxel**, paste the token and press **Save**. You paste the token once, and run the plugin once per Figma session ([why](#why-do-i-have-to-start-the-plugin-myself)).
 
