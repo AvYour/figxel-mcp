@@ -113,13 +113,45 @@ export async function fileNow(bridge: Bridge, session: string, plan?: MotionPlan
   return at(Math.max(Number.NEGATIVE_INFINITY, ...mine.map((s) => s.lastNodesChanged?.at ?? Number.NEGATIVE_INFINITY)));
 }
 
+/**
+ * Every skill this process served, each with how it was first read: the one
+ * ledger both gates read (spec ADR #42 §3.10). figma_get_guide, the prompts and
+ * the skill:// resources note a read once, here; the motion gate asks it for
+ * the motion or storyboard skill, the role gate (role-process.ts) for a role's.
+ */
+export class SkillLedger {
+  private readonly reads = new Map<string, string>();
+
+  /** `short` is the skill's figma_get_guide topic; the first read of each skill is the one kept. */
+  note(short: string, via: string): void {
+    if (!this.reads.has(short)) this.reads.set(short, via);
+  }
+
+  has(short: string): boolean {
+    return this.reads.has(short);
+  }
+
+  /** How `short` was first read, or undefined. */
+  via(short: string): string | undefined {
+    return this.reads.get(short);
+  }
+
+  /** Every skill read, in the order each was first read. */
+  get entries(): Array<{ skill: string; via: string }> {
+    return [...this.reads].map(([skill, via]) => ({ skill, via }));
+  }
+}
+
 export class MotionProcess {
-  private skill: string | null = null;
   private readonly checks = new Map<string, CheckRecord>();
   /** The tools registered on this server, so a refusal can say that figma_check_motion is not among them. */
   registered: ReadonlySet<string> = new Set();
 
-  constructor(readonly mode: ProcessMode) {}
+  /** `ledger` is shared with the role process when createApp builds both. */
+  constructor(
+    readonly mode: ProcessMode,
+    readonly ledger: SkillLedger = new SkillLedger(),
+  ) {}
 
   /** Whether anything is tracked: false only with BRIDGE_PROCESS=off. */
   get active(): boolean {
@@ -128,12 +160,12 @@ export class MotionProcess {
 
   /** How the motion skill was first read in this process, or null. */
   get skillRead(): string | null {
-    return this.skill;
+    return this.ledger.entries.find((e) => MOTION_SKILLS.has(e.skill))?.via ?? null;
   }
 
-  /** A skill was read (`short` is its figma_get_guide topic); only the motion and storyboard skills count. */
+  /** A skill was read (`short` is its figma_get_guide topic); only the motion and storyboard skills count here. */
   noteSkill(short: string, via: string): void {
-    if (this.skill === null && MOTION_SKILLS.has(short)) this.skill = via;
+    this.ledger.note(short, via);
   }
 
   /** figma_check_motion judged the frame of `session` (sessionIdOf). The last check on a frame is the one that counts. */

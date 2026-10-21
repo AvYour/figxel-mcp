@@ -9,6 +9,7 @@ import type { YieldToHost } from "../chunk.js";
 import { ANIMATIC_OPS } from "./animatic.js";
 import { ASSET_OPS } from "./assets.js";
 import { makeBatchOp } from "./batch.js";
+import { BRIEF_OPS } from "./brief.js";
 import { CHECK_OPS } from "./check.js";
 import { COMPONENT_OPS } from "./component.js";
 import { CREATE_OPS } from "./create.js";
@@ -28,6 +29,8 @@ import { STYLE_OPS } from "./style.js";
 import { TOKEN_OPS } from "./tokens.js";
 import { TYPOGRAPHY_OPS } from "./typography.js";
 import { VARIABLE_OPS } from "./variable.js";
+import { STRESS_OPS } from "../stress.js";
+import { TRUST_OPS } from "../trust.js";
 
 // create_from_spec's board types (sticky, shape, table, code, connector) are
 // looked up by name at call time, so they must be registered before the first
@@ -41,6 +44,12 @@ export interface OpContext {
   /** Throttled to protocol.md §2 limits. */
   progress(done: number, total?: number, phase?: string): void;
   isCancelled(): boolean;
+  /**
+   * Nodes this op made or changed that its result does not list — copies it
+   * deleted again — so their change events count as the agent's (trust.ts).
+   * Absent outside the dispatcher.
+   */
+  touched?(ids: readonly string[]): void;
 }
 
 export interface PluginOp {
@@ -72,6 +81,11 @@ export const PLUGIN_OPS: Record<string, PluginOp> = {
   ...SLIDES_OPS,
   ...STORYBOARD_OPS,
   ...ANIMATIC_OPS,
+  ...BRIEF_OPS,
+  // Trust (2026-10-19): get_changes, savepoint and rollback read the plugin's
+  // one change tracker, which code.ts feeds; stress_test is a write.
+  ...TRUST_OPS,
+  ...STRESS_OPS,
   // The lookup runs at call time, so a batch sees this whole table.
   batch: makeBatchOp(() => PLUGIN_OPS),
 };

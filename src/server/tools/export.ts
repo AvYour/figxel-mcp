@@ -27,9 +27,11 @@ import {
   type ExportRoots,
 } from "../exports.js";
 import { bytesOf } from "../binary.js";
+import { withProcessWarnings } from "../motion-process.js";
 import { errorResult, okResult } from "../results.js";
 import { mergePdfs } from "../pdf.js";
-import { forwardTool, type Extra } from "./forward.js";
+import { fileOf, finalExportGate, type RoleGate, type RoleProcess } from "../role-process.js";
+import { addressCall, forwardTool, type Extra } from "./forward.js";
 import { fitDescription } from "./params.js";
 
 /** Above this, a render goes to a file instead of into the context (spec §8). */
@@ -115,11 +117,51 @@ export async function shapeExport(data: unknown, saveTo: string | undefined, roo
   return okResult({ ...meta, path, ...(why ? { note: why } : {}) });
 }
 
-export function registerExport(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean): void {
-  registerExportNode(server, bridge, roots, wanted);
+/** `roles` gates a final export on its deliverables' sign-off (role-process.ts); without it `final` changes nothing. */
+export function registerExport(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean, roles?: RoleProcess): void {
+  registerExportNode(server, bridge, roots, wanted, roles);
   registerSaveScreenshots(server, bridge, roots, wanted);
-  registerFramesToPdf(server, bridge, roots, wanted);
+  registerFramesToPdf(server, bridge, roots, wanted, roles);
   registerDownloadAssets(server, bridge, roots, wanted);
+}
+
+/** `final` on figma_export_node and figma_export_frames_to_pdf, as figma_export_video takes it (spec §3.7). */
+const FINAL = z
+  .boolean()
+  .optional()
+  .describe("The delivery. Under BRIDGE_PROCESS=strict a node that belongs to a brief needs a passing figma_sign_off newer than its last change. Default false: a render to judge, never gated.");
+
+/**
+ * The final-export gate for the nodes an export names (role-process.ts
+ * finalExportGate), after the tool's own checks and before Figma renders
+ * anything. Addressed first, so a pasted link names the id the plugin reads.
+ * With no ids: the deck's page, or the one selected layer; when there is no
+ * telling, strict refuses and guided warns.
+ */
+async function gateFinal(
+  bridge: Bridge,
+  roles: RoleProcess,
+  nodeIds: readonly string[] | undefined,
+  session: string | undefined,
+  again: (ids: readonly string[]) => string,
+  opts: { deck?: boolean; signal: AbortSignal },
+): Promise<RoleGate> {
+  const addressed = await addressCall(bridge, "export_node", nodeIds ? { nodeIds: [...nodeIds] } : {}, session);
+  const file = await fileOf(bridge, addressed.session);
+  let ids = (addressed.params.nodeIds as string[] | undefined) ?? [];
+  if (!nodeIds) ids = opts.deck ? (file.pageId ? [file.pageId] : []) : file.selection.length === 1 ? [file.selection[0]!] : [];
+  if (ids.length === 0) {
+    if (roles.modeFor(file, true).mode === "strict") {
+      return {
+        refusal: new BridgeError(ErrorCode.INVALID_PARAM, "A final export names its deliverable, so its sign-off can be read: pass `nodeId` (or select one layer).", {
+          partial: { created: [] },
+        }),
+        warnings: [],
+      };
+    }
+    return { warnings: ["a final export names its deliverable, so its sign-off can be read: this one named none and was not checked."] };
+  }
+  return finalExportGate(roles, bridge, ids, addressed.session, again(ids), { ...(opts.deck ? { deck: true } : {}), signal: opts.signal });
 }
 
 /** What the plugin's download_assets op returns (src/plugin/ops/export.ts). */
@@ -368,7 +410,7 @@ export function pdfParams(args: Record<string, unknown>): Record<string, unknown
  * pdf-lib (see src/server/pdf.ts for why a dependency was the right call). Page
  * order follows `nodeIds`, as documented — or the deck's own order.
  */
-function registerFramesToPdf(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean): void {
+function registerFramesToPdf(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean, roles?: RoleProcess): void {
   if (!wanted("export_frames_to_pdf")) return;
   const info = OPS.get("export_frames_to_pdf");
   server.registerTool(
@@ -380,13 +422,16 @@ function registerFramesToPdf(server: McpServer, bridge: Bridge, roots: ExportRoo
           "`deck: true` instead exports every slide in presentation order, leaving out skipped slides unless " +
           "`includeSkipped`; the result lists `slideIds` in page order. Each frame is rendered by the plugin and the " +
           "pages are merged by the bridge. A frame that cannot be rendered is reported in `failed[]` and the rest still " +
-          "merge — an unreadable page is worse than a missing one, so nothing is silently substituted.",
+          "merge — an unreadable page is worse than a missing one, so nothing is silently substituted. `final: true` " +
+          "marks the delivery: under BRIDGE_PROCESS=strict every page that belongs to a brief needs a passing " +
+          "figma_sign_off newer than its last change.",
       ),
       inputSchema: {
         nodeIds: z.array(z.string()).min(1).max(200).optional().describe("Frames to export, in page order. Not with `deck`."),
         deck: z.boolean().optional().describe("Figma Slides: true exports every slide of the deck, in order, instead of nodeIds."),
         includeSkipped: z.boolean().optional().describe("With deck: also the slides skipped in the presentation. Default false."),
         outputPath: z.string().describe("Where to write the merged PDF. Same path rules as `figma_export_node`'s `saveTo`."),
+        final: FINAL,
         session: z
           .string()
           .optional()
@@ -407,7 +452,29 @@ function registerFramesToPdf(server: McpServer, bridge: Bridge, roots: ExportRoo
       } catch (err) {
         return refuse(err);
       }
-      return forwardTool(bridge, "export_frames_to_pdf", params, extra, {
+      let warnings: string[] = [];
+      if (args.final === true && roles?.active) {
+        const deck = params.deck === true;
+        let gate: RoleGate;
+        try {
+          gate = await gateFinal(
+            bridge,
+            roles,
+            deck ? undefined : (params.nodeIds as string[]),
+            args.session as string | undefined,
+            (ids) =>
+              deck
+                ? `figma_export_frames_to_pdf { deck: true, outputPath: "${outputPath}", final: true }`
+                : `figma_export_frames_to_pdf { nodeIds: [${ids.map((id) => `"${id}"`).join(", ")}], outputPath: "${outputPath}", final: true }`,
+            { deck, signal: extra.signal },
+          );
+        } catch (err) {
+          return refuse(err);
+        }
+        if (gate.refusal) return refuse(gate.refusal);
+        warnings = gate.warnings;
+      }
+      const exported = await forwardTool(bridge, "export_frames_to_pdf", params, extra, {
         session: args.session as string | undefined,
         shape: async (data) => {
           const d = data as {
@@ -447,14 +514,16 @@ function registerFramesToPdf(server: McpServer, bridge: Bridge, roots: ExportRoo
             ...(failed.length ? { failed } : {}),
             ...(d.slideIds ? { slideIds: pages.map((p) => p.nodeId) } : {}),
             ...(d.skippedSlides?.length ? { skippedSlides: d.skippedSlides } : {}),
+            ...(args.final === true ? { final: true } : {}),
           });
         },
       });
+      return withProcessWarnings(exported, warnings);
     },
   );
 }
 
-function registerExportNode(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean): void {
+function registerExportNode(server: McpServer, bridge: Bridge, roots: ExportRoots, wanted: (op: string) => boolean, roles?: RoleProcess): void {
   if (!wanted("export_node")) return;
   const info = OPS.get("export_node");
   server.registerTool(
@@ -468,8 +537,10 @@ function registerExportNode(server: McpServer, bridge: Bridge, roots: ExportRoot
           "it happened; `scale` asks for an exact size instead). With `saveTo`, or for PDF, or when larger than 5 MB, the " +
           "file is written and its path returned. A relative `saveTo` lands in the export directory; other folders must be " +
           "listed in BRIDGE_EXPORT_ROOTS. If `format` is omitted, the `saveTo` extension decides, else PNG. An animated " +
-          "frame renders at rest: see its motion with figma_export_video, then figma_review_video. Skill: critique " +
-          "(figma_get_guide). For files a codebase ships (presets, original images), use figma_download_assets.",
+          "frame renders at rest: see its motion with figma_export_video, then figma_review_video. `final: true` marks " +
+          "the delivery: under BRIDGE_PROCESS=strict a node of a brief needs a passing figma_sign_off newer than its last " +
+          "change. Skill: critique (figma_get_guide). For files a codebase ships (presets, original images), use " +
+          "figma_download_assets.",
       ),
       inputSchema: {
         nodeId: z.string().optional().describe("The node to render: an id (\"12:34\") or a Figma link. Default: the one selected layer."),
@@ -477,6 +548,7 @@ function registerExportNode(server: McpServer, bridge: Bridge, roots: ExportRoot
         scale: z.number().positive().optional().describe("Exact pixel scale for PNG/JPG; bypasses the size cap."),
         maxSize: z.number().int().min(16).max(4096).optional().describe("Longest side in pixels for PNG/JPG (never upscales). Default 1024 inline."),
         saveTo: z.string().optional().describe("Write to this file instead of returning the render inline."),
+        final: FINAL,
         session: z
           .string()
           .optional()
@@ -518,10 +590,29 @@ function registerExportNode(server: McpServer, bridge: Bridge, roots: ExportRoot
       // An inline look gets the cap by default; a file asked for by path keeps its full size.
       if (args.maxSize !== undefined) params.maxSize = args.maxSize;
       else if (raster && args.scale === undefined && saveTo === undefined) params.maxSize = DEFAULT_MAX_SIZE;
-      return forwardTool(bridge, "export_node", params, extra, {
+      let warnings: string[] = [];
+      if (args.final === true && roles?.active) {
+        let gate: RoleGate;
+        try {
+          gate = await gateFinal(
+            bridge,
+            roles,
+            args.nodeId !== undefined ? [args.nodeId as string] : undefined,
+            args.session as string | undefined,
+            ([id]) => `figma_export_node { nodeId: "${id}", ${saveTo !== undefined ? `saveTo: "${saveTo}"` : "saveTo"}, final: true }`,
+            { signal: extra.signal },
+          );
+        } catch (err) {
+          return refuse(err);
+        }
+        if (gate.refusal) return refuse(gate.refusal);
+        warnings = gate.warnings;
+      }
+      const exported = await forwardTool(bridge, "export_node", params, extra, {
         session: args.session as string | undefined,
         shape: (data) => shapeExport(data, saveTo, roots),
       });
+      return withProcessWarnings(exported, warnings);
     },
   );
 }

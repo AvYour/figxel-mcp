@@ -357,7 +357,7 @@ describe("figma_create_storyboard on the server", () => {
   it("registers its schema and a description that fits the cap with its Editors sentence", () => {
     expect(Object.keys(tool.config.inputSchema)).toEqual([
       "title", "aspect", "fps", "bpm", "beatsPerBar", "panels", "captions", "columns", "thumbWidth", "styleframeWidth", "snap",
-      "pageId", "x", "y", "session", "idempotencyKey",
+      "pageId", "x", "y", "session", "idempotencyKey", "force",
     ]);
     expect(tool.config.description).toMatch(/One undo step\.$/);
     expect(tool.config.description.length + editorsSuffix("create_storyboard").length).toBeLessThanOrEqual(1024);

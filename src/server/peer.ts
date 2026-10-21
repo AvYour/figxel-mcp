@@ -41,6 +41,14 @@ export interface PeerCallOptions {
    * the hub answers other calls with names it. Optional: an older hub strips it.
    */
   jobId?: string;
+  /**
+   * A write's stale-write guard (trust spec §2.3): the proxy's own
+   * BRIDGE_CONFLICTS and the call's `force`, sent on to the plugin as they
+   * are. Like allowUnverified the mode belongs to the process the MCP client
+   * talks to. Optional: an older hub strips it and sends no guard, and the
+   * plugin then refuses nothing.
+   */
+  guard?: { conflicts: "refuse" | "warn" | "off"; force?: boolean; agent?: string };
 }
 
 export type PeerToHub =
@@ -98,6 +106,7 @@ const peerToHub = z.union([
       idleTimeoutMs: z.number().optional(),
       allowUnverified: z.boolean().optional(),
       jobId: str.optional(),
+      guard: z.object({ conflicts: z.enum(["refuse", "warn", "off"]), force: z.boolean().optional(), agent: z.string().max(64).optional() }).optional(),
     }),
   }),
   z.object({ t: z.literal("call-cancel"), id }),

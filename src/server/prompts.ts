@@ -236,6 +236,49 @@ export const PROMPTS: readonly PromptRow[] = [
     },
   },
   {
+    // A judging seat (base workflow §2, decisions §10.1): isolation by context, declared and recorded. Its section
+    // is always `lenses`, where message and originality live; motion's own checklist is a call away, since the
+    // motion-checks section would take the message past the 16,000-byte budget.
+    name: "critique_cold",
+    title: "Review a design cold, from a fresh context",
+    description:
+      "Score the message and originality of a Figma design as a reviewer who did not build it: from the brief, its references and the renders only, the verdict before the numbers, nothing written to the canvas.",
+    args: [
+      { name: "nodeId", description: "The work to review, or its brief: a node id, a brief id or a Figma link. Default: the selection." },
+      {
+        name: "lenses",
+        description: 'Comma-separated lenses. Default: those the gear gives a cold reviewer, message and originality (a brand: positioning; a deck: story; icons: recognition; motion: the brief\'s own lens).',
+      },
+    ],
+    skill: "critique",
+    section: "lenses",
+    preamble: ({ nodeId, lenses }) => {
+      const target = has(nodeId) ? `the Figma node ${nodeId.trim()}` : "the selected design";
+      const named = has(lenses) && lenses.trim().toLowerCase() !== "all" ? lenses.trim() : undefined;
+      return (
+        `Review ${target} cold, as a reviewer who did not build it, with ` +
+        (named
+          ? `these lenses: ${named}.`
+          : "the lenses its gear gives a cold reviewer: message and originality, or the role's own lens for what the work " +
+            "says (brand: positioning; deck: story; icons: recognition; motion: the brief's own lens, with " +
+            'figma_get_guide { topic: "critique", section: "motion-checks" }).') +
+        "\n\nRun in a fresh context: a subagent or a new conversation that saw nothing of the build. If this one holds " +
+        'the build (its calls, notes or reasoning), say so first and mark every score reviewer: "self".\n\n' +
+        `1. Read only: figma_get_brief { nodeId: ${has(nodeId) ? `"${nodeId.trim()}"` : "<the selection>"} } (the brief, ` +
+        "its references, its deliverables); the references it names (render a board of them too); figma_export_node { nodeId } " +
+        "for each deliverable, and the squint at maxSize the long side ÷ 8. Nothing from the build: no notes, critiques " +
+        "or check results.\n" +
+        "2. In your reply, before any check: the cold read (the reading order, first to third, and the one-sentence " +
+        "takeaway), then each lens's verdict, score 1–10 and findings, in the schema below.\n" +
+        '3. Only then figma_check_layout { nodeId, audit: ["craft", "tells"] }: merge its numbers in and say what each ' +
+        "missed, the numbers and your eye. Move a score only for a finding.\n" +
+        "4. Never write to the canvas (no create, edit, delete or sign-off); the builder fixes.\n" +
+        '5. Hand back, for the lead\'s figma_sign_off, [{ lens, score, verdict, remaining?, reviewer: "agent:<your name>" }], ' +
+        "each finding with its fix, and the cold read."
+      );
+    },
+  },
+  {
     name: "build_board",
     title: "Build a FigJam board",
     description: "Build a complete board in the open FigJam file from a short brief — a retro, a brainstorm, a decision board — one zone per call, each one checked.",

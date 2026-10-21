@@ -21,29 +21,74 @@
 // `audit: ["craft"]` adds the finish defects a critic measures (craft.ts) and
 // `["tells"]` the census of the generated look (tells.ts). Both are judged
 // after the walk from a census of every visible layer, collected only when
-// one of them is asked for, so the other checks cost what they did.
+// one of them is asked for, so the other checks cost what they did. So are
+// the role audits (role spec §4): `a11y` (a11y.ts), `states` (states.ts),
+// `copy` (copy.ts), `system` (system.ts), `deck` (deck.ts), `mark` (mark.ts),
+// `icons` (icons.ts) and `library` (library.ts), which read the brief's
+// numbers — platform, viewport, floors, system, room, applications, grid,
+// platforms — when `briefId` (or, from sign-off, CheckOptions.brief) names
+// one. `library` also reads the file's variables, once, before it judges.
+// Without `briefId`, the server sends the brief in force as `briefInForce`,
+// and the brief the checked work belongs to outranks it (briefOfCheck).
+//
+// A brief at the page or top gear binds its `avoid` list (shared/avoid.ts):
+// a finding of a kind it names is a warning, whatever its own severity, and
+// the tells audit runs by default under it (role quality plan W1, W3).
+//
+// A brief block is a working note, not the design: every check skips a node
+// that carries a brief record (src/shared/roles.ts) unless it is the root or
+// one of that brief's own deliverables.
+//
+// Under a motion brief layout is judged where the viewer sees it (roles spec
+// §3.6, decided after the live sign-off of 2026-10-20). A keyed layer's rest
+// pose is one state of the motion and not a frame anyone need see: before a
+// track's first key the first key's value holds and the base value never
+// shows [C-191]. A piece whose scenes stack in one frame rests with every scene
+// on top of the last. So a finding that rests on where keys park a layer —
+// two layers keys move apart, or a moved layer against its clip or the safe
+// area — is counted in `restPose`, not made; static layers, and layers one key
+// moves together, are judged as before. The frames judge the rest.
 
+import { avoidOf, bindAvoid, boundKinds, tellsByDefault } from "../../shared/avoid.js";
 import { BridgeError, ErrorCode } from "../../shared/errors.js";
 import { FIGJAM_TEXT_DEFAULT } from "../../shared/figjam.js";
+import { BRIEF_KEY, BRIEF_NAMESPACE, parseBrief, type BriefRecord } from "../../shared/roles.js";
 import type { OpContext, PluginOp } from "./index.js";
+import { A11Y, type MainInfo, judgeA11y, roleContext, shownInactive, textFloorOf } from "../a11y.js";
 import { OPAQUE_TYPES, childrenOf, connectorLabel, endpointNode, field, guardAll, readView } from "../board-read.js";
+import { fileIndex, workBriefOf } from "../brief-read.js";
 import { contrastRatio } from "../context.js";
-import { type Census, type Layer, indexCensus, judgeCraft, parseMinTextSize, parseSafeArea, textFacts } from "../craft.js";
+import { judgeCopy } from "../copy.js";
+import { type Census, type Layer, inLogotype, indexCensus, judgeCraft, parseMinTextSize, parseSafeArea, textFacts } from "../craft.js";
+import { judgeDeck } from "../deck.js";
+import { judgeIcons } from "../icons.js";
+import { judgeLibrary, readLibrary } from "../library.js";
+import { judgeMark } from "../mark.js";
+import { judgeStates } from "../states.js";
+import { judgeSystem } from "../system.js";
 import { paletteNameOf, paletteNames, type PaletteKind } from "../figjam/palette.js";
 import { tracksToFieldNames } from "../motion-fields.js";
 import { byId, int, str, strList, type FigmaLike, type NodeLike } from "../read.js";
 import { ensureLoaded } from "../pages.js";
 import { tryGet } from "../safe.js";
 import { emptyTally, handoffReport, mergeTally, tallyNode, type HandoffTally } from "../handoff.js";
-import { judgeTells } from "../tells.js";
+import { judgeTells, skeletonAcross, structureOf } from "../tells.js";
 import { selectionOf } from "./modify.js";
 
 const api = () => (globalThis as unknown as { figma: FigmaLike }).figma;
 /** The API when there is one: checkLayout itself also runs on bare node trees (tests, other ops). */
 const maybeApi = () => (globalThis as unknown as { figma?: FigmaLike & Any }).figma;
 
-export type AuditKind = "tokens" | "names" | "fonts" | "board" | "craft" | "tells" | "handoff";
-export const AUDITS: readonly AuditKind[] = ["tokens", "names", "fonts", "board", "craft", "tells", "handoff"];
+export type AuditKind =
+  | "tokens" | "names" | "fonts" | "board" | "craft" | "tells" | "handoff"
+  | "a11y" | "states" | "copy" | "system" | "deck" | "mark" | "icons" | "library";
+export const AUDITS: readonly AuditKind[] = [
+  "tokens", "names", "fonts", "board", "craft", "tells", "handoff", "a11y", "states", "copy", "system", "deck", "mark", "icons", "library",
+];
+/** The audits a role's sign-off adds (role spec §4): judged from the census, with the brief's numbers when there is one. */
+const ROLE_AUDITS: readonly AuditKind[] = ["a11y", "states", "copy", "system", "deck", "mark", "icons", "library"];
+/** The role audits that skip what needs the brief's numbers when no brief is given (named in the result's `audit.brief`). */
+const NEEDS_BRIEF: readonly AuditKind[] = ["system", "deck", "mark", "icons", "library"];
 
 export interface CheckOptions {
   /** The QA passes beyond the layout look: unbound tokens, duplicate names, font families. */
@@ -54,6 +99,13 @@ export interface CheckOptions {
   safeArea?: Rect;
   /** craft: the smallest text size, in px of the frame, that reads on its device. */
   minTextSize?: number;
+  /**
+   * The brief the work answers to (role spec §3.2). The role audits read its
+   * platform, viewport, screens, controls, insets, format and system; craft
+   * takes its minTextSize and safeArea when the caller gives none, and on iOS
+   * the platform's text minimum as min_text's floor.
+   */
+  brief?: BriefRecord;
   /**
    * Return the token findings unjudged (`tokenFindings`) instead of deciding
    * here whether a design system exists. Several roots must be judged
@@ -250,6 +302,23 @@ function lineHeightPx(t: Any): number {
   return size * 1.2;
 }
 
+/** Keyframe fields that move, turn, resize, fade or trim a layer: where it is seen, or whether, changes over the timeline. */
+const MOVES = /^(TRANSLATION_(X|Y|XY)|SCALE_(X|Y|XY)|ROTATION|WIDTH|HEIGHT|OPACITY|PATH_TRIM_(START|END))$/;
+/** Keyframe fields of a container that move its children against it: its size (its clip, its constraints) and its layout's gaps and padding. */
+const MOVES_CHILDREN = /^(WIDTH|HEIGHT|STACK_[A-Z_]+|GRID_[A-Z_]+)$/;
+
+/** What `restPose` says, for figma_check_layout and figma_sign_off alike. */
+export function restPoseNote(moved: number, notJudged: Readonly<Record<string, number>>): string {
+  const n = Object.values(notJudged).reduce((a, b) => a + b, 0);
+  const layers = moved === 1 ? "1 layer here moves" : `${moved} layers here move`;
+  const left =
+    n === 0
+      ? "no finding rested on where they sit at rest."
+      : `${n} finding${n === 1 ? "" : "s"} that rested on where they sit at rest (stacked scenes, parked layers, a strip behind its clip window) ` +
+        `${n === 1 ? "was" : "were"} not made. Judge ${n === 1 ? "it" : "them"} on frames: figma_review_video, or figma_export_video frames.`;
+  return `Under a motion brief layout is judged where the viewer sees it: ${layers} with keys, and ${left} Static layers, and layers one key moves together, were judged as usual.`;
+}
+
 const AUTO_LAYOUT = new Set(["HORIZONTAL", "VERTICAL"]);
 /** Layouts that place their children: spacing there is the layout's rhythm, not a hand-made gap. */
 const FLOW_LAYOUT = new Set(["HORIZONTAL", "VERTICAL", "GRID"]);
@@ -282,7 +351,7 @@ function fontSegments(t: Any): Array<{ family: string; textStyleId: string }> {
 }
 
 /** One visible layer as the craft and tells audits read it: its paint, its place, and a text's facts. */
-function layerOf(n: NodeLike, a: Any, box: Rect, order: number, parent: Any | undefined, view: View): Layer {
+function layerOf(n: NodeLike, a: Any, box: Rect, order: number, parent: Any | undefined, view: View, inactive: boolean): Layer {
   const isText = n.type === "TEXT";
   // A connector's ink is its routed line, not its box (as for `covered`).
   const raw = isText || n.type === "CONNECTOR" ? null : coverage(a, box);
@@ -294,6 +363,7 @@ function layerOf(n: NodeLike, a: Any, box: Rect, order: number, parent: Any | un
     box,
     order,
     inInstance: insideInstance(n),
+    inactive,
     flow: !!parent && FLOW_LAYOUT.has(String(parent.layoutMode)) && a.layoutPositioning !== "ABSOLUTE",
     cover: raw ? clipToAncestors(raw, n, view) : null,
     solid: visibleSolid(a.fills),
@@ -302,6 +372,145 @@ function layerOf(n: NodeLike, a: Any, box: Rect, order: number, parent: Any | un
     stroked: shown(a.strokes),
     ...(isText ? { text: textFacts(a, box, fg && fg.opacity >= 0.99 ? fg.color : null, isLargeText(a) ? 3 : 4.5) } : {}),
   };
+}
+
+/**
+ * True when `n` carries a brief record and is not among that brief's own
+ * deliverables: the brief block, a working note every check skips. A brief
+ * stored on the work itself (figma_set_brief { nodeId }) names the node as a
+ * deliverable once the work is listed, and the root is never skipped. Cheap:
+ * one shared-data read per node, a parse only where a brief is.
+ */
+function isBriefNote(n: NodeLike, a: Any): boolean {
+  const get = a.getSharedPluginData;
+  if (typeof get !== "function") return false;
+  let raw: unknown;
+  try {
+    raw = (get as (ns: string, key: string) => string).call(a, BRIEF_NAMESPACE, BRIEF_KEY);
+  } catch {
+    return false;
+  }
+  if (typeof raw !== "string" || !raw) return false;
+  const parsed = parseBrief(raw);
+  return !("brief" in parsed && parsed.brief.deliverables.indexOf(n.id) >= 0);
+}
+
+/** The brief stored on `id`, read for figma_check_layout { briefId }; refused by name when there is none or it cannot be read. */
+async function briefOn(figma: FigmaLike, id: string): Promise<BriefRecord> {
+  const node = await byId(figma, id);
+  const get = field<(ns: string, key: string) => string>(node, "getSharedPluginData");
+  let raw = "";
+  try {
+    raw = typeof get === "function" ? String(get.call(node, BRIEF_NAMESPACE, BRIEF_KEY) ?? "") : "";
+  } catch {
+    raw = "";
+  }
+  if (!raw) {
+    throw new BridgeError(ErrorCode.INVALID_PARAM,
+      `"${node.name}" (${node.id}) carries no brief. Pass the briefId figma_set_brief returned; figma_get_brief lists the open briefs.`);
+  }
+  const parsed = parseBrief(raw);
+  if ("invalid" in parsed) throw new BridgeError(ErrorCode.INVALID_PARAM, `The brief on "${node.name}" (${node.id}) cannot be read: ${parsed.invalid}.`);
+  return parsed.brief;
+}
+
+/** The brief a check measures against, why that one, and the roots it does not cover. */
+interface ChosenBrief {
+  brief: BriefRecord;
+  /** The call named it, the checked work belongs to it, or it is the brief in force. */
+  from: "briefId" | "node" | "in force";
+  note?: string;
+}
+
+/**
+ * The brief a check measures against: the one `briefId` names; else, when
+ * the server sends the brief in force, the brief the checked work belongs to
+ * — a root's own record, its top-level frame's or a section's, or a brief
+ * listing it (workBriefOf, as figma_get_brief resolves a node, less the
+ * page's brief) — with the brief in force for a root that belongs to none.
+ * A UX screen checked while a motion brief is in force is measured as the
+ * UX screen it is. Roots of different briefs are measured against the first
+ * root's, and `note` names the others. Neither sent: no brief.
+ */
+async function briefOfCheck(figma: FigmaLike, roots: readonly NodeLike[], briefId: string | undefined, inForce: string | undefined): Promise<ChosenBrief | undefined> {
+  if (briefId) return { brief: await briefOn(figma, briefId), from: "briefId" };
+  if (!inForce) return undefined;
+  const index = fileIndex(figma);
+  const owns: Array<BriefRecord | undefined> = [];
+  for (const root of roots) owns.push((await workBriefOf(figma, root, index)).brief);
+  // Read only when a root needs it; one whose node is gone is refused by name, as before.
+  let forced: BriefRecord | undefined;
+  const of = async (own: BriefRecord | undefined) => own ?? (forced ??= await briefOn(figma, inForce));
+  const brief = await of(owns[0]);
+  const others: string[] = [];
+  for (let i = 1; i < roots.length; i++) {
+    const b = await of(owns[i]);
+    if (b.id !== brief.id) others.push(`"${roots[i]!.name}" (${roots[i]!.id}) belongs to "${b.title}" (${b.id})${owns[i] ? "," : ", the brief in force,"} not to this one`);
+  }
+  const listed = others.slice(0, 3).join("; ") + (others.length > 3 ? `; and ${others.length - 3} more roots` : "");
+  return {
+    brief,
+    from: owns[0] ? "node" : "in force",
+    ...(others.length ? { note: `${listed}: check ${others.length === 1 ? "it in its" : "them in their"} own call.` } : {}),
+  };
+}
+
+/**
+ * Each instance's main component, looked up once after the walk for the role
+ * audits: a control is often named only by its component ("Button", a set's
+ * name), and its states live on that component's set. getMainComponentAsync,
+ * because this plugin's document access is dynamic-page.
+ */
+async function mainsOf(c: Census): Promise<Map<NodeLike, MainInfo>> {
+  const out = new Map<NodeLike, MainInfo>();
+  let looked = 0;
+  for (const l of c.root ? [c.root, ...c.layers] : c.layers) {
+    if (l.node.type !== "INSTANCE") continue;
+    if (++looked > A11Y.mainCap) break;
+    const get = l.a.getMainComponentAsync;
+    if (typeof get !== "function") continue;
+    let main: NodeLike | null = null;
+    try {
+      main = ((await (get as () => Promise<NodeLike | null>).call(l.a)) ?? null) as NodeLike | null;
+    } catch {
+      main = null; // a component that no longer resolves names nothing
+    }
+    if (!main) continue;
+    const parent = field<NodeLike | null>(main, "parent");
+    out.set(l.node, { id: main.id, name: main.name, remote: field(main, "remote") === true, set: parent?.type === "COMPONENT_SET" ? parent : null });
+  }
+  return out;
+}
+
+/**
+ * The frames a brief's screen states (screen_state_missing) or a mark's
+ * versions (version_missing) may be drawn as: the root, the top-level frames
+ * of its page and of the sections on it, and the brief's deliverables
+ * wherever they are. `versions`: the mark audit asks, whatever the screens.
+ */
+async function framesFor(root: NodeLike, brief: BriefRecord | undefined, versions = false): Promise<Array<{ id: string; name: string; node: NodeLike }>> {
+  if (!brief || (!versions && !Array.isArray((brief.details as Any).screens))) return [];
+  const out = new Map<string, NodeLike>();
+  const add = (n: NodeLike) => out.set(n.id, n);
+  add(root);
+  let page: NodeLike | null | undefined = root;
+  while (page && page.type !== "PAGE") page = field<NodeLike | null>(page, "parent");
+  for (const k of (page ? childrenOf(page) : undefined) ?? []) {
+    add(k);
+    if (k.type === "SECTION") for (const kk of childrenOf(k) ?? []) add(kk);
+  }
+  const f = maybeApi();
+  const get = f?.getNodeByIdAsync as ((id: string) => Promise<NodeLike | null>) | undefined;
+  for (const id of brief.deliverables.slice(0, 200)) {
+    if (out.has(id) || typeof get !== "function") continue;
+    try {
+      const n = await get.call(f, id);
+      if (n) add(n);
+    } catch {
+      /* a deliverable that no longer exists names no frame */
+    }
+  }
+  return [...out].map(([id, node]) => ({ id, name: node.name, node }));
 }
 
 /** True when anything on the node is bound to a variable — the evidence a library-themed file leaves. */
@@ -620,21 +829,100 @@ export async function checkLayout(
     }
     if (p?.type === "SLIDE") onSlide.set(root, { slide: p, top });
   }
-  // audit "craft" / "tells": every visible layer, judged once the walk is done.
-  const census: Census | null = audit.has("craft") || audit.has("tells")
-    ? { rootNode: root, root: null, layers: [], backdrop: (x) => backdrop(x, view), ...(opts.minTextSize !== undefined ? { minTextSize: opts.minTextSize } : {}) }
+  // The brief's numbers, where the caller gave none: its floor and safe area
+  // (frame px, as the parameters), and on a platform with a text minimum
+  // that minimum at each frame's scale (role spec §4.0). The safe area is in
+  // a deliverable's coordinates, so it applies only to a top-level root.
+  const brief = opts.brief;
+  const briefFloor = typeof brief?.lines.minTextSize === "number" && brief.lines.minTextSize > 0 ? brief.lines.minTextSize : undefined;
+  const minTextSize = opts.minTextSize ?? briefFloor;
+  let safe = opts.safeArea;
+  const rootParent = field<NodeLike | null>(root, "parent");
+  if (!safe && brief?.lines.safeArea && (rootParent?.type === "PAGE" || rootParent?.type === "SECTION")) {
+    try {
+      safe = parseSafeArea(brief.lines.safeArea);
+    } catch {
+      safe = undefined; // the brief's own line is malformed: no safe area to judge, not a failed check
+    }
+  }
+  const textFloor = minTextSize === undefined && brief ? textFloorOf(roleContext({ brief })) : undefined;
+  // audit "craft" / "tells" and the role audits: every visible layer, judged once the walk is done.
+  const census: Census | null = audit.has("craft") || audit.has("tells") || ROLE_AUDITS.some((k) => audit.has(k))
+    ? {
+        rootNode: root, root: null, layers: [], backdrop: (x) => backdrop(x, view),
+        ...(minTextSize !== undefined ? { minTextSize } : {}),
+        ...(textFloor ? { textFloor } : {}),
+      }
     : null;
-  if (census && opts.safeArea) {
+  if (census && safe) {
     // In the root's coordinates; a page has no box, so its origin is the canvas's.
     const o = rect(view(root));
-    const s = opts.safeArea;
+    const s = safe;
     census.safeArea = { x: (o?.x ?? 0) + s.x, y: (o?.y ?? 0) + s.y, width: s.width, height: s.height };
     census.safeAreaText = `"${s.x},${s.y},${s.width},${s.height}"`;
   }
+  // Inactive components and logotypes: the exceptions WCAG 2.2 SC 1.4.3 and
+  // 1.4.11 make to contrast (role spec §4.0). One verdict per node, shared
+  // by its descendants.
+  const inactiveMemo = new Map<NodeLike, boolean>();
+  const isInactive = (n: NodeLike): boolean => {
+    const known = inactiveMemo.get(n);
+    if (known !== undefined) return known;
+    const p = field<NodeLike | null>(n, "parent");
+    const v = ((n.type === "COMPONENT" || n.type === "INSTANCE") && shownInactive(n, view(n)))
+      || (!!p && p.type !== "PAGE" && p.type !== "DOCUMENT" && !OPAQUE_TYPES.has(p.type) && isInactive(p));
+    inactiveMemo.set(n, v);
+    return v;
+  };
   // audit "handoff": how much of what is here is bound to the file's system (handoff.ts).
   const handoff: HandoffTally | null = audit.has("handoff") ? emptyTally() : null;
   // Keyframes anywhere: the census measures one state of the motion, not the motion.
   const motion = { found: false, off: false };
+  const keyed = new Map<NodeLike, string[]>();
+  /** The fields `n`'s keyframe tracks animate, read once; none once the Motion flag is known to be off. */
+  const keyedFields = (n: NodeLike): string[] => {
+    let f = keyed.get(n);
+    if (f) return f;
+    f = [];
+    // A page, a slide grid or a row carries no keys, and the opaque ones are never read [C-136].
+    if (!motion.off && n.type !== "PAGE" && !OPAQUE_TYPES.has(n.type)) {
+      // Without the per-user Motion flag every read throws this: ask no more.
+      const tracks = tryGet(view(n), "manualKeyframeTracks");
+      if (tracks.ok) f = tracksToFieldNames(tracks.value).map((x) => x.toUpperCase());
+      else motion.off = /not a supported API/i.test(tracks.message);
+    }
+    if (f.length) motion.found = true;
+    keyed.set(n, f);
+    return f;
+  };
+  // Under a motion brief: which layer's keys carry each layer where it is seen (the file's head comment).
+  const seen = brief?.role === "motion";
+  const carriers = new Map<NodeLike, NodeLike | null>();
+  /** `n` when its own keys move it or its parent's keys move its children; else its parent's carrier; null for the root. */
+  const carrierOf = (n: NodeLike): NodeLike | null => {
+    if (n === root) return null;
+    const known = carriers.get(n);
+    if (known !== undefined) return known;
+    const p = field<NodeLike | null>(n, "parent");
+    const own = keyedFields(n).some((f) => MOVES.test(f));
+    const byParent = !!p && keyedFields(p).some((f) => MOVES_CHILDREN.test(f));
+    const c = own || byParent ? n : p ? carrierOf(p) : null;
+    carriers.set(n, c);
+    return c;
+  };
+  const notJudged = new Map<string, number>();
+  const unjudged = (kind: string) => notJudged.set(kind, (notJudged.get(kind) ?? 0) + 1);
+  /** Under a motion brief: true, and counted, when keys move one of the two and not the other with it. */
+  const apart = (kind: string, a: NodeLike, b: NodeLike): boolean => {
+    if (!seen || carrierOf(a) === carrierOf(b)) return false;
+    unjudged(kind);
+    return true;
+  };
+  let moved = 0;
+  if (census && seen) {
+    census.carrier = carrierOf;
+    census.unjudged = unjudged;
+  }
 
   // Document order, root first, so "later in paint order" is comparable by index:
   // a later sibling of any ancestor paints above the whole subtree before it.
@@ -665,6 +953,7 @@ export async function checkLayout(
     }
     const a = view(n);
     if (a.visible === false) continue; // hidden: nothing of it is seen, so nothing of it is wrong
+    if (n !== root && isBriefNote(n, a)) continue; // the brief block: a note about the work, not the work
     if (++checked > maxNodes) {
       truncated = true;
       break;
@@ -689,16 +978,13 @@ export async function checkLayout(
       if (c) painted.push({ node: n, cover: c, order });
     }
     if (census && box) {
-      const layer = layerOf(n, a, box, order, parent, view);
+      const layer = layerOf(n, a, box, order, parent, view, isInactive(n));
       if (n === root) census.root = layer;
       else census.layers.push(layer);
     }
-    if (census && !motion.found && !motion.off) {
-      // Without the per-user Motion flag every read throws this: ask no more.
-      const tracks = tryGet(a, "manualKeyframeTracks");
-      if (tracks.ok) motion.found = tracksToFieldNames(tracks.value).length > 0;
-      else motion.off = /not a supported API/i.test(tracks.message);
-    }
+    if (seen) {
+      if (n !== root && carrierOf(n)) moved++;
+    } else if (census && !motion.found) keyedFields(n);
     if (box && parentNode && parent && n !== root && parentNode.type === "SLIDE") {
       slideBounds(n, box, rect(parent), parentNode, add, offSlide);
     } else if (box && parentNode && parent && n !== root && CONTAINERS.has(parentNode.type)) {
@@ -707,19 +993,23 @@ export async function checkLayout(
         const sides = overSides(box, pb);
         if (sides.length) {
           if (parent.clipsContent === true) {
-            add(n, "clipped", n.type === "TEXT" ? "error" : "warning",
-              `${sides.join(", ")} of it is cut off by "${parentNode.name}" (clips content). Make room, let it wrap or shrink, ` +
-                "or stop the parent clipping (figma_set_clips_content).");
+            if (!apart("clipped", n, parentNode)) {
+              add(n, "clipped", n.type === "TEXT" ? "error" : "warning",
+                `${sides.join(", ")} of it is cut off by "${parentNode.name}" (clips content). Make room, let it wrap or shrink, ` +
+                  "or stop the parent clipping (figma_set_clips_content).");
+            }
           } else if (n.type === "TEXT" && a.textAutoResize === "WIDTH_AND_HEIGHT") {
-            add(n, "text_overflow", "error",
-              `runs ${sides.join(", ")} past "${parentNode.name}": it hugs its text, so it never wraps. Give it a width ` +
-                "(figma_resize_nodes) or let it fill the column, then it wraps.");
+            if (!apart("text_overflow", n, parentNode)) {
+              add(n, "text_overflow", "error",
+                `runs ${sides.join(", ")} past "${parentNode.name}": it hugs its text, so it never wraps. Give it a width ` +
+                  "(figma_resize_nodes) or let it fill the column, then it wraps.");
+            }
           } else if (board && parentNode.type === "SECTION") {
             // A board's sections must encompass their children (position-figjam-nodes.md:25-27) [C-160].
             add(n, "section_overflow", "warning",
               `sticks out of the section "${parentNode.name}" by ${sides.join(", ")}. Grow the section to hold it ` +
                 "(figma_fit_sections, or figma_resize_nodes on the section), or move it inside.");
-          } else if (a.layoutPositioning !== "ABSOLUTE") {
+          } else if (a.layoutPositioning !== "ABSOLUTE" && !apart("outside_parent", n, parentNode)) {
             add(n, "outside_parent", "warning", `sticks out of "${parentNode.name}" by ${sides.join(", ")}.`);
           }
         }
@@ -779,12 +1069,19 @@ export async function checkLayout(
       if (glyphs && chars.trim()) texts.push({ id: n.id, name: n.name, box: glyphs, order, node: n });
       const fg = visibleSolid(a.fills);
       const bg = backdrop(n, view);
-      if (fg && bg && fg.opacity >= 0.99) {
+      // WCAG 2.2 SC 1.4.3 sets no contrast for text in an inactive component,
+      // and none for a logotype: a disabled label is meant to recede, and a
+      // brand's mark is drawn as the brand draws it (role spec §4.0).
+      if (fg && bg && fg.opacity >= 0.99 && !isInactive(n)) {
         const ratio = contrastRatio(fg.color, bg);
         const need = isLargeText(a) ? 3 : 4.5;
         if (ratio < need) {
-          add(n, "low_contrast", "warning",
-            `contrast ${ratio.toFixed(2)}:1 (${hex(fg.color)} on ${hex(bg)}); text this size needs ${need}:1 to read comfortably.`);
+          const logo = inLogotype(n);
+          add(n, "low_contrast", logo ? "info" : "warning",
+            `contrast ${ratio.toFixed(2)}:1 (${hex(fg.color)} on ${hex(bg)}); ` +
+              (logo
+                ? "it is part of a logo, which WCAG 2.2 SC 1.4.3 exempts from text contrast — fine if this is the logotype."
+                : `text this size needs ${need}:1 to read comfortably.`));
         }
       }
       // FigJam text is Charcoal unless the brief says otherwise (create-text.md:143-145) [C-156].
@@ -837,7 +1134,7 @@ export async function checkLayout(
           if (!hit) continue;
           const smaller = Math.min(A!.width * A!.height, B!.width * B!.height);
           const share = smaller > 0 ? (hit.width * hit.height) / smaller : 0;
-          if (share > 0.5) {
+          if (share > 0.5 && !apart("sibling_overlap", stacked[i]!, stacked[j]!)) {
             add(stacked[i]!, "sibling_overlap", "info",
               `sits under "${stacked[j]!.name}" (${stacked[j]!.id}), ${Math.round(share * 100)}% of the smaller one covered — stacked rather than laid out. ` +
                 "Move one, or give the parent auto-layout.");
@@ -896,6 +1193,7 @@ export async function checkLayout(
       if (p.cover.opacity < 0.6) continue;
       const cover = clipToAncestors(p.cover, p.node, view);
       if (!cover || !hides(cover, t.box)) continue;
+      if (apart("covered", t.node, p.node)) continue;
       // The area of the TEXT that is hidden — not the size of the covering layer.
       const hidden = intersect(cover.outer, t.box)!;
       const area = Math.max(1, Math.round(hidden.width * hidden.height));
@@ -917,7 +1215,7 @@ export async function checkLayout(
       const B = texts[j]!.box;
       const ox = Math.min(A.x + A.width, B.x + B.width) - Math.max(A.x, B.x);
       const oy = Math.min(A.y + A.height, B.y + B.height) - Math.max(A.y, B.y);
-      if (ox > 2 && oy > 2) {
+      if (ox > 2 && oy > 2 && !apart("overlap", texts[i]!.node, texts[j]!.node)) {
         issues.push({
           kind: "overlap", severity: "error", nodeId: texts[i]!.id, name: texts[i]!.name,
           detail: `overlaps the text "${texts[j]!.name}" (${texts[j]!.id}) by ${r1(ox)} × ${r1(oy)} px.`,
@@ -938,11 +1236,36 @@ export async function checkLayout(
     if (page) await duplicateNames(page, add);
   }
   if (board) await boardRules({ stickies, connectors, sections }, view, add);
+  // tells: the root's structure, for skeleton_repeat across the roots of one call (the op compares them).
+  let structure: string | null = null;
   if (census) {
     const ix = indexCensus(census);
     if (audit.has("craft")) issues.push(...judgeCraft(census, ix));
-    if (audit.has("tells")) issues.push(...judgeTells(census, ix));
+    if (audit.has("tells")) {
+      issues.push(...judgeTells(census, ix));
+      structure = structureOf(census, ix);
+    }
+    if (ROLE_AUDITS.some((k) => audit.has(k))) {
+      const named = audit.has("a11y") || audit.has("states") || audit.has("copy");
+      const rc = roleContext({
+        ...(brief ? { brief } : {}),
+        mains: named ? await mainsOf(census) : new Map(),
+        audits: audit,
+        frames: audit.has("states") || audit.has("mark") ? await framesFor(root, brief, audit.has("mark")) : [],
+      });
+      if (audit.has("a11y")) issues.push(...judgeA11y(census, ix, rc));
+      if (audit.has("states")) issues.push(...judgeStates(census, ix, rc));
+      if (audit.has("copy")) issues.push(...judgeCopy(census, ix, rc));
+      if (audit.has("system")) issues.push(...judgeSystem(census, ix, rc));
+      if (audit.has("deck")) issues.push(...judgeDeck(census, ix, rc));
+      if (audit.has("mark")) issues.push(...judgeMark(census, ix, rc));
+      if (audit.has("icons")) issues.push(...judgeIcons(census, ix, rc));
+      // The file's tokens: read once here, the one lookup the library audit makes.
+      if (audit.has("library")) issues.push(...judgeLibrary(census, ix, rc, await readLibrary(maybeApi())));
+    }
   }
+  // What the brief avoids is a warning at the page and top gears, here and at sign-off.
+  bindAvoid(issues, brief);
 
   return {
     issues,
@@ -951,14 +1274,25 @@ export async function checkLayout(
     rawColors,
     signals,
     ...(motion.found ? { animated: true as const } : {}),
+    // Under a motion brief: how many layers keys move, and the findings left to the frames, by kind.
+    ...(seen && moved > 0 ? { restPose: { moved, notJudged: Object.fromEntries([...notJudged].sort((x, y) => (x[0] < y[0] ? -1 : 1))) } } : {}),
     ...(system ? { system } : {}),
     ...(audit.has("tokens") && opts.deferTokens ? { tokenFindings } : {}),
     ...(audit.has("fonts") ? { fonts: Object.fromEntries([...fonts].sort((x, y) => y[1] - x[1])) } : {}),
     ...(handoff ? { handoff } : {}),
+    ...(structure !== null ? { structure } : {}),
   };
 }
 
 const ORDER: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
+
+/** What the role audits measured without a brief: a11y as for the web, and the audits that need its numbers skip them. */
+function noBrief(audit: ReadonlySet<AuditKind>): string {
+  const ran = NEEDS_BRIEF.filter((k) => audit.has(k));
+  const named = ran.length ? ran : ["system"];
+  const list = named.length > 1 ? `${named.slice(0, -1).join(", ")} and ${named[named.length - 1]}` : named[0]!;
+  return `none: a11y measures as for the web in CSS px, and ${list} skip${named.length > 1 ? "" : "s"} what needs the brief's numbers (pass briefId)`;
+}
 
 /** `audit` as sent: an array of the AUDITS names; anything else is refused by name. */
 function auditParam(params: Record<string, unknown>): Set<AuditKind> {
@@ -1010,6 +1344,12 @@ const checkLayoutOp: PluginOp = {
         if (slide) note = "Nothing is selected and no slide is focused, so this checks the whole deck. Pass nodeIds to check a batch of slides.";
       }
     }
+    // The brief whose numbers the audits measure against (role spec §4), read
+    // off the node it is stored on (briefOfCheck). Naming one asks for no audit
+    // by itself, but tells at the page and top gears (shared/avoid.ts tellsByDefault).
+    const chosen = await briefOfCheck(figma, roots, str(ctx.params, "briefId"), str(ctx.params, "briefInForce"));
+    const brief = chosen?.brief;
+    if (brief && tellsByDefault(brief.role, brief.gear, avoidOf(brief))) audit.add("tells");
     const maxNodes = int(ctx.params, "maxNodes", 3000, 50000);
     const limit = int(ctx.params, "limit", 100, 1000);
     const minSeverity = (str(ctx.params, "minSeverity") ?? "info") as Severity;
@@ -1020,9 +1360,13 @@ const checkLayoutOp: PluginOp = {
     const signals = { bound: false, styleIds: new Set<string>() };
     const tokenFindings: TokenFinding[] = [];
     const handoff = emptyTally();
+    const seen = new Set<string>();
+    // tells: each root's structure, for skeleton_repeat across the roots (tells.ts skeletonAcross).
+    const structures: Array<{ node: NodeLike; structure: string }> = [];
     let checked = 0;
     let truncated = false;
     let animated = false;
+    const rest = { moved: 0, notJudged: {} as Record<string, number> };
     for (const root of roots) {
       // Another page's children cannot be read until it is loaded [C-090].
       await ensureLoaded(root as never);
@@ -1039,18 +1383,32 @@ const checkLayoutOp: PluginOp = {
         ...(expectFonts ? { expectFonts } : {}),
         ...(safeArea ? { safeArea } : {}),
         ...(minTextSize !== undefined ? { minTextSize } : {}),
+        ...(brief ? { brief } : {}),
       });
-      issues.push(...r.issues);
+      // A finding about the brief itself (screen_state_missing) comes back from every root: keep one.
+      for (const i of r.issues) {
+        const key = `${i.kind}\u0000${i.nodeId}\u0000${i.detail}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        issues.push(i);
+      }
       checked += r.checked;
       truncated ||= r.truncated;
       animated ||= r.animated === true;
+      if (r.restPose) {
+        rest.moved += r.restPose.moved;
+        for (const [k, n] of Object.entries(r.restPose.notJudged)) rest.notJudged[k] = (rest.notJudged[k] ?? 0) + n;
+      }
       for (const [c, n] of r.rawColors) rawColors.set(c, (rawColors.get(c) ?? 0) + n);
       for (const [fam, n] of Object.entries(r.fonts ?? {})) fonts.set(fam, (fonts.get(fam) ?? 0) + (n as number));
       signals.bound ||= r.signals.bound;
       for (const s of r.signals.styleIds) signals.styleIds.add(s);
       tokenFindings.push(...(r.tokenFindings ?? []));
       if (r.handoff) mergeTally(handoff, r.handoff);
+      if (r.structure) structures.push({ node: root, structure: r.structure });
     }
+    // Three or more roots built on one structure: one skeleton, filled in again (tells).
+    if (audit.has("tells")) issues.push(...skeletonAcross(structures));
     // One verdict for the whole selection, from every root's signals: judged
     // per root, a root with nothing bound lost its findings in a file whose
     // other root proved the system exists — exactly the root to flag.
@@ -1058,6 +1416,9 @@ const checkLayoutOp: PluginOp = {
     if (system && audit.has("tokens")) issues.push(...(await judgeTokens(tokenFindings, system)));
     const handed = system && audit.has("handoff") ? await handoffReport(handoff, signals.styleIds, system) : undefined;
     if (handed) issues.push(...handed.issues);
+    // Each root's own were bound already; this binds any judged across them (it leaves a bound one alone).
+    bindAvoid(issues, brief);
+    const avoided = boundKinds(brief);
 
     const shown = issues.filter((i) => ORDER[i.severity] <= (ORDER[minSeverity] ?? 2)).sort((a, b) => ORDER[a.severity] - ORDER[b.severity]);
     const counts = { error: 0, warning: 0, info: 0 };
@@ -1085,13 +1446,31 @@ const checkLayoutOp: PluginOp = {
               ...(system
                 ? { designSystem: system.found ? `found: ${system.why}` : `none (${system.why})${audit.has("tokens") ? " — token findings skipped" : ""}` }
                 : {}),
+              ...(chosen
+                ? {
+                    brief: {
+                      id: chosen.brief.id, title: chosen.brief.title, role: chosen.brief.role, gear: chosen.brief.gear, platform: roleContext({ brief: chosen.brief }).platform,
+                      from: chosen.from,
+                      // The kinds the brief avoids at its gear: a finding of one is a warning here.
+                      ...(avoided.length ? { avoid: avoided } : {}),
+                      ...(chosen.note ? { note: chosen.note } : {}),
+                    },
+                  }
+                : ROLE_AUDITS.some((k) => audit.has(k))
+                  ? { brief: noBrief(audit) }
+                  : {}),
               // Bounds read a keyed layer's base (resting) values, not the state at the playhead [C-192].
               ...(animated
-                ? { note: "Layers here have keyframes: craft and tells measure one state — the values the document holds — not the motion. Render it to judge the motion." }
+                ? {
+                    note:
+                      "Layers here have keyframes: craft and tells measure one state — the values the document holds — not the motion. Render it to judge the motion." +
+                      (brief?.role === "motion" ? "" : " A motion brief (briefId) leaves to the frames what rests on a keyed layer's rest pose, as figma_sign_off does."),
+                  }
                 : {}),
             },
           }
         : {}),
+      ...(rest.moved > 0 ? { restPose: { ...rest, note: restPoseNote(rest.moved, rest.notJudged) } } : {}),
       ...(audit.has("fonts") ? { fonts: Object.fromEntries([...fonts].sort((x, y) => y[1] - x[1])) } : {}),
       ...(handed ? { handoff: handed.summary } : {}),
       ...(raw.length && hasSystem?.found

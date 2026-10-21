@@ -224,6 +224,86 @@ export function withPlan(asked: AuditOptions, plan: MotionPlanRecord | null): { 
   return { opts, fromPlan, gaps };
 }
 
+/**
+ * An id as the snapshot lists it. During a second-id stretch the plugin lists
+ * a frame's layers under second ids, while a plan (and a careful caller) holds
+ * the ids create calls returned; the plugin maps each id the check names to
+ * the listed layer it is (`aliases`) [C-199].
+ */
+export function listedId(snapshot: Pick<MotionSnapshot, "aliases">, id: string): string;
+export function listedId(snapshot: Pick<MotionSnapshot, "aliases">, id: string | undefined): string | undefined;
+export function listedId(snapshot: Pick<MotionSnapshot, "aliases">, id: string | undefined): string | undefined {
+  return id === undefined ? undefined : (snapshot.aliases?.[id] ?? id);
+}
+
+/** The plan with its brand and CTA layers named as the snapshot lists them, so the audit finds them and a call naming either id is no gap. */
+export function planAsListed(plan: MotionPlanRecord | null, snapshot: Pick<MotionSnapshot, "aliases">): MotionPlanRecord | null {
+  if (!plan || !snapshot.aliases) return plan;
+  return {
+    ...plan,
+    ...(plan.brandId !== undefined ? { brandId: listedId(snapshot, plan.brandId) } : {}),
+    ...(plan.ctaId !== undefined ? { ctaId: listedId(snapshot, plan.ctaId) } : {}),
+  };
+}
+
+/** What the call asked, its brand and CTA layers named as the snapshot lists them. */
+function askedAsListed(asked: AuditOptions, snapshot: Pick<MotionSnapshot, "aliases">): AuditOptions {
+  if (!snapshot.aliases) return asked;
+  return {
+    ...asked,
+    ...(asked.brandId !== undefined ? { brandId: listedId(snapshot, asked.brandId) } : {}),
+    ...(asked.ctaId !== undefined ? { ctaId: listedId(snapshot, asked.ctaId) } : {}),
+  };
+}
+
+/** The ids a call names that the plugin should map to listed layers: the plan's are its own to read. */
+export function idsToResolve(opts: Pick<AuditOptions, "brandId" | "ctaId">): string[] {
+  return [opts.brandId, opts.ctaId].filter((id): id is string => typeof id === "string");
+}
+
+/** What clears a plan holding an id that stopped resolving: one read from a listing inside an animated frame can be temporary [C-199]. */
+const TEMPORARY_LISTED_ID =
+  "Store the plan again (figma_set_motion_plan) with the id the layer's create call returned: an id read from a listing inside an animated frame can be temporary.";
+
+/** A plugin built before the mapping cannot match a plan's layers while Figma lists them under temporary ids [C-199]. */
+const OLDER_PLUGIN =
+  "If figma_status asks for a plugin re-run (build.restart), have the user re-run the Figxel plugin and check again: an older plugin cannot match a plan's layers " +
+  `while Figma lists them under temporary ids. Otherwise: ${TEMPORARY_LISTED_ID}`;
+
+const AMBIGUOUS =
+  "The layer resolves, but the frame lists it under another id and two or more layers there match it (same type, name and box), so the check cannot " +
+  "tell which is the plan's. Give those layers distinct names, or check again once Figma lists the frame under its own ids.";
+
+const OUTSIDE = "The layer is no longer in this frame. Store the plan again (figma_set_motion_plan) naming a layer of this frame.";
+
+const GONE =
+  "The id resolves to nothing: the layer was deleted, or the id was read from a listing inside an animated frame and was temporary. Store the plan " +
+  "again (figma_set_motion_plan) with the id a create call returned for a layer of this frame.";
+
+/**
+ * Why a layer the plan (or the call) names is not among the layers read, and
+ * whether storing the plan again clears it. The plugin maps a named layer
+ * listed under another id (`aliases`) and says why it cannot map the rest:
+ * lookalikes (`unmapped`), not in the frame (`outside`), no such layer
+ * (`gone`); a plugin built before that sends none of them [C-199].
+ */
+export function missingLayerHint(
+  snapshot: Pick<MotionSnapshot, "aliases" | "unmapped" | "outside" | "gone" | "truncated">,
+  id: string,
+): { hint: string; replan: boolean } {
+  if (snapshot.unmapped?.includes(id)) return { hint: AMBIGUOUS, replan: false };
+  if (snapshot.gone?.includes(id)) return { hint: GONE, replan: true };
+  if (snapshot.outside?.includes(id)) return { hint: OUTSIDE, replan: true };
+  if (snapshot.truncated) return { hint: `Raise \`maxNodes\` so the check reads it. If it is still missing: ${TEMPORARY_LISTED_ID}`, replan: false };
+  if (snapshot.aliases === undefined) return { hint: OLDER_PLUGIN, replan: false };
+  return { hint: TEMPORARY_LISTED_ID, replan: true };
+}
+
+/** Every id the snapshot's frame is listed under, its own first [C-199]. */
+export function rootHandles(snapshot: Pick<MotionSnapshot, "root">): string[] {
+  return snapshot.root.handles?.length ? snapshot.root.handles : [snapshot.root.id];
+}
+
 function asSnapshot(data: unknown): MotionSnapshot {
   const d = data as Partial<MotionSnapshot> | null;
   if (!d || typeof d !== "object" || !d.root || !Array.isArray(d.nodes)) {
@@ -248,24 +328,30 @@ interface Began {
  */
 function judged(snapshot: MotionSnapshot, asked: AuditOptions, proc: MotionProcess | undefined, session: string, began: Began) {
   const plan = snapshot.plan ?? null;
-  const { opts, fromPlan, gaps } = withPlan(asked, plan);
+  // Judged as the snapshot lists the layers, so a plan holding created ids still finds them during a second-id stretch [C-199].
+  const { opts, fromPlan, gaps } = withPlan(askedAsListed(asked, snapshot), planAsListed(plan, snapshot));
   for (const k of ["brandId", "ctaId"] as const) {
     const id = opts[k];
-    if (fromPlan.includes(k) && !snapshot.nodes.some((n) => n.id === id)) {
-      throw invalid(
-        `The frame's motion plan names \`${k}\` ${id}, which is not among the layers read in "${snapshot.root.name}".`,
-        snapshot.truncated
-          ? "Raise `maxNodes` so the check reads it, or store the plan again (figma_set_motion_plan) with the layer's current id."
-          : "Store the plan again (figma_set_motion_plan) with the layer's current id.",
-      );
-    }
+    if (id === undefined || snapshot.nodes.some((n) => n.id === id)) continue;
+    // The plan's layer, or the one the call names: missing either way, in the words of why [C-199].
+    const fromThePlan = fromPlan.includes(k);
+    const named = fromThePlan ? (plan?.[k] ?? id) : (asked[k] ?? id);
+    throw invalid(
+      fromThePlan
+        ? `The frame's motion plan names \`${k}\` ${named}, which is not among the layers read in "${snapshot.root.name}".`
+        : `\`${k}\` ${named} is not among the layers read in "${snapshot.root.name}".`,
+      missingLayerHint(snapshot, named).hint,
+    );
   }
   const result = auditMotion(snapshot, opts);
   const out = { ...result, ...(fromPlan.length ? { fromPlan } : {}), ...(snapshot.planInvalid ? { planInvalid: snapshot.planInvalid } : {}) };
   if (!proc?.active) return okResult(out);
   const whole = asked.rules === undefined && asked.from === undefined && asked.to === undefined && !result.truncated;
   const accepted = (result.accepted ?? []).map((i) => ({ rule: i.rule, name: i.name, frame: i.frame, ...(i.frames ? { frames: i.frames } : {}), reason: i.reason }));
-  proc.noteCheck(result.root.id, { ok: result.ok, fps: result.fps, full: whole, gaps, plan: planKey(plan), epoch: began.epoch, at: began.at, accepted }, session);
+  // Recorded under every id the page lists the frame under, so a final render naming either finds it [C-199].
+  for (const frameId of rootHandles(snapshot)) {
+    proc.noteCheck(frameId, { ok: result.ok, fps: result.fps, full: whole, gaps, plan: planKey(plan), epoch: began.epoch, at: began.at, accepted }, session);
+  }
   if (!result.ok || !whole) return okResult(out);
   if (gaps.length) {
     return okResult({
@@ -303,6 +389,9 @@ export function registerCheckMotion(server: McpServer, bridge: Bridge, wanted: (
       const params: Record<string, unknown> = {};
       if (typeof args.nodeId === "string") params.nodeId = args.nodeId;
       if (typeof args.maxNodes === "number") params.maxNodes = args.maxNodes;
+      // The layers the call names, for the plugin to map to the listed ones (an older plugin ignores it).
+      const resolveIds = idsToResolve(opts);
+      if (resolveIds.length) params.resolveIds = resolveIds;
       // The session the frame lives in, for the process: a link in nodeId may name it. A refused
       // address is forwardTool's to report, in its own words.
       let session = "";

@@ -19,9 +19,10 @@ import { PRODUCT_NAME } from "../../shared/version.js";
 import type { Bridge } from "../bridge.js";
 import { KEYFRAME_OPS, keyframeGate, withProcessWarnings, type GateResult, type MotionProcess } from "../motion-process.js";
 import { errorResult } from "../results.js";
+import { GATED_OPS, newWorkGate, type RoleGate, type RoleProcess } from "../role-process.js";
 import { writeAnnotations } from "./annotations.js";
 import { WRITE_PARAMS } from "./create.js";
-import { addressCall, forwardTool, type Extra } from "./forward.js";
+import { addressCall, forwardTool, markForced, type Extra } from "./forward.js";
 import { fitDescription, MAX_DESCRIPTION } from "./params.js";
 
 /** A registered tool's input shape, by op name (no `figma_`). */
@@ -36,12 +37,17 @@ export type ShapeOf = (op: string) => z.ZodRawShape | undefined;
  * unknown key and hands the tool the stripped copy: `figma_set_text_range
  * { align }` would report success having done nothing with `align`. Refused
  * here, on every tool at once, it is checked the way a batch step already is.
+ *
+ * A write tool's `force: true` is marked on its call here too (forward.ts
+ * markForced), so it reaches every request the call sends, also where the tool
+ * builds its op's params itself and leaves `force` out (trust spec §2.3).
  */
 export function createShapeRecorder(server: McpServer): ShapeOf {
   const shapes = new Map<string, z.ZodRawShape>();
   const original = server.registerTool.bind(server) as (name: string, config: { inputSchema?: unknown; description?: unknown }, cb: unknown) => unknown;
-  (server as unknown as { registerTool: typeof original }).registerTool = (name, rawConfig, cb) => {
+  (server as unknown as { registerTool: typeof original }).registerTool = (name, rawConfig, rawCb) => {
     const config = withEditors(name, rawConfig);
+    const cb = OPS.get(name.replace(/^figma_/, ""))?.write ? withForce(rawCb) : rawCb;
     const schema = config?.inputSchema;
     if (schema && typeof schema === "object" && !(schema instanceof z.ZodType)) {
       shapes.set(name.replace(/^figma_/, ""), schema as z.ZodRawShape);
@@ -50,6 +56,16 @@ export function createShapeRecorder(server: McpServer): ShapeOf {
     return original(name, config, cb);
   };
   return (op) => shapes.get(op);
+}
+
+/** A tool callback that marks its call forced when its arguments say `force: true`. */
+function withForce(cb: unknown): unknown {
+  if (typeof cb !== "function") return cb;
+  const run = cb as (args: unknown, extra: Extra) => unknown;
+  return (args: unknown, extra: Extra) => {
+    if (isObject(args) && args.force === true) markForced(extra);
+    return run(args, extra);
+  };
 }
 
 /**
@@ -72,6 +88,21 @@ function withEditors<C extends { description?: unknown }>(name: string, config: 
 const EXCLUDED: ReadonlySet<string> = new Set(["batch", "group_nodes", "boolean_nodes", "flatten_nodes", "clone_node"]);
 /** A motion plan is checked by its own tool (motion-plan.ts), which a batch step would skip. */
 const PLAN_OP = "set_motion_plan";
+/**
+ * The role process's writes are checked by their own tools (brief.ts) — the
+ * skill read, the brief's lint, the sign-off's server checks — which a batch
+ * step would skip (roles spec §3.4, §3.6).
+ */
+const ROLE_OPS: ReadonlySet<string> = new Set(["set_brief", "sign_off"]);
+/**
+ * The trust ops a batch step may not be (trust spec §2.5, §3): a savepoint is
+ * stored by the server (tools/trust.ts), which a step never meets, and a stress
+ * test builds, checks and removes copies as an undo step of its own. A rollback
+ * is destructive, so batchRefusal refuses it already. Checked in validateSteps,
+ * not in batchRefusal, which mirrors the plugin's notBatchable and so changes
+ * only together with it.
+ */
+const OWN_CALL_OPS: ReadonlySet<string> = new Set(["savepoint", "stress_test"]);
 export const MAX_STEPS = 50;
 
 /** Why `op` cannot be a batch step, or null when it can. */
@@ -83,6 +114,8 @@ export function batchRefusal(op: string): string | null {
   if (info.destructive) return `"${op}" is destructive and runs on its own call`;
   if (EXCLUDED.has(op)) return `"${op}" replaces nodes with new ids, so later steps could name nodes that no longer exist`;
   if (op === PLAN_OP) return `"${op}" is checked by the server and stored on its own call, before the keyframes that need it`;
+  if (ROLE_OPS.has(op)) return `"${op}" is checked by the server and runs on its own call`;
+  if (OWN_CALL_OPS.has(op)) return `"${op}" runs on its own call`;
   return null;
 }
 
@@ -174,7 +207,37 @@ async function gateKeyframeSteps(
   return { warnings: [...warnings] };
 }
 
-export function registerBatch(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, shapeOf: ShapeOf, proc?: MotionProcess): void {
+/**
+ * The role gate for a batch's steps (role-process.ts newWorkGate), each judged
+ * as its own op; strict refuses the whole batch at the first step that is new
+ * work, as the motion gate does (spec §3.3). A batch holds modify and style
+ * edits only, none of which is new work, so today every batch passes without a
+ * read: this keeps the rule if a create op ever becomes a step.
+ */
+export async function gateNewWorkSteps(
+  bridge: Bridge,
+  roles: RoleProcess,
+  steps: Array<{ op: string; params: Record<string, unknown> }>,
+  session: string | undefined,
+  signal?: AbortSignal,
+): Promise<RoleGate> {
+  if (!roles.active || !steps.some((s) => GATED_OPS.has(s.op))) return { warnings: [] };
+  const addressed = await addressCall(bridge, "batch", { steps }, session);
+  const warnings = new Set<string>();
+  for (const [i, s] of (addressed.params.steps as typeof steps).entries()) {
+    if (!GATED_OPS.has(s.op)) continue;
+    const gate = await newWorkGate(roles, bridge, `figma_batch's figma_${s.op} step`, s.op, s.params, addressed.session, signal);
+    if (gate.refusal) {
+      const r = gate.refusal;
+      return { refusal: new BridgeError(r.code, `steps[${i}]: ${r.message}`, { ...(r.hint ? { hint: r.hint } : {}), partial: r.partial }), warnings: [] };
+    }
+    for (const w of gate.warnings) warnings.add(w);
+  }
+  return { warnings: [...warnings] };
+}
+
+/** `proc` is the motion gate and `roles` the role gate a batch's steps pass (motion-process.ts, role-process.ts). */
+export function registerBatch(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, shapeOf: ShapeOf, proc?: MotionProcess, roles?: RoleProcess): void {
   if (!wanted("batch")) return;
   server.registerTool(
     "figma_batch",
@@ -213,16 +276,25 @@ export function registerBatch(server: McpServer, bridge: Bridge, wanted: (op: st
           session: args.session as string | undefined,
           idempotencyKey: args.idempotencyKey as string | undefined,
         });
-      if (!proc?.active || !steps.some((s) => KEYFRAME_OPS.has(s.op))) return forward();
-      let gate: Awaited<ReturnType<typeof gateKeyframeSteps>>;
-      try {
-        gate = await gateKeyframeSteps(bridge, proc, steps, args.session as string | undefined, extra);
-      } catch (err) {
-        return errorResult(err instanceof BridgeError ? err.withKey(args.idempotencyKey as string | undefined) : err, { unchanged: true });
+      const keyframes = proc?.active === true && steps.some((s) => KEYFRAME_OPS.has(s.op));
+      const newWork = roles?.active === true && steps.some((s) => GATED_OPS.has(s.op));
+      if (!keyframes && !newWork) return forward();
+      const warnings: string[] = [];
+      for (const run of [
+        ...(newWork ? [() => gateNewWorkSteps(bridge, roles!, steps, args.session as string | undefined, extra.signal)] : []),
+        ...(keyframes ? [() => gateKeyframeSteps(bridge, proc!, steps, args.session as string | undefined, extra)] : []),
+      ]) {
+        let gate: { refusal?: BridgeError; warnings: string[] };
+        try {
+          gate = await run();
+        } catch (err) {
+          return errorResult(err instanceof BridgeError ? err.withKey(args.idempotencyKey as string | undefined) : err, { unchanged: true });
+        }
+        if (gate.refusal) return errorResult(gate.refusal.withKey(args.idempotencyKey as string | undefined), { unchanged: true });
+        warnings.push(...gate.warnings);
       }
-      if (gate.refusal) return errorResult(gate.refusal.withKey(args.idempotencyKey as string | undefined), { unchanged: true });
       // Like every write, the batch moves writeEpoch(), which makes an earlier figma_check_motion stale.
-      return withProcessWarnings(await forward(), gate.warnings);
+      return withProcessWarnings(await forward(), warnings);
     },
   );
 }

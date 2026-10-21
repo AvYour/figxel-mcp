@@ -4,6 +4,12 @@
 |---|---|
 | Is Figma connected, is everything current | figma_status (follow build.restart; `skills` is the version of the guides) |
 | How to work: the skills | figma_get_guide (no arguments: the loop; topic "skills": every skill and its sections) |
+| **Start each instruction**, so it can be taken back whole | figma_savepoint { label } (writes nothing to the document; its id is what figma_rollback and figma_get_changes take) |
+| What changed: your calls, and edits others made to what you touched | figma_get_changes (`since`: a savepoint id or a sequence number; `limit`) — what your closing report lists |
+| **Undo an instruction** the person asks to undo | figma_rollback (`savepointId`, `confirm: true`; refused with ROLLBACK_BLOCKED when someone else changed the page since: say what, and offer figma_delete_nodes on its `partial.safe` ids), never figma_undo_step |
+| **Record the brief of new work**, before its first frame (role, gear, the lines; later the directions, the choice, styleframes and the system, by `briefId`) | figma_set_brief (draws the brief block; `lint` and `missingForSignOff` say what to fix and what sign-off will ask) |
+| Read a brief: what a frame was made from, its last sign-off and whether the frame changed since | figma_get_brief (`nodeId`, or `briefId`; no arguments: every open brief in the file; reading an open brief adopts it for this session) |
+| **Call new work done** | figma_sign_off (the role's audits, your lens scores and rounds, a reason per kept info; records the result, and on a pass selects and zooms to the work) |
 | What the user selected | figma_get_selection |
 | Pages | figma_get_pages, figma_navigate_page, figma_create_page |
 | Understand a design | figma_get_design_context (follow nextCursor) |
@@ -30,9 +36,10 @@
 | Arrange | figma_move_nodes (x and y written together and read back), figma_resize_nodes (width, height, sizing), figma_rotate_nodes, figma_reorder_nodes, figma_reparent_nodes, figma_group_nodes, figma_set_constraints |
 | Duplicate | figma_clone_node (lands right after its source) |
 | **A polish pass** (many small edits, one undo) | figma_batch (`itemsFailed` lists nodes a step could not change) |
-| Check | figma_check_layout (audits tokens, names, fonts, craft, tells; `safeArea`, `minTextSize`), figma_export_node (one view at a time: the default cap to read it, `maxSize` about its long side ÷ 8 to squint) |
+| Check | figma_check_layout (audits tokens, names, fonts, craft, tells, handoff, a11y, states, copy, system; `briefId` for the brief's platform, viewport, screens and system; `safeArea`, `minTextSize`), figma_export_node (one view at a time: the default cap to read it, `maxSize` about its long side ÷ 8 to squint; `final: true` for a delivery, after a passing figma_sign_off) |
+| **Real content against a screen**: translation growth, long names, big numbers, many and no list items | figma_stress_test (`nodeId`; `cases` expand, long, numbers, many, empty, all by default; `audits` beside craft; reports what each case broke, then deletes its copies unless `keep: true`) |
 | Assets for code | figma_download_assets (renders + original image bytes) |
-| Show the user | figma_select, figma_zoom_to |
+| Show the user | figma_select, figma_zoom_to (figma_sign_off does both on a pass) |
 | Remove your own work | figma_delete_nodes (ids you created) |
 | Prototype | figma_set_reactions, figma_get_reactions, figma_set_scroll_behavior, figma_set_prototype_flows |
 | Motion (timeline animation) | figma_get_motion_context, figma_set_motion_plan (the brief and beats the keyframe tools wait for), figma_set_keyframes, figma_remove_keyframes (every track read back) |
@@ -67,4 +74,4 @@ In a Figma Slides deck (topic slides):
 | Transitions | figma_set_slide_transition |
 | Check a batch of slides | figma_check_layout (nodeIds) |
 | Focus a slide, grid or single view | figma_zoom_to (view) |
-| The deck as one PDF | figma_export_frames_to_pdf (deck: true) |
+| The deck as one PDF | figma_export_frames_to_pdf (deck: true; final: true for the delivery, after figma_sign_off) |

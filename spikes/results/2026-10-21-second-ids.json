@@ -1,0 +1,66 @@
+{
+  "claim": "C-199",
+  "file": "Figxel Showcase",
+  "frame": "14:4818 \"Linkspan v2 · LinkedIn video\" (created id)",
+  "source": "Tool calls and their results from a Claude Code session on 2026-10-21 (Windows 11, Figma desktop, Figxel plugin 0.1.1). `call` is the arguments as sent, without the `session` argument (\"Figxel Showcase\" in every call). `result` is quoted verbatim as the client received it; \"…\" marks text left out, and nothing else is changed. `at` is the time the result arrived, UTC.",
+  "stretches": [
+    {
+      "prefix": "37",
+      "observations": [
+        {
+          "at": "2026-10-21T01:02:04.615Z",
+          "call": "figma_search_nodes {\"query\":\"LinkedIn video\",\"limit\":20}",
+          "result": "{\"query\":\"LinkedIn video\",\"type\":null,\"scope\":{\"id\":\"0:1\",\"name\":\"Page 1\",\"type\":\"PAGE\",\"from\":\"page\"},\"count\":4,\"nodes\":[…,{\"id\":\"14:4818\",\"name\":\"Linkspan v2 · LinkedIn video\",\"type\":\"FRAME\",\"childCount\":19},{\"id\":\"37:173\",\"name\":\"Linkspan v2 · LinkedIn video\",\"type\":\"FRAME\",\"childCount\":19}],\"truncated\":false}",
+          "shows": "the page listed a second frame of the same name and child count beside 14:4818, under a 37: id (the two left out are older frames with other names)"
+        },
+        {
+          "at": "2026-10-21T01:02:28.020Z",
+          "call": "figma_get_node {\"nodeId\":\"14:4818\",\"depth\":1}",
+          "result": "{\"node\":{\"id\":\"14:4818\",\"name\":\"Linkspan v2 · LinkedIn video\",\"type\":\"FRAME\",\"childCount\":19,\"children\":[{\"id\":\"37:174\",\"name\":\"Stage\",\"type\":\"FRAME\",\"childCount\":8,…},{\"id\":\"37:431\",\"name\":\"Captions\",\"type\":\"FRAME\",\"childCount\":7,…},{\"id\":\"37:439\",\"name\":\"Header band\",\"type\":\"RECTANGLE\",…},{\"id\":\"37:440\",\"name\":\"Header\",\"type\":\"FRAME\",\"childCount\":1,…},…",
+          "shows": "the created frame handle listed its own children under 37: ids"
+        },
+        {
+          "at": "2026-10-21T01:03:10.144Z",
+          "call": "figma_check_motion {\"nodeId\":\"14:4818\",\"fps\":30,\"limit\":80}",
+          "result": "INVALID_PARAM: The frame's motion plan names `brandId` 14:4853, which is not among the layers read in \"Linkspan v2 · LinkedIn video\".\nStore the plan again (figma_set_motion_plan) with the layer's current id.",
+          "shows": "a plan holding the created id of the brand layer no longer matched the listing"
+        },
+        {
+          "at": "2026-10-21T01:03:26.140Z",
+          "call": "figma_get_node {\"nodeId\":\"37:440\",\"depth\":2}",
+          "result": "{\"node\":{\"id\":\"37:440\",\"name\":\"Header\",\"type\":\"FRAME\",\"childCount\":1,\"children\":[{\"id\":\"37:441\",\"name\":\"Figxel lockup\",\"type\":\"FRAME\",\"childCount\":2,\"children\":[{\"id\":\"37:442\",\"name\":\"Vector\",…},{\"id\":\"37:443\",\"name\":\"Vector\",…}],\"width\":108,\"height\":52,\"x\":64,\"y\":34,\"cornerRadius\":0}],…}}",
+          "shows": "the brand layer was listed as 37:441"
+        },
+        {
+          "at": "2026-10-21T01:03:52.616Z",
+          "call": "figma_search_nodes {\"query\":\"Figxel lockup\",\"limit\":20}",
+          "result": "{\"query\":\"Figxel lockup\",\"type\":null,\"scope\":{\"id\":\"0:1\",\"name\":\"Page 1\",\"type\":\"PAGE\",\"from\":\"page\"},\"count\":2,\"nodes\":[{\"id\":\"37:441\",\"name\":\"Figxel lockup\",\"type\":\"FRAME\",\"childCount\":2},{\"id\":\"37:441\",\"name\":\"Figxel lockup\",\"type\":\"FRAME\",\"childCount\":2}],\"truncated\":false}",
+          "shows": "a search reached the layer twice, through both listings of the frame"
+        },
+        {
+          "at": "2026-10-21T01:03:52.717Z",
+          "call": "figma_get_node {\"nodeId\":\"14:4853\",\"depth\":0,\"format\":\"rest\"}",
+          "result": "{\"nodeId\":\"14:4853\",\"format\":\"rest\",\"chars\":1635,\"truncated\":false,\"rest\":{\"document\":{\"id\":\"37:441\",\"name\":\"Figxel lockup\",\"type\":\"FRAME\",…",
+          "shows": "getNodeByIdAsync on the created id answered a node whose JSON_REST_V1 document.id was its second id"
+        },
+        {
+          "at": "2026-10-21T01:04:51.757Z",
+          "call": "figma_set_motion_plan {\"nodeId\":\"14:4818\",\"idempotencyKey\":\"v2-video-plan-realias-1\",…,\"brandId\":\"37:441\",…}",
+          "result": "INVALID_PARAM: `brandId` \"Figxel lockup\" (37:441) is not inside \"Linkspan v2 · LinkedIn video\".\nName a layer of the planned frame.",
+          "shows": "the listed id's parents did not lead to 14:4818"
+        }
+      ]
+    },
+    {
+      "prefix": "39",
+      "observations": [
+        {
+          "at": "2026-10-21T01:55:47.294Z",
+          "call": "figma_get_changes {}",
+          "result": "{\"file\":\"Figxel Showcase\",…,\"changes\":[{\"nodeId\":\"39:15095\",\"name\":\"Linkspan v2 · LinkedIn video\",\"by\":\"person\",\"at\":1792546860759},{\"nodeId\":\"39:15158\",\"name\":\"Count +3\",\"by\":\"person\",\"at\":1792546860923},…,{\"nodeId\":\"39:15418\",\"name\":\"Linkspan v2 · LinkedIn video\",\"by\":\"person\",\"at\":1792546960193},{\"nodeId\":\"39:15481\",\"name\":\"Count +3\",\"by\":\"person\",\"at\":1792546960359},…,{\"nodeId\":\"39:15741\",\"name\":\"Linkspan v2 · LinkedIn video\",\"by\":\"person\",\"at\":1792547099972},{\"nodeId\":\"39:15804\",\"name\":\"Count +3\",\"by\":\"person\",\"at\":1792547100126},…]…}",
+          "shows": "178 changes, every one under a 39: id: a frame of the same name three times within four minutes (39:15095, 39:15418, 39:15741), each followed by its layers"
+        }
+      ]
+    }
+  ]
+}

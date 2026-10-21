@@ -28,7 +28,9 @@ const BY_GROUP: Record<Group, readonly string[]> = {
     "get_metadata", "get_design_context", "get_node", "get_selection", "get_nodes_info",
     "get_variable_defs", "get_styles", "get_local_components", "get_fonts", "search_nodes",
     "scan_nodes_by_types", "scan_text_nodes", "get_pages", "get_annotations", "get_reactions", "suggest_fonts", "check_layout",
-    "get_library_variables", "get_component", "get_motion_context", "check_motion", "get_slide_grid",
+    "get_library_variables", "get_component", "get_motion_context", "check_motion", "get_slide_grid", "get_brief",
+    // Trust (trust spec §2.4): the server's journal of write calls, with what the plugin saw people change.
+    "get_changes",
   ],
   create: [
     "create_from_spec", "create_frame", "create_text", "create_rectangle", "create_ellipse",
@@ -57,6 +59,11 @@ const BY_GROUP: Record<Group, readonly string[]> = {
     "apply_style_to_node", "bind_variable_to_node", "set_reactions", "remove_reactions",
     "set_variable_mode", "update_style", "set_description", "set_keyframes", "remove_keyframes",
     "set_scroll_behavior", "set_prototype_flows", "set_slide_transition", "set_motion_plan",
+    // The role process (spec ADR #42): they write shared plugin data only, and are checked on their own call (never a batch step).
+    "set_brief", "sign_off",
+    // Trust (trust spec §2.5, §3): a savepoint writes nothing to the document; a
+    // rollback undoes back to one; a stress test builds copies and removes them.
+    "savepoint", "rollback", "stress_test",
   ],
   export: ["export_node", "save_screenshots", "export_frames_to_pdf", "download_assets", "export_video", "review_video"],
   // Held back from the release on 2026-10-14 (the owner judged the generated
@@ -72,11 +79,12 @@ const WRITE_GROUPS = new Set<Group>(["create", "modify", "style", "eval"]);
 const READ_ONLY_GROUPS = new Set<Group>(["meta", "read", "export", "audio"]);
 // update_variable_collection: `removeModes` deletes every variable's value for
 // the mode. reset_slot: drops the layers added into a slot. edit_table: removed
-// rows and columns take their cells' text. Each loses work, so each carries
-// destructiveHint and none may run inside figma_batch.
+// rows and columns take their cells' text. rollback: undoes every call since a
+// savepoint. Each loses work, so each carries destructiveHint and none may run
+// inside figma_batch.
 const DESTRUCTIVE = new Set([
   "delete_nodes", "detach_instance", "ungroup_nodes", "delete_variable", "delete_variable_collection", "delete_style",
-  "delete_component_property", "update_variable_collection", "reset_slot", "undo_step", "eval", "edit_table",
+  "delete_component_property", "update_variable_collection", "reset_slot", "undo_step", "eval", "edit_table", "rollback",
 ]);
 // review_video reads a file the bridge already wrote, and the audio tools read and write
 // files on this machine: none has a plugin op. generate_audio { nodeId } reads the frame

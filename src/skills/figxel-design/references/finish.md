@@ -42,22 +42,26 @@ It comes after the last critique round's fixes, before the final check: the part
 
 ## The final check
 
-1. figma_check_layout { nodeId: <wrapper>, audit: ["craft", "tells"], minTextSize } → ok: true, and every craft and tells info answered: fixed, or kept with its reason in the report.
-2. The read and the squint of the first view, and of each view the success lines name: the focal point still reads first.
-3. figma_select and figma_zoom_to on the design, so the user opens onto it.
+1. figma_check_layout { nodeId: <wrapper>, audit: ["craft", "tells"], minTextSize } → ok: true, and every craft and tells info answered: fixed, or kept with its reason in the report. Add the role's own audits: a11y, states and copy for ux; system for graphic, illustration, brand and a deck; icons for illustration, mark for brand, deck for a deck (each role's skill lists them).
+2. Real content, on every screen, page view and component whose content will change (a poster, an ad or a mark with final copy skips it): figma_stress_test { nodeId: <the screen or view> }. It copies the view once per case, checks each copy against the original and reports, by layer path, what each case broke: `expand` grows every text as translation grows it, short strings most (to 300 % of its length up to 10 characters, 130 % past 70); `long` doubles each text's words and turns a single word into a 24-character compound; `numbers` makes every figure large of the same form ($9.99 becomes $12,345.99); `many` triples each auto-layout list of three or more instances of one component; `empty` drops those lists to none. Fix the layout, never the real copy: a text fills its column and wraps, a frame hugs instead of clipping, a figure hugs while the text beside it fills, an empty list gets its empty state. Then run step 1 again. It deletes its copies unless `keep: true`; a break kept on purpose goes in the report with its reason.
+3. The read and the squint of the first view, and of each view the success lines name: the focal point still reads first.
+4. figma_sign_off { nodeIds, lenses, rounds, answers, placeholders } on the deliverables: the screens, frames or component sets the brief covers, never the brief block or the explorations. It runs the role's audits again, checks the brief is complete for its gear (Direction 0, the directions, the choice, the styleframes, the system), takes the last round's scores (`lenses` [{ lens, score, verdict, remaining }], a lens under 8 accepted only at the round budget, with its `remaining`), a reason for every info kept (`answers` [{ kind, nodeId, reason }]) and every invented fact (`placeholders`, or ["none"]), then records the result on each deliverable and on the brief block.
+5. `ok: false` lists each blocker with the call that clears it: make those calls and sign off again. On a pass it selects and zooms to the work, so the user opens onto it. An edit with no brief needs no sign-off: figma_select and figma_zoom_to instead.
 
 ## The report
 
-Tell the user, in this order:
+Tell the user, in this order, quoting the sign-off:
 
 - **Assumptions** — anything you decided for the user (the audience, the message, whose styles the file holds, unverified safe zones), first.
+- **The sign-off** — ok, when, the checks it ran, and each lens accepted below 8 with what remains, as figma_sign_off answered. Say plainly that work is unsigned if it did not pass.
 - **The brief as built** — the seven lines, updated with every decision made on the way.
 - **The direction and why** — the decision line: chosen, why, what was grafted, what was rejected, and how it differs from Direction 0.
 - **The scores** — each lens per round, and the findings left after the last round.
-- **Tells and infos kept on purpose** — each with its reason and evidence ("brand given: paint style Brand/Green", "a real sequence").
+- **Tells, infos and stress-test breaks kept on purpose** — each with its reason and evidence ("brand given: paint style Brand/Green", "a real sequence"), and any text the stress test skipped for a missing font.
 - **Placeholders to replace** — every invented fact: prices, names, numbers, photos, quotes.
-- **Where things are** — the target page, and the Explorations page or section with its direction cards, styleframes and brief block.
+- **What changed** — from figma_get_changes { since: <the checkpoint id> }: what you created and edited, and any edit someone else made to your work meanwhile.
+- **Where things are** — the target page, and the Explorations page or section with its direction cards, styleframes and brief block (its status line now reads signed off).
 
 Keep it short: the design is the answer, and the report says what it decided and what the user still owns.
 
-Evidence (claim ids, for maintainers): [C-092] [C-212] [C-207] [C-248] [C-075] [C-221]
+Evidence (claim ids, for maintainers): [C-092] [C-212] [C-207] [C-248] [C-075] [C-221] [C-386] [C-385] [C-396]

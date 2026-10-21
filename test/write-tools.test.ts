@@ -21,7 +21,8 @@ let mock: MockPlugin;
 
 beforeAll(async () => {
   const home = mkdtempSync(join(tmpdir(), "fmcp-write-"));
-  const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_SESSION_WAIT_MS: "2000" });
+  // A frame spec at page level is new work: the role gate is the role-process tests' to judge.
+  const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_SESSION_WAIT_MS: "2000", BRIDGE_PROCESS: "off" });
   const token = readOrCreateToken(config.tokenPath);
   app = await createApp(config, token, quietLogger);
   const [a, b] = InMemoryTransport.createLinkedPair();

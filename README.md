@@ -29,7 +29,8 @@ Tested live on Windows; macOS has not been run live yet.
 
 - **It works with the AI app you already use.** Claude, Cursor, VS Code, Codex, Gemini CLI or any other app that runs local MCP servers, whatever model it runs.
 - **It reads and writes your real Figma file.** A plugin runs in Figma desktop, so the agent makes editable layers, components and variables in the file you have open.
-- **The agent works like a designer.** Its skills teach it to write a brief, compare directions and check every section it builds. For motion the tools enforce the process: a plan before the first keyframe, a passing check before the final render.
+- **It never silently overwrites your edits.** When you change something the agent read earlier, its next write to it is refused until it reads again `[C-397]`; each instruction can be taken back in one step, and only when that takes back nothing of yours.
+- **The agent works like a designer, in the role the work needs.** UI/UX, graphic, illustration, brand, presentation, design system, board or motion: each role has its own workflow, with planning before the work and testing after it. The tools enforce it: new work starts with a brief, ends with a sign-off that runs the role's checks, and a final export waits for that sign-off. For motion, a plan comes before the first keyframe.
 - **It is local and open source.** The server runs on your machine and listens only on `127.0.0.1`. MIT licensed.
 
 ## What you can do
@@ -40,11 +41,12 @@ Ask in plain words; the agent picks the tools.
 - **Build and edit**: a whole section in one call (`figma_create_from_spec`) or frame by frame. Each call is one Ctrl+Z step in Figma.
 - **Work with a design system**: components and variants, styles, variables with modes, and library assets.
 - **Prototype and animate**: prototype flows, keyframes, storyboards and video export, checked with `figma_check_motion`.
-- **Check its own work**: `figma_check_layout` finds overflowing text, clipped or overlapping content, low contrast and placeholder copy, and suggests the fix.
+- **Check its own work**: `figma_check_layout` finds overflowing text, clipped or overlapping content, low contrast and placeholder copy, and its audits measure target sizes, focus and error states, copy, the brief's grid and type scale, a mark at its smallest size, a deck's density and how much is bound to your variables, each with the fix.
+- **Stress-test a design**: `figma_stress_test` makes copies with translated, longer and bigger content and many or no items, checks each, and says what broke, before real content arrives.
 - **FigJam and Figma Slides**: reads work today; board and deck writes stay refused until a live run verifies them.
-- **Follow a process**: eleven skills, from design and motion to critique, reach every app through `figma_get_guide`, MCP prompts and `skill://` resources.
+- **Follow a process**: fourteen skills, from design and motion to critique, reach every app through `figma_get_guide`, MCP prompts and `skill://` resources.
 
-That is 133 tools by default: see the [tool catalog](docs/reference/tools.md).
+That is 140 tools by default: see the [tool catalog](docs/reference/tools.md).
 
 ## Requirements
 
@@ -123,7 +125,7 @@ More to try, with what to expect, in [Using Figxel](docs/usage.md#example-reques
 Settings are environment variables in your AI app's server entry. The two you are most likely to change:
 
 - **`BRIDGE_TOOLSET`** trims the tool list for apps with a tool limit, such as VS Code (128 tools `[C-286]`) and Windsurf (100 `[C-289]`): `core` registers 20 tools.
-- **`BRIDGE_PROCESS`** sets how strictly the motion process is enforced: `strict` (the default), `guided` (warnings instead of refusals) or `off`.
+- **`BRIDGE_PROCESS`** sets how strictly the design process is enforced: `strict` (the default: new work waits for a brief, a final export for a sign-off, keyframes for a motion plan), `guided` (warnings instead of refusals) or `off`.
 
 Every setting, its default and where to set it: [docs/configuration.md](docs/configuration.md).
 

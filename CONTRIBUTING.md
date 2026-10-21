@@ -205,13 +205,13 @@ For maintainers. One time: the public repository `AvYour/figxel-mcp` with the re
 
 For each release:
 
-1. In [CHANGELOG.md](CHANGELOG.md), give the version being released its date in place of **Unreleased** (`## 0.2.0 — 2026-11-02`). Later changes start a new `Unreleased` heading above it.
+1. In [CHANGELOG.md](CHANGELOG.md), give the version being released its date in place of **Unreleased** (`## 0.3.0 — 2026-11-02`). Later changes start a new `Unreleased` heading above it.
 2. Set the new `version` in `package.json` and `package-lock.json`. The build injects it into all three bundles, so no source file carries a version.
 3. Commit, tag the commit `v<version>`, and push both:
 
    ```bash
-   git tag v0.2.0
-   git push origin main v0.2.0
+   git tag v0.3.0
+   git push origin main v0.3.0
    ```
 
 4. The tag starts `.github/workflows/release.yml`. It refuses a tag that is not `v` plus the `package.json` version, runs `npm ci`, `npm run check` and the language check, publishes with `npm publish --provenance --access public`, zips `dist/plugin/*` and `LICENSE` as `figxel-plugin-v<version>.zip`, and creates the GitHub Release with that zip and generated notes.

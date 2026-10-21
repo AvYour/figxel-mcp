@@ -13,7 +13,8 @@ import { tokenFingerprint } from "../shared/token.js";
 import { PACKAGE_NAME, PLUGIN_NAME, SERVER_NAME, VERSION } from "../shared/version.js";
 import { Bridge, type BridgeOptions } from "./bridge.js";
 import { ConfigError, createLogger, loadConfig, migrateLegacyToken, readOrCreateToken, type Config, type Logger } from "./config.js";
-import { MotionProcess } from "./motion-process.js";
+import { MotionProcess, SkillLedger } from "./motion-process.js";
+import { RoleProcess } from "./role-process.js";
 import { stripSchemaDialect } from "./schema-dialect.js";
 import { registerResources, registerSkillResources } from "./resources.js";
 import { registerTools, type Registration } from "./tools/index.js";
@@ -58,6 +59,8 @@ export async function createApp(
     sessionWaitMs: config.sessionWaitMs,
     allowUnverified: config.allowUnverified,
     tokenPath: config.tokenPath,
+    // BRIDGE_CONFLICTS: the stale-write guard every write carries (trust spec §2.3).
+    conflicts: config.conflicts,
     onPluginLog: (level, message) => {
       if (!server.isConnected()) return;
       void server.server
@@ -66,12 +69,15 @@ export async function createApp(
     },
     ...bridgeOverrides,
   });
-  // One per process, as the client it serves: reading the motion skill on any surface counts for its tools.
-  const motionProcess = new MotionProcess(config.processMode);
-  const registration = registerTools(server, bridge, config, startedAt, logger, motionProcess);
+  // One per process, as the client it serves: a skill read on any surface is noted once, in one
+  // ledger, and counts for both gates — the motion process's keyframes and the role process's briefs.
+  const ledger = new SkillLedger();
+  const motionProcess = new MotionProcess(config.processMode, ledger);
+  const roleProcess = new RoleProcess(config.processMode, ledger);
+  const registration = registerTools(server, bridge, config, startedAt, logger, motionProcess, roleProcess);
   registerResources(server, bridge);
   // Whatever the toolset: a client that surfaces resources reaches the skills even with BRIDGE_TOOLSET=none.
-  registerSkillResources(server, (skill, uri) => motionProcess.noteSkill(skill.short, `the resource ${uri}`));
+  registerSkillResources(server, (skill, uri) => ledger.note(skill.short, `the resource ${uri}`));
   await bridge.start();
 
   // Remove the draft-07 `$schema` the SDK adds to every tool schema with
@@ -189,7 +195,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   const app = await createApp(config, token, logger);
   logger.info(
-    `${PACKAGE_NAME} ${VERSION}: toolset ${config.toolset.kind}, ${app.registration.registered.length} tool(s) registered, motion process ${config.processMode}`,
+    `${PACKAGE_NAME} ${VERSION}: toolset ${config.toolset.kind}, ${app.registration.registered.length} tool(s) registered, process ${config.processMode}`,
   );
 
   let shuttingDown = false;

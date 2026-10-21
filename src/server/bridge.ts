@@ -32,13 +32,14 @@ import {
   type Limits,
   type LogLevel,
   type PluginToServer,
+  type RequestMsg,
   type ServerToPlugin,
 } from "../shared/protocol.js";
 import { tokenFingerprint } from "../shared/token.js";
 import { PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, SETUP_COMMAND, VERSION } from "../shared/version.js";
 import { figmaWords, isRenderTimeout, isSmallRender, renderTimeoutHint, type RenderSize } from "../shared/video.js";
 import { Base64Sink, withBase64 } from "./binary.js";
-import type { Logger } from "./config.js";
+import type { ConflictsMode, Logger } from "./config.js";
 import { parseFrame } from "./frames.js";
 import { PLUGIN_BUILD_ID } from "./plugin-build.js";
 import {
@@ -228,7 +229,12 @@ export interface BridgeOptions {
   allowUnverified?: boolean;
   /** The file the token was read from: named in token hints, with the token's fingerprint, never the token. */
   tokenPath?: string;
+  /** BRIDGE_CONFLICTS of this process: the guard every write it sends carries. Default "refuse". */
+  conflicts?: ConflictsMode;
 }
+
+/** The stale-write guard a write request carries (trust spec §2.3; protocol.ts RequestMsg.guard). */
+export type Guard = NonNullable<RequestMsg["guard"]>;
 
 export interface Progress {
   done: number;
@@ -246,6 +252,10 @@ export interface RequestOptions {
   allowUnverified?: boolean;
   /** The figma_export_video job this render belongs to (video-jobs.ts): named in the BUSY other calls get meanwhile. */
   jobId?: string;
+  /** A write's `force`: overwrite a target someone changed since the agent's read, on purpose (trust spec §2.3). */
+  force?: boolean;
+  /** Set by the hub for a write a proxy forwarded: that proxy's guard, sent on as it is. */
+  guard?: Guard;
 }
 
 /** JSON-safe session view — it travels between hub and proxies. */
@@ -307,6 +317,7 @@ interface Job {
   chunks: { head: BinaryData; expected: number; received: number; sink: Base64Sink } | null;
   detachSignal: () => void;
   jobId: string | undefined;
+  guard: Guard | undefined;
 }
 
 class Session {
@@ -1036,14 +1047,18 @@ export class Bridge {
    * hub as a proxy. Rejects only with BridgeError. Write ops always carry an
    * idempotencyKey (agent-supplied or generated here, so even a proxy that
    * loses its hub mid-call can return it), and every result/error for them
-   * carries it back (protocol.md §3).
+   * carries it back (protocol.md §3). Every write carries the stale-write
+   * guard too (trust spec §2.3): this process's BRIDGE_CONFLICTS and the
+   * call's `force`, or the guard of the proxy that forwarded it.
    */
   async request(op: string, params: Record<string, unknown>, opts: RequestOptions = {}): Promise<unknown> {
     const info = OPS.get(op);
     const write = info?.write ?? false;
     const key = write ? (opts.idempotencyKey ?? `k-${randomUUID()}`) : undefined;
+    // `agent` names this process, so the plugin can tell one agent's undo steps from another's.
+    const guard: Guard | undefined = write ? (opts.guard ?? { conflicts: this.opts.conflicts ?? "refuse", force: opts.force === true, agent: this.requestPrefix }) : undefined;
 
-    if (this.currentRole === "proxy") return this.forwardToHub(op, params, opts, key);
+    if (this.currentRole === "proxy") return this.forwardToHub(op, params, opts, key, guard);
 
     if (key) {
       const existing = this.inflight.get(key);
@@ -1057,7 +1072,7 @@ export class Bridge {
       }
     }
 
-    const promise = this.dispatch(op, params, opts, key, info?.exportOp ?? false);
+    const promise = this.dispatch(op, params, opts, key, info?.exportOp ?? false, guard);
     if (key) {
       this.inflight.set(key, { op, promise });
       promise.then(
@@ -1068,7 +1083,7 @@ export class Bridge {
     return promise;
   }
 
-  private forwardToHub(op: string, params: Record<string, unknown>, opts: RequestOptions, key: string | undefined): Promise<unknown> {
+  private forwardToHub(op: string, params: Record<string, unknown>, opts: RequestOptions, key: string | undefined, guard: Guard | undefined): Promise<unknown> {
     const hub = this.hub;
     if (!hub || hub.readyState !== WebSocket.OPEN) {
       return Promise.reject(
@@ -1114,6 +1129,8 @@ export class Bridge {
           // hub as a proxy and must not need the user's own client restarted.
           ...(this.opts.allowUnverified ? { allowUnverified: true } : {}),
           ...(opts.jobId !== undefined ? { jobId: opts.jobId } : {}),
+          // This process's BRIDGE_CONFLICTS and the call's force, as allowUnverified: the hub sends them on.
+          ...(guard ? { guard } : {}),
         },
       };
       hub.send(JSON.stringify(msg));
@@ -1126,6 +1143,7 @@ export class Bridge {
     opts: RequestOptions,
     key: string | undefined,
     exportOp: boolean,
+    guard: Guard | undefined,
   ): Promise<unknown> {
     if (this.currentRole === "none" && this.reason === ErrorCode.PORT_IN_USE) {
       if (this.peerRefusal) {
@@ -1196,6 +1214,7 @@ export class Bridge {
         chunks: null,
         detachSignal: () => {},
         jobId: opts.jobId,
+        guard,
       };
       if (opts.signal) {
         if (opts.signal.aborted) {
@@ -1258,6 +1277,7 @@ export class Bridge {
       params: job.params,
       idleTimeoutMs: job.idleTimeoutMs,
       ...(job.idempotencyKey ? { idempotencyKey: job.idempotencyKey } : {}),
+      ...(job.guard ? { guard: job.guard } : {}),
     });
     this.armIdle(session, job);
   }

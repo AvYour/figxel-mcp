@@ -14,8 +14,8 @@
 //                unless BRIDGE_ALLOW_UNVERIFIED lets a measuring run through.
 // A contradicted fact maps to "unmeasured", never to "no", so a contradiction
 // is never a load-bearer (AGENTS.md). A cell turns "yes" only from a result
-// recorded under spikes/results/; set_motion_plan's row says why it is the
-// one exception.
+// recorded under spikes/results/; the rows of set_motion_plan, set_brief and
+// sign_off say why they are the exceptions.
 //
 // The same function refuses at two layers: the bridge (authoritative; every MCP
 // client reaches the plugin through it) and the plugin (a backstop for an older
@@ -106,6 +106,12 @@ export const EDITOR_SUPPORT: Readonly<Record<string, EditorRow>> = {
     why: SLIDES_WHY,
     instead: { figma: "read the page with figma_get_metadata", figjam: "read the board with figma_get_metadata" },
   }),
+  // Reads shared plugin data on a node, a page and the document root: a read runs everywhere (spec ADR #42 §3.5).
+  get_brief: everywhere(),
+  // Trust (trust spec §2.4): the server's journal and the plugin's change log of
+  // the page it watches. Design yes ahead of spikes/live-trust.mjs (spec §5),
+  // for the reason the trust writes below give; a read runs in FigJam and Slides anyway.
+  get_changes: designOnlySoFar(),
   // create — createPage in FigJam [C-142] and createSection in Slides [C-137] are contradicted, so unmeasured.
   create_from_spec: designOnlySoFar(),
   create_frame: designOnlySoFar(),
@@ -251,6 +257,26 @@ export const EDITOR_SUPPORT: Readonly<Record<string, EditorRow>> = {
   // listed in docs/reference/roadmap.md § Next steps. A plan exists for
   // keyframes, which run in Design only.
   set_motion_plan: row("yes", "no", "no", { why: MOTION_WHY }),
+  // Design: yes ahead of spikes/live-roles.mjs, for the motion plan's reason:
+  // their calls are setSharedPluginData on a frame (what live-storyboard.json
+  // measured [C-188]) plus the brief block's frame and text, which the create
+  // tools already write there; as unmeasured they would refuse every brief,
+  // and with it all new work, under the default BRIDGE_PROCESS=strict. The
+  // writes on a page and on the document root are the spike's to measure.
+  // FigJam (a section for the block) and Slides (the record on the page) wait
+  // for it; until then strict runs guided there (spec §3.9).
+  set_brief: designOnlySoFar(),
+  sign_off: designOnlySoFar(),
+  // Trust (trust spec §2.5, §3): Design yes ahead of spikes/live-trust.mjs,
+  // whose run is pending (spec §5), as the role tools above are: a savepoint
+  // writes nothing, a rollback is the triggerUndo figma_undo_step already makes
+  // there [C-024] [C-059], and a stress test clones, edits the copies' texts and
+  // removes them with the calls the modify tools make. The live run measures the
+  // timing and the undo count [C-394] [C-395]. triggerUndo's reach in FigJam and
+  // Slides is unmeasured [C-151], so both wait for a spike.
+  savepoint: designOnlySoFar(),
+  rollback: designOnlySoFar(),
+  stress_test: designOnlySoFar(),
   // export
   export_node: everywhere(),
   save_screenshots: everywhere(),

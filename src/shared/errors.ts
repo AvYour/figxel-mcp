@@ -18,6 +18,17 @@ export const ErrorCode = {
    * Answered by the server before anything is sent, so nothing changed.
    */
   PROCESS_REQUIRED: "PROCESS_REQUIRED",
+  /**
+   * A write would overwrite a node someone else changed after the agent last
+   * read or wrote it (BRIDGE_CONFLICTS=refuse; trust spec §2.3). Refused by
+   * the plugin before the op runs, so nothing changed.
+   */
+  STALE: "STALE",
+  /**
+   * A rollback would also undo someone else's edit, or reach a page the plugin
+   * cannot see (trust spec §2.5). Refused before any undo, so nothing changed.
+   */
+  ROLLBACK_BLOCKED: "ROLLBACK_BLOCKED",
   INTERNAL: "INTERNAL",
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

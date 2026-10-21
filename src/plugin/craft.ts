@@ -12,6 +12,11 @@
 //
 // Judged after check.ts's walk, from the census it collects: plain functions
 // over boxes and paint order, no Figma calls. tells.ts reads the same census.
+//
+// Under a motion brief the census says which layer's keys carry each layer
+// (Census.carrier), and a finding that rests on where keys park a layer — two
+// layers keys move apart, or a moved layer against the safe area — is counted,
+// not made: layout is judged where the viewer sees it (roles spec §3.6).
 
 import { BridgeError, ErrorCode } from "../shared/errors.js";
 import { childrenOf } from "./board-read.js";
@@ -73,6 +78,12 @@ export interface Layer {
   order: number;
   /** Inside an INSTANCE: its paint and text come from a component and are judged there. */
   inInstance: boolean;
+  /**
+   * Inside a component or instance whose state is disabled or inactive: WCAG
+   * 2.2 exempts inactive components from text contrast (SC 1.4.3) and from
+   * non-text contrast (SC 1.4.11), so the contrast rules skip it.
+   */
+  inactive: boolean;
   /** Placed by an auto-layout parent rather than by hand. */
   flow: boolean;
   /** What it paints once its clipping ancestors cut it; null for text and for a layer that paints nothing. */
@@ -97,8 +108,22 @@ export interface Census {
   /** `safeArea` as the caller wrote it, for the findings. */
   safeAreaText?: string;
   minTextSize?: number;
+  /**
+   * The floor a text takes when no `minTextSize` is given: the brief's
+   * platform minimum in frame px at the text's frame (a11y.ts textFloorOf),
+   * with the words that name its source.
+   */
+  textFloor?(n: NodeLike): { px: number; source: string } | undefined;
   /** The colour its ancestors paint behind a node (check.ts's backdrop), or null. */
   backdrop(n: NodeLike): Rgb | null;
+  /**
+   * Under a motion brief (check.ts): the layer whose keys carry `n` where it
+   * is seen — `n`, or the nearest ancestor keys move — or null when no key
+   * moves it against the root. Absent: every layer is judged where it rests.
+   */
+  carrier?(n: NodeLike): NodeLike | null;
+  /** Counts a finding not made because it rested on where keys park a layer. */
+  unjudged?(kind: string): void;
 }
 
 /** Lookups both audits share, built once per root. */
@@ -111,6 +136,10 @@ export interface Index {
   isAncestor(anc: NodeLike, n: NodeLike): boolean;
   /** A node's visible children, as layers, in order. */
   kids(n: NodeLike): Layer[];
+  /** Under a motion brief: keys move one of the two and not the other with it, so how they sit at rest is no frame anyone sees. */
+  apart(a: NodeLike, b: NodeLike): boolean;
+  /** Under a motion brief: keys move `n` against the root, so where it rests is not where it is seen. */
+  moved(n: NodeLike): boolean;
 }
 
 /** Every threshold of the craft audit: a decision grounded in the run's findings, to calibrate here [C-248]. */
@@ -298,12 +327,15 @@ export function indexCensus(c: Census): Index {
     }
     return set;
   };
+  const carrier = c.carrier;
   return {
     byNode,
     texts,
     body,
     isAncestor: (anc, n) => ancestorsOf(n).has(anc),
     kids: (n) => (childrenOf(n) ?? []).map((k) => byNode.get(k)).filter((l): l is Layer => l !== undefined),
+    apart: carrier ? (a, b) => carrier(a) !== carrier(b) : () => false,
+    moved: carrier ? (n) => carrier(n) !== null : () => false,
   };
 }
 
@@ -335,6 +367,7 @@ export function groundUnder(ix: Index, target: Rect, order: number, node: NodeLi
     if (l.order >= order) break; // paint order: nothing after this is below the target
     if (l.order <= floor || l.text || !l.filled || !l.cover || l.cover.hole || l.cover.opacity < 0.99) continue;
     if (l.node === node || ix.isAncestor(l.node, node)) continue;
+    if (ix.apart(l.node, node)) continue; // under a motion brief, a ground only where it is seen with the target
     if (!contains(l.cover.outer, target, 1)) continue;
     best = l;
   }
@@ -343,7 +376,7 @@ export function groundUnder(ix: Index, target: Rect, order: number, node: NodeLi
 }
 
 /** `fg` laid over `bg` at `alpha`: the colour the eye gets. */
-const mix = (fg: Rgb, bg: Rgb, alpha: number): Rgb => ({
+export const mix = (fg: Rgb, bg: Rgb, alpha: number): Rgb => ({
   r: fg.r * alpha + bg.r * (1 - alpha),
   g: fg.g * alpha + bg.g * (1 - alpha),
   b: fg.b * alpha + bg.b * (1 - alpha),
@@ -374,18 +407,29 @@ export function parseMinTextSize(raw: unknown): number | undefined {
 
 // ── the rules ────────────────────────────────────────────────────────────────
 
-type Push = (l: Layer, kind: keyof typeof CRAFT_SEVERITY, detail: string, severity?: Severity) => void;
+/**
+ * `against`: what the finding is judged against — another layer, or the frame
+ * (the safe area). Under a motion brief a finding against a layer keys move
+ * apart from, or against the frame for a layer keys move, is counted and not
+ * made: it rests on where keys park a layer, not on a frame anyone sees.
+ */
+type Push = (l: Layer, kind: keyof typeof CRAFT_SEVERITY, detail: string, severity?: Severity, against?: Layer | "frame") => void;
 
 export function judgeCraft(c: Census, ix: Index): Finding[] {
   const out: Finding[] = [];
-  const push: Push = (l, kind, detail, severity) =>
+  const push: Push = (l, kind, detail, severity, against) => {
+    if (against && (against === "frame" ? ix.moved(l.node) : ix.apart(l.node, against.node))) {
+      c.unjudged?.(kind);
+      return;
+    }
     out.push({ kind, severity: severity ?? CRAFT_SEVERITY[kind], nodeId: l.node.id, name: l.node.name, detail });
+  };
   nearSizes(ix, push);
   sharedEdges(ix, push);
   tangents(c, ix, push);
   glyphGaps(c, push);
   oldstyleFigures(ix, push);
-  balance(c, push);
+  balance(c, ix, push);
   safeArea(c, push);
   contrastOverShapes(c, ix, push);
   minText(c, ix, push);
@@ -449,11 +493,11 @@ function sharedEdges(ix: Index, push: Push): void {
     if (off <= CRAFT.edgeNearMiss) {
       push(below, "no_shared_edge",
         `sits under "${a.node.name}" (${a.node.id}) with its ${edge} edge ${r1(off)} px off — close enough to look like a slip. ` +
-          "Align them exactly (figma_move_nodes), or offset by a full spacing step on purpose.", NEAR_MISS);
+          "Align them exactly (figma_move_nodes), or offset by a full spacing step on purpose.", NEAR_MISS, a);
     } else {
       push(below, "no_shared_edge",
         `sits under "${a.node.name}" (${a.node.id}) and shares no left, right or centre edge with it (the nearest, ${edge}, is ` +
-          `${r1(off)} px off) — a column holds one edge. Align them, unless the indent is the idea.`);
+          `${r1(off)} px off) — a column holds one edge. Align them, unless the indent is the idea.`, undefined, a);
     }
   }
 }
@@ -496,7 +540,7 @@ function tangents(c: Census, ix: Index, push: Push): void {
       const [mover, other] = A.l.flow ? [B, A] : [A, B];
       push(mover.l, "tangent",
         `almost touches "${other.l.node.name}" (${other.l.node.id}): it ${how}, under ${r1(limit)} px. Shapes that nearly meet read as ` +
-          "a mistake — overlap decisively or clear by a full spacing step (figma_move_nodes).");
+          "a mistake — overlap decisively or clear by a full spacing step (figma_move_nodes).", undefined, other.l);
     }
   }
 }
@@ -539,7 +583,8 @@ function glyphGaps(c: Census, push: Push): void {
           if (g >= 0.2 * em && g <= 0.4 * em && median <= 0.05 * em) return;
           push(r[i + 1]!, "glyph_gaps",
             `sits ${r1(g)} px (${(g / em).toFixed(2)} em) after "${r[i]!.node.name}" (${r[i]!.node.id}) on one baseline — a word set ` +
-              "one letter per layer reads broken once a gap opens past its spacing. Close it (figma_move_nodes), or set the word as one text.");
+              "one letter per layer reads broken once a gap opens past its spacing. Close it (figma_move_nodes), or set the word as one text.",
+            undefined, r[i]!);
         });
       }
     }
@@ -561,7 +606,7 @@ function oldstyleFigures(ix: Index, push: Push): void {
 }
 
 /** unbalanced_space: the block's centre of mass off its field's centre, with a wide empty band — 780 against 915 in the run [C-207]. */
-function balance(c: Census, push: Push): void {
+function balance(c: Census, ix: Index, push: Push): void {
   const field = c.safeArea ?? c.root?.box;
   if (!c.root || !field || field.height <= 0 || field.width <= 0) return;
   const fieldArea = field.width * field.height;
@@ -589,6 +634,11 @@ function balance(c: Census, push: Push): void {
   const bands = { above: top - field.y, below: bottom(field) - low };
   const [where, band] = bands.above >= bands.below ? (["above", bands.above] as const) : (["below", bands.below] as const);
   if (Math.abs(off) <= CRAFT.balance * field.height || band <= CRAFT.bandShare * field.height) return;
+  // Under a motion brief, a composition keys move is weighed on its frames, not at rest.
+  if (c.layers.some((l) => ix.moved(l.node))) {
+    c.unjudged?.("unbalanced_space");
+    return;
+  }
   const fieldName = c.safeArea ? "safe area's" : "frame's";
   push(c.root, "unbalanced_space",
     `its content's centre of mass sits ${r1(Math.abs(off))} px ${off > 0 ? "below" : "above"} the ${fieldName} centre ` +
@@ -596,8 +646,18 @@ function balance(c: Census, push: Push): void {
       "field, then lift it slightly on purpose (figma_move_nodes).");
 }
 
-/** Layers named for what a safe area protects besides text. */
-const PROTECTED = /\b(logo|logotype|wordmark|lockup|cta|call[ -]to[ -]action|button|btn)\b/i;
+/** Layers named for a logo: their text is a logotype, which WCAG 2.2 SC 1.4.3 exempts from text contrast. */
+export const LOGOTYPE = /\b(logo|logotype|wordmark|lockup)\b/i;
+/** Layers named for what a safe area protects besides text: a logo, or a call to action. */
+const PROTECTED = new RegExp(`${LOGOTYPE.source}|\\b(cta|call[ -]to[ -]action|button|btn)\\b`, "i");
+
+/** True when `n` or an ancestor is named for a logo (LOGOTYPE). */
+export function inLogotype(n: NodeLike): boolean {
+  for (let p: NodeLike | null | undefined = n; p && p.type !== "PAGE" && p.type !== "DOCUMENT"; p = p.parent) {
+    if (LOGOTYPE.test(p.name)) return true;
+  }
+  return false;
+}
 
 /** safe_area: text, a logo or a call to action outside the safe area the brief gives — there are no presets [C-234]. */
 function safeArea(c: Census, push: Push): void {
@@ -612,34 +672,43 @@ function safeArea(c: Census, push: Push): void {
     if (!sides.length) continue;
     reported.add(l.node);
     push(l, "safe_area",
-      `runs ${sides.join(", ")} outside the safe area ${c.safeAreaText ?? ""} — the brief keeps that band free. Move it in (figma_move_nodes) or make it smaller.`);
+      `runs ${sides.join(", ")} outside the safe area ${c.safeAreaText ?? ""} — the brief keeps that band free. Move it in (figma_move_nodes) or make it smaller.`,
+      undefined, "frame");
   }
 }
 
-/** low_contrast_over_shape: text on a solid shape from another branch it cannot be read against — 2.8:1 in the run [C-207] [C-075]. */
+/**
+ * low_contrast_over_shape: text on a solid shape from another branch it cannot be read against — 2.8:1 in the run [C-207] [C-075].
+ * The exceptions of WCAG 2.2 SC 1.4.3 hold here as for check.ts's low_contrast: inactive text is skipped, a logotype is info.
+ */
 function contrastOverShapes(c: Census, ix: Index, push: Push): void {
   for (const t of ix.texts) {
     const f = t.text!;
-    if (!f.fg) continue;
+    if (!f.fg || t.inactive) continue;
     const ground = groundUnder(ix, f.glyphs, t.order, t.node, c.layers);
     if (!ground?.solid) continue;
     const ratio = contrastRatio(f.fg, ground.solid.color);
     if (ratio >= f.need) continue;
+    const logo = inLogotype(t.node);
     push(t, "low_contrast_over_shape",
       `contrast ${ratio.toFixed(2)}:1 (${hex(f.fg)} on ${hex(ground.solid!.color)}, the fill of "${ground.node.name}" (${ground.node.id}) under it); ` +
-        `text this size needs ${f.need}:1. Change either colour, or move the text off the shape.`);
+        (logo
+          ? "it is part of a logo, which WCAG 2.2 SC 1.4.3 exempts — fine if this is the logotype."
+          : `text this size needs ${f.need}:1. Change either colour, or move the text off the shape.`),
+      logo ? "info" : undefined);
   }
 }
 
-/** min_text: text under the floor the caller set for this frame's device. */
+/** min_text: text under the floor the caller set for this frame's device, or under the brief's platform minimum. */
 function minText(c: Census, ix: Index, push: Push): void {
-  const floor = c.minTextSize;
-  if (floor === undefined) return;
+  const fixed = c.minTextSize;
+  if (fixed === undefined && !c.textFloor) return;
   for (const t of ix.texts) {
     const s = t.text!.minSize;
-    if (s <= 0 || s >= floor) continue;
+    const floor = fixed !== undefined ? { px: fixed, source: "minTextSize" } : c.textFloor!(t.node);
+    if (!floor || s <= 0 || s >= floor.px - 0.05) continue;
     push(t, "min_text",
-      `is ${r1(s)} px, under this frame's floor of ${r1(floor)} px (minTextSize) — too small to read at the size it is shown. Enlarge it (figma_set_text_properties fontSize).`);
+      `is ${r1(s)} px, under this frame's floor of ${r1(floor.px)} px (${floor.source}) — too small to read at the size it is shown. Enlarge it (figma_set_text_properties fontSize).`);
   }
 }
 
@@ -703,7 +772,7 @@ function strokesThroughText(c: Census, ix: Index, push: Push): void {
       if (!strokeCrosses(s, g)) continue;
       push(t, "stroke_crosses_text",
         `is crossed by the stroke of "${s.node.name}" (${s.node.id}) — a line through live type reads as a strike-through or a slip. ` +
-          "Move one of them, or end the stroke before the text.");
+          "Move one of them, or end the stroke before the text.", undefined, s);
     }
   }
 }
@@ -733,7 +802,7 @@ function edgesThroughText(c: Census, ix: Index, push: Push): void {
       if (!hit) continue;
       push(t, "edge_slices_text",
         `the ${hit.edge} edge of "${s.node.name}" (${s.node.id}) runs through it at ${Math.round(hit.at * 100)}% of its ${hit.of} — type ` +
-          "sitting on a boundary looks like a mistake. Move the text clear of the edge, or carry the shape past the text.");
+          "sitting on a boundary looks like a mistake. Move the text clear of the edge, or carry the shape past the text.", undefined, s);
     }
   }
 }
@@ -741,10 +810,13 @@ function edgesThroughText(c: Census, ix: Index, push: Push): void {
 /** Shapes a hairline is drawn with. */
 const GRAPHIC = new Set(["LINE", "VECTOR", "ELLIPSE", "RECTANGLE", "POLYGON", "STAR", "BOOLEAN_OPERATION", "FRAME"]);
 
-/** weak_graphic_contrast: a thin stroke people need, too faint against its ground — a ripple at about 2.7:1 in the run [C-207] [C-221]. */
+/**
+ * weak_graphic_contrast: a thin stroke people need, too faint against its ground — a ripple at about 2.7:1 in the run [C-207] [C-221].
+ * An inactive component is skipped: WCAG 2.2 SC 1.4.11 exempts it.
+ */
 function faintHairlines(c: Census, ix: Index, push: Push): void {
   for (const l of c.layers) {
-    if (l.text || l.filled || !l.stroked || l.inInstance || !l.strokeSolid || !GRAPHIC.has(l.node.type)) continue;
+    if (l.text || l.filled || !l.stroked || l.inInstance || l.inactive || !l.strokeSolid || !GRAPHIC.has(l.node.type)) continue;
     if (l.node.type === "FRAME" && (childrenOf(l.node) ?? []).length) continue; // a container's outline groups, it does not inform
     const weight = l.a.strokeWeight;
     if (typeof weight !== "number" || weight > CRAFT.hairline) continue;

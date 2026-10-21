@@ -414,6 +414,9 @@ class World {
         this.sent.push({ op, params });
         const frameId = this.frames.get(String(params.nodeId)) ?? null;
         switch (op) {
+          case "get_brief":
+            // The role process's read before a final render: this frame belongs to no brief.
+            return { open: [] };
           case "get_motion_context":
             return {
               scope: { from: "node", ids: [params.nodeId], recursive: false, ...(this.oldPlugin ? {} : { topLevelFrameIds: [frameId] }) },
@@ -618,9 +621,10 @@ describe("what counts as reading the motion skill", () => {
     await Promise.all([connect(app, a), client.connect(b)]);
     try {
       const status = async () => ((await client.callTool({ name: "figma_status", arguments: {} })) as ToolResult).structuredContent!.process;
-      expect(await status()).toEqual({ mode: "strict", motionSkillRead: false });
+      // The role process shares the block, and the one skill ledger (role-process.ts).
+      expect(await status()).toEqual({ mode: "strict", motionSkillRead: false, roles: "strict", skillsRead: [], briefs: [] });
       await client.readResource({ uri: "skill://figxel-motion/references/passes.md" });
-      expect(await status()).toEqual({ mode: "strict", motionSkillRead: true });
+      expect(await status()).toEqual({ mode: "strict", motionSkillRead: true, roles: "strict", skillsRead: ["motion"], briefs: [] });
     } finally {
       await client.close();
       await app.close();
@@ -752,8 +756,8 @@ describe("the final render waits for a passing check; a preview never does", () 
     const same = await s.call("figma_export_video", ask);
     expect(same.isError).toBeFalsy();
     expect(s.data(same)).toMatchObject({ status: "rendering", jobId: "hero-final" });
-    // One plan read, before the render began; the retries asked Figma nothing.
-    expect(world.ops()).toEqual(["get_motion_context", "export_video"]);
+    // One plan read and one sign-off read, before the render began; the retries asked Figma nothing.
+    expect(world.ops()).toEqual(["get_motion_context", "get_brief", "export_video"]);
     release();
     const done = await s.call("figma_export_video", { jobId: "hero-final", wait: 5 });
     expect(s.data(done)).toMatchObject({ status: "done", final: true, jobId: "hero-final" });
@@ -777,7 +781,7 @@ describe("the final render waits for a passing check; a preview never does", () 
     // Now the plugin is free: the gate reads the plan, and the finished preview becomes the delivery.
     const delivery = await s.call("figma_export_video", { ...ask, final: true, wait: 5 });
     expect(s.data(delivery)).toMatchObject({ status: "done", final: true, jobId: "hero-preview", reused: true });
-    expect(world.ops()).toEqual(["export_video", "get_motion_context"]);
+    expect(world.ops()).toEqual(["export_video", "get_motion_context", "get_brief"]);
   });
 
   it("every write after the check makes it stale, whatever frame it names, even one Figma refused: doubt costs one more check", async () => {

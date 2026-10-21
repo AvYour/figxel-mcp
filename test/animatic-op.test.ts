@@ -629,7 +629,7 @@ describe("figma_create_animatic on the server", () => {
 
   it("registers beside the storyboard, with its schema and a description that fits the cap with its Editors sentence", () => {
     expect(Object.keys(tools)).toEqual(["figma_create_storyboard", "figma_create_animatic"]);
-    expect(Object.keys(tool.config.inputSchema)).toEqual(["storyboardId", "width", "burnIn", "dissolveFrames", "drift", "pageId", "x", "y", "session", "idempotencyKey"]);
+    expect(Object.keys(tool.config.inputSchema)).toEqual(["storyboardId", "width", "burnIn", "dissolveFrames", "drift", "pageId", "x", "y", "session", "idempotencyKey", "force"]);
     expect(tool.config.description).toMatch(/One undo step\.$/);
     // The row the integrator adds is Design unmeasured, FigJam and Slides "no": the longest sentence is the unmeasured-everywhere one.
     expect(tool.config.description.length + Math.max(editorsSuffix("create_animatic").length, " Editors: Design only, unverified.".length)).toBeLessThanOrEqual(1024);

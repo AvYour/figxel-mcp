@@ -187,6 +187,17 @@ export interface RequestMsg {
   params: Record<string, unknown>;
   idleTimeoutMs: number;
   idempotencyKey?: string;
+  /**
+   * The stale-write guard for a write op (trust spec §2.3): BRIDGE_CONFLICTS
+   * and the call's `force`. Absent from an older server: the plugin then
+   * refuses nothing.
+   */
+  guard?: {
+    conflicts: "refuse" | "warn" | "off";
+    force?: boolean;
+    /** The server process that sent the write, so a rollback never undoes another agent's calls (trust spec §2.5). */
+    agent?: string;
+  };
 }
 
 export type CancelReason = "STALLED" | "CLIENT_CANCELLED" | "SHUTDOWN";

@@ -210,6 +210,10 @@ const NEW_TOOLS = [
   "set_clips_content", "batch", "set_variable_properties", "update_variable_collection", "edit_component_property", "delete_component_property", "reset_slot",
   "set_variable_mode", "update_style", "set_description", "set_keyframes", "remove_keyframes", "set_scroll_behavior", "set_prototype_flows",
   "download_assets", "export_video",
+  // The role process (spec ADR #42).
+  "set_brief", "get_brief", "sign_off",
+  // Trust (ADR #43).
+  "get_changes", "savepoint", "rollback", "stress_test",
 ];
 
 /** The FigJam and Slides tools; the tool chooser must route to each too. */

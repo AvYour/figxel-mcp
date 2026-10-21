@@ -24,17 +24,27 @@ import type { OpContext, PluginOp } from "./index.js";
 export const BATCH_EXCLUDED: ReadonlySet<string> = new Set(["batch", "group_nodes", "boolean_nodes", "flatten_nodes", "clone_node"]);
 /** A motion plan: its checks live on the server (src/server/motion-plan.ts), which a batch step never meets. */
 const PLAN_OP = "set_motion_plan";
+/** A brief and a sign-off: the server checks the lines, the lenses and the blockers first (roles spec §3.4, §3.6). */
+const ROLE_OPS: ReadonlySet<string> = new Set(["set_brief", "sign_off"]);
+/**
+ * Trust (2026-10-19): a savepoint marks the undo count between calls, so inside
+ * a batch it would mark the middle of one undo step; the stress test builds and
+ * removes copies as one undo step of its own. (rollback is destructive.)
+ */
+const SOLO_OPS: ReadonlySet<string> = new Set(["savepoint", "stress_test"]);
 export const MAX_STEPS = 50;
 
 /** Why `op` cannot be a batch step, or null when it can. */
 export function notBatchable(op: string): string | null {
   if (op === "batch") return "a batch cannot hold another batch";
+  if (SOLO_OPS.has(op)) return `"${op}" runs on its own call`;
   const info = OPS.get(op);
   if (!info) return `"${op}" is not a ${PRODUCT_NAME} op`;
   if (info.group !== "modify" && info.group !== "style") return `"${op}" is a ${info.group} op; a batch holds modify and style edits`;
   if (info.destructive) return `"${op}" is destructive and runs on its own call`;
   if (BATCH_EXCLUDED.has(op)) return `"${op}" replaces nodes with new ids, so later steps could name nodes that no longer exist`;
   if (op === PLAN_OP) return `"${op}" is checked by the server and stored on its own call, before the keyframes that need it`;
+  if (ROLE_OPS.has(op)) return `"${op}" is checked by the server and runs on its own call`;
   return null;
 }
 

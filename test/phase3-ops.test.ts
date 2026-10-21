@@ -394,6 +394,7 @@ describe("variables", () => {
     const wrong = await run("bind_variable_to_node", { nodeIds: [f.id], field: "fill", variableId: r.id });
     expect(wrong.items![0]!.error).toMatch(/binds a COLOR variable/);
   });
+
 });
 
 // ── styles, effects, blend ──────────────────────────────────────────────────

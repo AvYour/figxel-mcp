@@ -1,8 +1,12 @@
 # Rounds: merge, fix once, re-check, stop
 
-A round is six steps: sample, run the lenses, merge, apply one batch, check, and look for regressions. The gear sets how many rounds: one for a section or a sting, two for a page, three at most for the top gear and a motion piece.
+A round is six steps: sample, run the lenses (each verdict from the renders and the brief, then the numbers), merge, apply one batch, check, and look for regressions. The gear sets how many rounds: one for a section or a sting, two for a page, three at most for the top gear and a motion piece.
 
 ## 1. Collect
+
+**Try to falsify each finding before you keep it.** Re-measure its number on the document; look for the brief line, the given or the system rule that would make the thing right; look at it once more in a close-up. A finding that survives stays. One that does not is dropped, and a doubt that remains goes in the report as a question, not as a finding.
+
+**At most three findings per lens per round:** the three most severe. The rest wait for the next round, or after the last round go in the report with what remains. The cap rations judgement, not the checks: every figma_check_layout and figma_check_motion error and warning is fixed, whatever the count.
 
 Put every lens's findings in one list, the most severe first. Give each an id, R<round><lens code><n>: R1TC3 is round 1, type and composition, third finding. Next round's report can then say "R1TC3 fixed (now 1016)" or "R1TC3 regressed".
 
@@ -13,6 +17,15 @@ Put every lens's findings in one list, the most severe first. Give each an id, R
 | CI | colour and imagery | TQ | technical QA |
 | CP | copy | BL | the brief's own lens |
 | OR | originality | QA | finish QA |
+
+A worked finding, in the critique index's schema (the price is a child of an auto-layout column):
+
+```
+type and composition · score 7 · verdict fix
+- major · where: "Team price" 12:345 · measured: right edge 955 (x 600 + width 355), column edge 1016 · problem: the price shares no edge with the plan details above it, so the column reads loose · fix: figma_resize_nodes { nodeIds: ["12:345"], sizing: { horizontal: "fill" } } and figma_set_text_properties { nodeIds: ["12:345"], align: "right" }
+```
+
+Inside an auto-layout the layout owns x and y, so a fix changes sizing, alignment, padding or gap; figma_move_nodes x/y fixes apply only to absolute layers.
 
 ## 2. Merge
 

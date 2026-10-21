@@ -18,7 +18,7 @@ export function okResult(data: unknown): CallToolResult {
  * to send to, a queue that refused it, a port that never opened, a step of the
  * motion process still to do. Retrying one cannot apply anything twice.
  */
-const NEVER_REACHED = new Set<string>([ErrorCode.NO_SESSION, ErrorCode.BUSY, ErrorCode.PORT_IN_USE, ErrorCode.PROCESS_REQUIRED]);
+const NEVER_REACHED = new Set<string>([ErrorCode.NO_SESSION, ErrorCode.BUSY, ErrorCode.PORT_IN_USE, ErrorCode.PROCESS_REQUIRED, ErrorCode.STALE, ErrorCode.ROLLBACK_BLOCKED]);
 
 /**
  * Except a call that had already been sent when the connection went: NO_SESSION

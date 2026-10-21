@@ -2,6 +2,9 @@
 // studio", one agent, the design skill) found missing or ambiguous in the
 // design, critique, workflow and design-system skills. Each block pins one fix,
 // in numbers where the skill gives one, so the gap cannot come back silently.
+// The blocks at the end pin what the product redesign (2026-10-19) had no
+// guidance for: app screens, light or dark, the mode and colour strategy, icons,
+// and a critique that judges before it reads the numbers.
 
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,8 +25,8 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DISK = readSkillsTree(join(ROOT, "src/skills"));
 const SKILLS = skillsOf(DISK);
 
-/** The skills this pass owns. */
-const IN_SCOPE = ["design", "critique", "workflow", "design-system"];
+/** The skills this pass owns, and the role skills that joined them (the role process, 2026-10-16). */
+const IN_SCOPE = ["design", "critique", "workflow", "design-system", "ux", "graphic", "brand"];
 const scopeFiles = () => DISK.files.filter((f) => IN_SCOPE.some((s) => f.path.startsWith(`figxel-${s}/`)));
 const skill = (short: string) => SKILLS.find((s) => s.short === short)!;
 const section = (short: string, slug: string) => skill(short).sections.find((s) => s.slug === slug)!.body;
@@ -123,11 +126,11 @@ describe("whose system the file holds", () => {
     expect(c).toHaveLength(5);
     expect(c[0]).toMatch(/^The user pointed at them, or the work extends a design that uses them: givens/);
     expect(c[1]).toMatch(/^They belong to another brand or product: reference, read but never applied to this work and never edited/);
-    expect(c[2]).toMatch(/^They are this brief's brand and match one of the five looks below on two or more features: ask the user once/);
+    expect(c[2]).toMatch(/^They are this brief's brand and match one of the six looks below on two or more features: ask the user once/);
     expect(c[3]).toMatch(/^They are this brief's brand, or nobody's, and match no look: givens/);
     expect(c[4]).toMatch(/^Nobody's, and they match a look: reference/);
-    // The five looks the cases count against are listed in the same section, before the directions need them.
-    expect(section("design", "brief")).toMatch(/\*\*The generated default\.\*\* Generated design falls into five looks:/);
+    // The six looks the cases count against are listed in the same section, before the directions need them.
+    expect(section("design", "brief")).toMatch(/\*\*The generated default\.\*\* Generated design falls into six looks:/);
   });
 
   it("every place that says to reuse the file's styles points at that rule", () => {
@@ -295,5 +298,155 @@ describe("less to read", () => {
       expect(inProse, f.path).toEqual([]);
       if (/\[C-\d{3}\]/.test(last)) expect(last, f.path).toMatch(/^Evidence \(claim ids, for maintainers\):( \[C-\d{3}\])+$/);
     }
+  });
+});
+
+// ── The product redesign (2026-10-19): the guidance it lacked ────────────────
+
+describe("app screens: the ux skill's screens section", () => {
+  it("figma_get_guide serves it by topic and by section, and the ux index reads it at the build stage", async () => {
+    const config = loadConfig({ BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-screens-")), BRIDGE_PORT: "0", BRIDGE_SESSION_WAIT_MS: "200" });
+    const app = await createApp(config, readOrCreateToken(config.tokenPath), quietLogger);
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "screens", version: "0" });
+    await Promise.all([connect(app, a), client.connect(b)]);
+    try {
+      for (const args of [{ topic: "ux", section: "screens" }, { topic: "screens" }]) {
+        const r = (await client.callTool({ name: "figma_get_guide", arguments: args })) as { content: { text: string }[]; isError?: boolean };
+        expect(r.isError, JSON.stringify(args)).toBeFalsy();
+        expect(r.content[0]!.text.startsWith(`${section("ux", "screens")}\n\n---\n`), JSON.stringify(args)).toBe(true);
+      }
+    } finally {
+      await client.close();
+      await app.close();
+    }
+    expect(resolveTopic("screens")).toMatchObject({ kind: "section", skill: { short: "ux" } });
+    const build = table(skill("ux").body, "## The stages").find((r) => r[1] === "Build")!;
+    expect(build[2]).toMatch(/`screens`/);
+  });
+
+  it("asks for the one question and its finding, figures as type, the accent on data, and honest zeros", () => {
+    const s = section("ux", "screens");
+    for (const rule of [
+      /\*\*The question\*\* the person opens it with/,
+      /\*\*The finding\*\* the screen leads with/,
+      /\*\*The largest block answers the question\.\*\*/,
+      /\*\*The main job is one click away\.\*\*/,
+      /\*\*A title that names, no greeting\.\*\*/,
+      /\*\*One element only this product has\.\*\*/,
+      /\*\*The sidebar on the page ground\.\*\*/,
+      /\*\*The accent on data, not chrome\.\*\*/,
+      /\*\*KPIs as type, in one container\.\*\*/,
+      /\*\*Tabular figures, right-aligned\.\*\*/,
+      /\*\*An honest zero\.\*\*/,
+      /\*\*Empty leads to the first action\.\*\*/,
+    ]) expect(s).toMatch(rule);
+    // Light or dark is the brief's decision, and an app screen is an operate view.
+    expect(s).toMatch(/operate view/);
+    expect(s).toMatch(/never from "dashboards are dark"/);
+  });
+
+  it("each pattern recipe says when, what and how it is measured, and none is a house style", () => {
+    const s = section("ux", "screens");
+    expect(s).toMatch(/not a house style/);
+    const recipes = s.slice(s.indexOf("## Pattern recipes")).split("\n### ").slice(1);
+    expect(recipes.map((r) => r.split("\n")[0])).toEqual(["A settings area", "A dense data table", "An empty state", "A command bar"]);
+    for (const r of recipes) {
+      for (const part of ["When", "What", "Measured"]) expect(r, `${r.split("\n")[0]}: ${part}`).toMatch(new RegExp(`^- \\*\\*${part}:\\*\\* `, "m"));
+    }
+    expect(recipes[0]).toMatch(/grouped rows with inline controls/);
+    expect(recipes[0]).toMatch(/not each in a card/);
+  });
+
+  it("every number the section picks is framed as Figxel's starting point, to test against the brief", () => {
+    const s = section("ux", "screens");
+    const picked = s.split("\n").filter((l) => /\b\d+ px\b|\bfigures or fewer\b/.test(l));
+    expect(picked.length).toBeGreaterThanOrEqual(2);
+    for (const line of picked) expect(line).toMatch(/Figxel's starting point[^.:]*to test against the brief/);
+  });
+});
+
+describe("light or dark, the mode and the colour strategy are decisions on record", () => {
+  it("the brief's audience line carries a one-sentence physical scene, and the scene decides light or dark", () => {
+    const brief = section("design", "brief");
+    const audience = brief.split("\n").find((l) => l.startsWith("2. **Audience.**"))!;
+    expect(audience).toMatch(/the scene, one sentence in `audience` too: who, where, under what light/);
+    expect(audience).toMatch(/The scene decides light or dark/);
+    expect(audience).toMatch(/never "the category is dark"/);
+    expect(brief).toMatch(/^- Audience: [^\n]*Scene: [^\n]*light ground\.$/m);
+  });
+
+  it("the system names a mode and a colour strategy before any face or hex", () => {
+    const system = section("design", "system");
+    expect(system.indexOf("## Mode, then colour strategy")).toBeGreaterThan(0);
+    expect(system.indexOf("## Mode, then colour strategy")).toBeLessThan(system.indexOf("## Type"));
+    for (const word of ["persuade", "operate", "read", "experience", "restrained", "committed", "full palette", "drenched"]) {
+      expect(system, word).toMatch(new RegExp(`\\*\\*${word}\\*\\*`));
+    }
+    expect(system).toMatch(/An operate view borrows only type, palette, density and one signature move from its world/);
+    expect(system).toMatch(/on the ground the brief's scene chose \(light or dark, never the category's\)/);
+  });
+
+  it("the direction card carries a Mode line and a Colour strategy line", () => {
+    const d = section("design", "directions");
+    const card = d.slice(d.indexOf("## The direction card"), d.indexOf("## The default check"));
+    expect(card).toMatch(/^- \*\*Mode\*\* — persuade, operate, read or experience/m);
+    expect(card).toMatch(/^- \*\*Colour strategy\*\* — restrained, committed, full palette or drenched/m);
+  });
+
+  it("radius is a decision to test; icons are one set, outline at rest, matched to their label, bare; small Heroicons are solid", () => {
+    const system = section("design", "system");
+    expect(system).toMatch(/\*\*Radius by role and size, as a decision to test\.\*\*[^\n]*Figxel's starting point, to test/);
+    const icons = system.slice(system.indexOf("## Icons"), system.indexOf("## Copy"));
+    for (const rule of [/One set per piece, at its native sizes/, /Outline at rest, filled when active or selected/, /Stroke matched to the text beside it/, /Bare by default/]) {
+      expect(icons).toMatch(rule);
+    }
+    // [C-399]: Heroicons has no 20 or 16 px outline set.
+    expect(icons).toMatch(/\*\*Heroicons:\*\* outline exists only at 24 px; at 20 and 16 px take the 20 or 16 px solid set/);
+    expect(system.trimEnd().split("\n").pop()).toContain("[C-399]");
+  });
+});
+
+describe("critique: the verdict before the numbers, and what a clean page can hide", () => {
+  const index = () => skill("critique").body;
+
+  it("the set-up writes each verdict from the renders and the brief, then reads figma_check_layout and merges", () => {
+    const body = index();
+    const at = (s: string) => body.indexOf(s);
+    expect(at("**Cold read first.**")).toBeGreaterThan(0);
+    expect(at("Re-read the brief")).toBeGreaterThan(at("**Cold read first.**"));
+    expect(at("**Verdict before numbers.**")).toBeGreaterThan(at("Re-read the brief"));
+    expect(body).toMatch(/\*\*Verdict before numbers\.\*\* From the renders and the brief alone, write each lens's verdict/);
+    expect(body).toMatch(/Only then read the measurements \(figma_check_layout/);
+    expect(body).toMatch(/what the eye missed and one on what the numbers missed/);
+  });
+
+  it('a review that could not run in a fresh context opens its report with "self-reviewed"', () => {
+    expect(index()).toMatch(/A review that could not run in a fresh context opens its report with "self-reviewed"/);
+  });
+
+  it("the substance guard is a major trigger: mostly empty, small or grey running text, an idea that stops after the first view", () => {
+    const major = index().split("\n").find((l) => l.startsWith("- **Major:**"))!;
+    expect(major).toMatch(/mostly empty/);
+    expect(major).toMatch(/running text set small or grey/);
+    expect(major).toMatch(/an idea that stops after the first view/);
+  });
+
+  it("rounds: each finding is falsified before it is kept, at most three per lens per round, and the checks are not rationed", () => {
+    const rounds = section("critique", "rounds");
+    expect(rounds).toMatch(/\*\*Try to falsify each finding before you keep it\.\*\*/);
+    expect(rounds).toMatch(/\*\*At most three findings per lens per round:\*\*/);
+    expect(rounds).toMatch(/every figma_check_layout and figma_check_motion error and warning is fixed, whatever the count/);
+  });
+
+  it("lenses: message and originality judge before they measure", () => {
+    const lenses = section("critique", "lenses");
+    const message = lenses.slice(lenses.indexOf("## Message"), lenses.indexOf("## Type and composition"));
+    expect(message.indexOf("**Then the numbers.**")).toBeGreaterThan(message.indexOf("**Format.**"));
+    expect(message).toMatch(/\*\*Substance\.\*\*/);
+    const originality = lenses.slice(lenses.indexOf("## Originality"), lenses.indexOf("## Finish QA"));
+    const steps = [...originality.matchAll(/^(\d)\. \*\*([^*]+)\*\*/gm)].map((m) => `${m[1]} ${m[2]}`);
+    expect(steps).toEqual(["1 Swap test.", "2 Direction 0.", "3 Trace.", "4 Negation.", "5 Self-repetition.", "6 Clusters, in numbers.", "7 The tells census."]);
+    expect(originality).toMatch(/Steps 1 to 5 judge from the renders and the brief and end in a written verdict; steps 6 and 7 bring the numbers/);
   });
 });

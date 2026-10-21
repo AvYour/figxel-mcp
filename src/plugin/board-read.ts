@@ -114,6 +114,8 @@ export const READ_KEYS = [
   "fillStyleId", "strokeStyleId", "effectStyleId", "textStyleId", "gridStyleId", "boundVariables", "inferredVariables",
   "explicitVariableModes", "getMainComponentAsync", "componentProperties", "annotations", "manualKeyframeTracks",
   "animationStyles", "getCSSAsync", "findAllWithCriteria",
+  // the role audits (a11y.ts, states.ts): controls, states, and the brief block every check skips
+  "reactions", "variantProperties", "variantGroupProperties", "remote", "getSharedPluginData",
   // text
   "characters", "fontName", "fontWeight", "fontSize", "lineHeight", "letterSpacing", "textAlignHorizontal",
   "textAlignVertical", "textCase", "textDecoration", "textAutoResize", "textTruncation", "maxLines", "paragraphSpacing",

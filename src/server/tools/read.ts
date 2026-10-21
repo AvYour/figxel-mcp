@@ -6,6 +6,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { OPS } from "../../shared/ops.js";
 import type { Bridge } from "../bridge.js";
+import { briefIdInForce, type RoleProcess } from "../role-process.js";
 import { fitDescription } from "./params.js";
 import { forwardTool, type Extra } from "./forward.js";
 
@@ -26,6 +27,8 @@ function readTool(
   title: string,
   description: string,
   shape: z.ZodRawShape,
+  /** Fill in defaults the server knows and the plugin does not (figma_check_layout's briefId). */
+  prepare?: (args: Record<string, unknown>) => Promise<Record<string, unknown>>,
 ) {
   // The toolset decides which reads exist; an op outside it is not registered at
   // all rather than registered-and-refusing.
@@ -44,11 +47,11 @@ function readTool(
       },
     },
     async (args: Record<string, unknown>, extra: Extra) =>
-      forwardTool(bridge, op, args, extra, { session: args.session as string | undefined }),
+      forwardTool(bridge, op, prepare ? await prepare(args) : args, extra, { session: args.session as string | undefined }),
   );
 }
 
-export function registerRead(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean): void {
+export function registerRead(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, roles?: RoleProcess): void {
   readTool(
     server,
     bridge,
@@ -162,15 +165,14 @@ export function registerRead(server: McpServer, bridge: Bridge, wanted: (op: str
     "Check a design for defects",
     "After each section and before calling anything done: a designer's last look, in numbers " +
       "(figma_export_node shows the picture). Per node, with a number and fix: text overflowing, collapsed, " +
-      "overlapping or painted over; content clipped or sticking out; a fill child in a hug parent; stacked frames; " +
-      "placeholder copy (\"Lorem ipsum\", \"Acme\"); low contrast (WCAG); zero-size nodes, empty frames, default names; " +
-      "on a slide, content off it, bleeds, cut text. `audit` adds passes: tokens (raw values, with the " +
-      "variable to bind), names (duplicate components, variants), fonts (`expectFonts` flags others), board " +
-      "(FigJam rules), craft (finish: near-equal sizes, unshared edges, near-touches, lines " +
-      "through text, old-style figures, shape contrast, faint hairlines, a sunk block; `safeArea`, `minTextSize`), " +
-      "tells (the generated look, info only), handoff (share bound to variables or styles, detached instances). " +
-      "`ok: true` = no errors or warnings. Default: the " +
-      "selection, then the page (Slides: focused slide). Reads only.",
+      "overlapping or covered; content clipped or sticking out; a fill child in a hug parent; stacked frames; " +
+      "placeholder copy; low contrast (WCAG); zero-size, empty or default-named nodes; text off or cut by a slide. " +
+      "`audit` adds: tokens (unbound values), names (duplicates), fonts (`expectFonts`), board (FigJam), craft " +
+      "(finish: sizes, edges, near-touches, contrast; `safeArea`, `minTextSize`), tells (generated look; warning if " +
+      "the brief avoids it), handoff (share bound), a role's: a11y (targets, focus, labels), states, copy, system (format, scale, " +
+      "grid), deck (words, headlines, floor), mark (size, versions, clear space), icons (canvas, stroke, pixels), " +
+      "library (modes, aliases). `briefId`: against that brief's numbers. `ok: true` = no errors or warnings. " +
+      "Default: the selection, then the page (Slides: focused slide). Reads only.",
     {
       nodeId: z.string().optional().describe("The frame or section to check. Defaults to every selected node, then the page."),
       nodeIds: z.array(z.string()).min(1).max(100).optional().describe("Several roots in one call, e.g. a batch of 3–5 slides. Not with nodeId."),
@@ -178,10 +180,18 @@ export function registerRead(server: McpServer, bridge: Bridge, wanted: (op: str
       limit: z.number().int().min(1).max(1000).optional().describe("Max findings returned. Default 100."),
       maxNodes: z.number().int().min(1).max(50000).optional().describe("Stop after this many nodes. Default 3000."),
       audit: z
-        .array(z.enum(["tokens", "names", "fonts", "board", "craft", "tells", "handoff"]))
-        .max(7)
+        .array(z.enum(["tokens", "names", "fonts", "board", "craft", "tells", "handoff", "a11y", "states", "copy", "system", "deck", "mark", "icons", "library"]))
+        .max(15)
         .optional()
-        .describe("QA passes to add: tokens, names, fonts, board, craft (finish defects), tells (the generated look; info only), handoff (how much is bound to the system)."),
+        .describe(
+          "QA passes to add: tokens, names, fonts, board, craft (finish defects), tells (the generated look; info, a warning where a page or top brief avoids it, and run by default under one), handoff " +
+            "(how much is bound to the system), a11y, states, copy, system, deck, mark, icons, library (a role's sign-off checks; with " +
+            "briefId, the brief's numbers).",
+        ),
+      briefId: z
+        .string()
+        .optional()
+        .describe("The node a brief is stored on (figma_set_brief returns it): the role audits measure against its platform, viewport, screens, system, room, applications, grid and platforms, and craft takes its minTextSize and safeArea. At page or top gear its `avoid` kinds are warnings, and tells run by default where its role's sign-off judges them or it avoids one. A motion brief judges layout where the viewer sees it (restPose). Default: the brief in force, unless the checked node is another brief's work (its own record, its top-level frame's, or a brief listing it), which wins; audit.brief names the one used."),
       expectFonts: z.array(z.string()).max(20).optional().describe('Font families the design should use, e.g. ["Inter"]; implies the fonts audit.'),
       safeArea: z
         .string()
@@ -193,6 +203,13 @@ export function registerRead(server: McpServer, bridge: Bridge, wanted: (op: str
         .max(1000)
         .optional()
         .describe("Smallest readable text in px of the frame: the device's floor × frame width ÷ device width, e.g. 28 or more on a 1080-wide story. Implies craft."),
+    },
+    // With no briefId, the brief in force for the file (spec §4): the role's audits measure against its numbers.
+    // Sent as briefInForce, not briefId: the plugin lets the brief the checked work belongs to outrank it.
+    async (args) => {
+      if (args.briefId !== undefined || !roles) return args;
+      const briefInForce = await briefIdInForce(roles, bridge, args.session as string | undefined);
+      return briefInForce ? { ...args, briefInForce } : args;
     },
   );
 

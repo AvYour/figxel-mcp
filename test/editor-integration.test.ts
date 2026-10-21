@@ -60,17 +60,20 @@ describe("the FigJam and Slides tools, wired", () => {
     expect(OPS.get("edit_table")!.destructive).toBe(true);
     // 129, plus figma_check_motion, figma_review_video, figma_create_storyboard and figma_create_animatic,
     // figma_set_motion_plan, and figma_analyze_audio, figma_add_audio and figma_generate_audio
-    // (in the catalog, held back from default registration).
-    expect(OPS.size).toBe(137);
+    // (in the catalog, held back from default registration), and the role process's
+    // figma_set_brief, figma_get_brief and figma_sign_off, and trust's figma_get_changes,
+    // figma_savepoint, figma_rollback and figma_stress_test.
+    expect(OPS.size).toBe(144);
   });
 
   it("every catalog op the plugin answers is implemented there, with the same write flag", () => {
     const missing = [...OPS].filter(([op, i]) => !i.bridgeOnly && !PLUGIN_OPS[op]).map(([op]) => op);
     expect(missing).toEqual([]);
     expect(Object.keys(PLUGIN_OPS).filter((op) => !OPS.has(op))).toEqual([]);
-    // undo_step is the one exception, on purpose: it must not end in a commitUndo of its own (test/phase3-ops.test.ts).
+    // The undo ops are the exceptions, on purpose: none may end in a commitUndo of its own, or it would be an
+    // undo step itself (test/phase3-ops.test.ts; trust spec §2.5 for savepoint and rollback).
     const flags = Object.entries(PLUGIN_OPS).filter(([op, p]) => p.write !== OPS.get(op)!.write).map(([op]) => op);
-    expect(flags).toEqual(["undo_step"]);
+    expect(flags).toEqual(["undo_step", "savepoint", "rollback"]);
   });
 
   it("every tool registers exactly once, eval and audio included; the 16 board and deck tools before figma_batch", () => {

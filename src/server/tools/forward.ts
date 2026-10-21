@@ -5,6 +5,10 @@
 // an instance id and a pasted figma.com link all become the "12:34" form the
 // plugin resolves (figma-url.ts), and a link's file name picks the session when
 // more than one file is connected.
+//
+// And where every write is journalled (journal.ts, trust spec §2.4) and gets
+// its `force` (spec §2.3): the param leaves the op's params here and travels in
+// the request's guard, which the bridge builds.
 
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type { CallToolResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
@@ -13,6 +17,7 @@ import { BridgeError, ErrorCode } from "../../shared/errors.js";
 import { OPS, toolName } from "../../shared/ops.js";
 import type { Bridge } from "../bridge.js";
 import { fileNameKey, normalizeIdParams, type LinkedFile } from "../figma-url.js";
+import { callFile, createdIdsOf, journalOf, summarize, targetIdsOf, type CallFile } from "../journal.js";
 import { ProgressForwarder } from "../mcp-progress.js";
 import { errorResult, okResult, reachedNothing } from "../results.js";
 
@@ -24,7 +29,30 @@ export interface ForwardArgs {
   idleTimeoutMs?: number | undefined;
   /** Shape a successful result differently from plain JSON (e.g. an image block). Throwing becomes an error result. */
   shape?: ((data: unknown) => CallToolResult | Promise<CallToolResult>) | undefined;
+  /** A write's `force` (trust spec §2.3). Also read from the params, and from the call's mark (markForced). */
+  force?: boolean | undefined;
+  /** false: the tool journals the call itself (figma_savepoint, figma_rollback; tools/trust.ts). */
+  journal?: boolean | undefined;
 }
+
+// A write tool's `force: true` holds for every request its call sends, whatever
+// params the tool builds for its op (figma_set_brief, figma_set_motion_plan and
+// figma_batch build their own): the registration hook (batch.ts
+// createShapeRecorder) marks the call's `extra`, which is one object per call.
+const forcedCalls = new WeakSet<object>();
+
+/** This call was made with `force: true`: its writes overwrite a stale target on purpose. */
+export function markForced(extra: Extra): void {
+  forcedCalls.add(extra);
+}
+
+/**
+ * Write ops that change nothing in the document: a savepoint only marks the
+ * plugin's undo count and the journal (trust spec §2.5). Not counted by
+ * writeEpoch, so making one at the start of an instruction leaves a render and
+ * a passing figma_check_motion as fresh as they were.
+ */
+const MARKS_ONLY: ReadonlySet<string> = new Set(["savepoint"]);
 
 type SessionRow = { sessionId: string; active?: boolean; file?: { name?: string | null }; editorType?: string };
 
@@ -206,6 +234,25 @@ export function writeVoided(n: number): void {
   if (voided.size > 10_000) for (const w of voided) if (w <= writes - 10_000) voided.delete(w);
 }
 
+/** A write call in its file's journal (journal.ts): what it did, or how it failed. No file connected, no entry. */
+function journalCall(bridge: Bridge, file: CallFile | null, op: string, params: Record<string, unknown>, outcome: { data: unknown } | { err: unknown }): void {
+  if (!file) return;
+  const call = { tool: toolName(op), summary: summarize(op, params), targets: targetIdsOf(params) };
+  if ("data" in outcome) {
+    journalOf(bridge).record(file, { ...call, ok: true, created: createdIdsOf(op, outcome.data) });
+    return;
+  }
+  const e = outcome.err;
+  journalOf(bridge).record(file, {
+    ...call,
+    ok: false,
+    error: e instanceof BridgeError ? e.code : ErrorCode.INTERNAL,
+    unchanged: reachedNothing(e),
+    // A build that failed half-way says in `partial.created` what exists.
+    created: e instanceof BridgeError ? createdIdsOf(op, e.partial) : [],
+  });
+}
+
 export async function forwardTool(
   bridge: Bridge,
   op: string,
@@ -213,17 +260,28 @@ export async function forwardTool(
   extra: Extra,
   args: ForwardArgs = {},
 ): Promise<CallToolResult> {
+  const write = OPS.get(op)?.write === true;
+  // `force` is not the op's: it travels in the request's guard (bridge.ts).
+  let force = args.force === true || forcedCalls.has(extra);
+  let sent = params;
+  if (write && "force" in params) {
+    const { force: own, ...rest } = params;
+    force ||= own === true;
+    sent = rest;
+  }
   // Addressing first: a bad link is refused before Figma is asked anything.
   let forwarded: Record<string, unknown>;
   let session: string | undefined;
   let warning: string | undefined;
   try {
-    ({ params: forwarded, session, warning } = await addressCall(bridge, op, params, args.session));
+    ({ params: forwarded, session, warning } = await addressCall(bridge, op, sent, args.session));
   } catch (err) {
     // Refused before Figma was asked: nothing changed, and the key is the one to retry with.
     return errorResult(err instanceof BridgeError ? err.withKey(args.idempotencyKey) : err, { unchanged: true });
   }
-  const writeNo = OPS.get(op)?.write ? writeSent() : undefined;
+  // The file is looked up while the call runs, so the journal adds no wait.
+  const file = write && args.journal !== false ? callFile(bridge, session) : undefined;
+  const writeNo = write && !MARKS_ONLY.has(op) ? writeSent() : undefined;
   const progress = new ProgressForwarder(
     {
       progressToken: extra._meta?.progressToken,
@@ -232,17 +290,21 @@ export async function forwardTool(
     { label: toolName(op) },
   );
   let reached = false;
+  let answered = false;
   try {
     const data = await bridge.request(op, forwarded, {
       ...(session !== undefined ? { session } : {}),
       ...(args.idempotencyKey !== undefined ? { idempotencyKey: args.idempotencyKey } : {}),
       ...(args.idleTimeoutMs !== undefined ? { idleTimeoutMs: args.idleTimeoutMs } : {}),
+      ...(write ? { force } : {}),
       onProgress: (p) => {
         reached = true;
         progress.update(p);
       },
       signal: extra.signal,
     });
+    answered = true;
+    if (file) journalCall(bridge, await file, op, forwarded, { data });
     await progress.finish();
     const shaped = args.shape ? await args.shape(data) : undefined;
     if (warning) return withWarning(data, shaped, warning);
@@ -250,6 +312,8 @@ export async function forwardTool(
   } catch (err) {
     if (!extra.signal.aborted) await progress.finish();
     const outcome = reached ? afterDispatch(err) : err;
+    // A shape that throws after the call ran leaves the call journalled as done.
+    if (file && !answered) journalCall(bridge, await file, op, forwarded, { err: outcome });
     if (writeNo !== undefined && reachedNothing(outcome)) writeVoided(writeNo);
     const failed = errorResult(outcome, { readOnly: OPS.get(op)?.readOnly ?? false });
     return warning ? withWarning(undefined, failed, warning) : failed;

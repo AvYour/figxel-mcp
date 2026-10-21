@@ -6,7 +6,7 @@ Only the latest release of `figxel-mcp` gets security fixes. With the recommende
 
 | Version | Supported |
 |---|---|
-| Latest release (0.1.x) | Yes |
+| Latest release (0.2.x) | Yes |
 | Anything older | No: update first |
 
 ## Reporting a vulnerability

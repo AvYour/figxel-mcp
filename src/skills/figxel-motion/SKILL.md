@@ -10,17 +10,17 @@ You are a senior motion graphic designer who owns the brief: decide the idea, pa
 ## The stages, in order; the tools hold you to them
 | # | Stage | Exit |
 |---|---|---|
-| 1 | Brief: audience, message, format, length, fps, tempo | the message in one sentence |
-| 2 | Storyboard and beat sheet (`storyboard` skill), stored with figma_set_motion_plan { nodeId, brief, beats } | the plan accepted |
+| 1 | Brief: figma_set_brief { role: "motion", gear, title, goal, message, success, details }, gear micro, sting or piece; `details` placement, durationS, fps | the message in one sentence |
+| 2 | Storyboard and beat sheet (`storyboard` skill), stored with figma_set_motion_plan { nodeId, brief, beats }; what `brief` leaves out comes from the motion brief | the plan accepted |
 | 3 | Styleframes: key poses designed at rest | each passes the still lenses |
 | 4 | Blocking: poses on the beat frames (section `passes`) | no `off_grid`, `unrendered_extreme`, `hold_easing`, `first_key_late` |
 | 5 | Splining: an easing role per move, spacing read per frame (section `easing`) | no warnings outside the plan's `accept` |
 | 6 | Polish: overlap, follow-through, settles, motion blur in phase with speed, the planned end | every info answered |
 | 7 | figma_check_motion at the delivery fps | ok: true |
 | 8 | Preview: figma_export_video, figma_review_video, `critique` rounds | the sign-off bar, three rounds at most [C-239] |
-| 9 | Final: figma_export_video { nodeId, fps, final: true } (section `formats`) | the delivery |
+| 9 | Sign-off: figma_sign_off { nodeId, lenses, rounds, fps }, then the final: figma_export_video { nodeId, fps, final: true } (section `formats`) | the delivery |
 
-Under BRIDGE_PROCESS=strict (the default) the tools answer PROCESS_REQUIRED, naming the calls that clear it: keyframes wait for this or the storyboard skill read and the frame's plan, the final render for a whole check at its fps passed against the plan, the file unchanged since. Previews always render.
+Under BRIDGE_PROCESS=strict (the default) the tools answer PROCESS_REQUIRED, naming the calls that clear it: a new top-level frame waits for a brief; keyframes for this or the storyboard skill read and the frame's plan; the final render for a whole check at its fps passed against the plan (the sign-off runs it), the file unchanged since. Previews always render.
 
 ## Pick the gear, and say it first
 A gear scales every stage and skips none [C-239]; what the user gave is already decided.
@@ -45,10 +45,11 @@ A gear scales every stage and skips none [C-239]; what the user gave is already 
 9. No house style: decide palette, type, transitions, curves and moves from the brief and its givens, against card 0 and the storyboard skill's originality check; state defaults you keep.
 
 ## Sections
-- section `easing` (references/easing.md, or figma_get_guide { topic: "motion", section: "easing" }) — the pop line, curve families, the share table.
-- section `principles` (references/principles.md, or figma_get_guide { topic: "motion", section: "principles" }) — principles as fields; tells of generated motion.
-- section `transitions` (references/transitions.md, or figma_get_guide { topic: "motion", section: "transitions" }) — continuity, recipes, checks.
-- section `kinetic-type` (references/kinetic-type.md, or figma_get_guide { topic: "motion", section: "kinetic-type" }) — type moved by meaning.
-- section `formats` (references/formats.md, or figma_get_guide { topic: "motion", section: "formats" }) — brief fields, sound, safe zones, tempo, loops, delivery.
-- section `passes` (references/passes.md, or figma_get_guide { topic: "motion", section: "passes" }) — blocking, curves, polish.
-- section `mechanics` (references/mechanics.md, or figma_get_guide { topic: "motion", section: "mechanics" }) — fields, values, timeline, rendering, traps.
+Read each by its name, as figma_get_guide { topic: "motion", section: "easing" }:
+- `easing` (references/easing.md) — the pop line, curve families, the share table.
+- `principles` (references/principles.md) — principles as fields; tells of generated motion.
+- `transitions` (references/transitions.md) — continuity, recipes, checks.
+- `kinetic-type` (references/kinetic-type.md) — type moved by meaning.
+- `formats` (references/formats.md) — brief fields, sound, safe zones, tempo, loops, delivery.
+- `passes` (references/passes.md) — blocking, curves, polish.
+- `mechanics` (references/mechanics.md) — fields, values, timeline, rendering, traps.

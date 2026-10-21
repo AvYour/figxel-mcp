@@ -324,7 +324,7 @@ Group read. Everywhere (reads). Parameters: `nodeId?` (a node: its own record, e
 
 ### 3.6 `figma_sign_off`
 
-Group style, write (it stores records), not batchable. Parameters: `nodeId?` | `nodeIds?` (≤ 50) | `deck?` (Slides: the whole deck); `briefId?` (default: the brief in force, else the one listing the node); `lenses[] { lens, score (1–10), verdict ("pass" | "fix"), remaining? }`; `rounds` (integer); `answers?[] { kind, nodeId, reason }` (an info kept on purpose); `placeholders?[]` (every invented fact, or `["none"]`); `fps?` (motion: the delivery rate); `session?`, `idempotencyKey?`.
+Group style, write (it stores records), not batchable. Parameters: `nodeId?` | `nodeIds?` (≤ 50) | `deck?` (Slides: the whole deck); `briefId?` (default: the brief whose work the node is, else the brief in force, else the node's page's brief — changed 2026-10-20, when the brief in force outranked a screen's own); `lenses[] { lens, score (1–10), verdict ("pass" | "fix"), remaining? }`; `rounds` (integer); `answers?[] { kind, nodeId, reason }` (an info kept on purpose); `placeholders?[]` (every invented fact, or `["none"]`); `fps?` (motion: the delivery rate); `session?`, `idempotencyKey?`.
 
 Server first (no plugin call), in this order — each failure becomes a blocker, not an error:
 1. A brief exists and is complete for its gear: the always lines, the page/top lines, the role's required `details`; at page/top `direction0`, two or more `directions`, `chosen`, `styleframes` (page ≥ 1, top ≥ 3) that resolve, and `system` (ux, graphic, presentation, brand palette; illustration `details.grid`).
@@ -347,9 +347,29 @@ Role sign-off sets:
 | presentation | craft, tells, deck, copy, system | story, type and composition, colour and imagery, copy, originality, finish QA |
 | design-system | tokens, names, fonts, states, library, a11y | completeness, naming, tokens, documentation, finish QA |
 | board | board | purpose and reading order, structure, copy, finish QA |
-| motion | craft on the styleframes; the motion audit at `fps` | motion craft, design and type, technical QA, the brief's own lens (+ originality for a piece) |
+| motion | craft on the styleframes; the motion audit at `fps` (as built: craft on the animated frame, where the viewer sees it — below) | motion craft, design and type, technical QA, the brief's own lens (+ originality for a piece) |
 
-Result: `{ ok, signOffId?, blockers: [{ what, call }], exceptions, checks: [...], unanswered: [{ kind, nodeId, name, detail }], report: { assumptions, briefAsBuilt, direction, scores, kept, placeholders, where } }` — the `report` object is the design `finish` report's skeleton filled from the records, so the agent's closing message quotes it.
+Result: `{ ok, signOffId?, blockers: [{ what, call }], exceptions, checks: [...], unanswered: [{ kind, nodeId, name, detail }], restPose?, report: { assumptions, briefAsBuilt, direction, scores, kept, placeholders, where } }` — the `report` object is the design `finish` report's skeleton filled from the records, so the agent's closing message quotes it.
+
+#### Motion: where the viewer sees it
+
+Decided 2026-10-20, after a live sign-off. A multi-scene piece stacks its scenes in one frame and moves them with keys, and the motion skill keeps every layer visible at rest (`figma_check_motion`'s `rest_state_hidden`). Sign-off ran craft on the animated frame as if it were a still, so at rest scene B covered scene A and a credit strip covered both. Frame 4:262 of the file "Figxel Showcase" had passed `figma_check_motion` with no warnings and two cold reviews, and sign-off still returned 72 blockers: `covered` and `overlap` between scenes, `clipped` for roll counters behind their clip windows, `safe_area` for layers parked off the frame, and `stroke_crosses_text` between scenes. `figma_export_video { final: true }` then refused, and no honest edit could clear them. Three ways were weighed:
+
+- **(a) Leave to the frames what rests on a keyed layer's rest pose; judge everything else.** Chosen.
+- **(b) Run craft per planned beat**, evaluating the keys at each beat's accent. Rejected: it needs every layer's box at a moment, which rests on what is still unsettled — whether a read gives the base values [C-192], the point a SCALE turns about [C-257], whether keying rewrites the base [C-204] — and on a model of auto-layout reflow; a beat need not have an accent, and an accent is one frame of many.
+- **(c) Exempt layers a later scene covers at rest**, as stacked scenes, with an info. Rejected: a guess from overlap that explains neither a counter behind its clip window nor a parked layer, and would also exempt a static text that a static layer covers.
+
+The rule lives in `figma_check_layout` and holds whenever the brief it measures against is a motion brief: the one sign-off passes, or the one `figma_check_layout` chooses (`briefId`, the checked work's own brief, the brief in force). Each layer has a carrier:
+
+- itself, when its own keys move, turn, resize, fade or trim it (TRANSLATION, SCALE, ROTATION, WIDTH, HEIGHT, OPACITY, PATH_TRIM), or when its parent's keys move its children against the parent (WIDTH, HEIGHT, STACK_*, GRID_*);
+- else its parent's carrier;
+- none for a layer no key moves.
+
+A finding between two layers — `covered`, `overlap`, `clipped`, `text_overflow`, `outside_parent`, `sibling_overlap`, and craft's `no_shared_edge`, `tangent`, `glyph_gaps`, `stroke_crosses_text` and `edge_slices_text` — is made only when both share a carrier. `safe_area` is judged only on a layer with none, and `unbalanced_space` only when nothing moves. A contrast ground is taken only from a layer that shares the text's carrier. What is not made is counted by kind in `restPose { moved, notJudged }`: the result says it in a sentence, and the sign-off record keeps it.
+
+Why the rest pose is no frame: before a track's first key the first key's value holds, and the base value never shows [C-191], while a still shows only the rest pose [C-116]. Layers one carrier moves keep their relation in every frame, so it is judged at rest. What keys move apart is judged on the frames: `figma_review_video`, the critique's motion lenses, and the motion skill's "Layout over time, from numbers". `figma_check_motion`'s rules are unchanged.
+
+Still open: the row above asks for craft on the styleframes, which sign-off does not run yet.
 
 Description (draft):
 
@@ -431,7 +451,7 @@ All refusals: `code: PROCESS_REQUIRED`, `safeToRetry: true`, `partial: { created
 
 ## 4. New and extended checks (task part 3)
 
-All are `figma_check_layout` audits judged after the existing walk from the census (`src/plugin/craft.ts`'s `Census` / `Index`), plain functions over boxes, paints and node properties, with every threshold in one exported table per audit for calibration (as `CRAFT` and `TELLS` are). Where an audit needs the brief's numbers (platform, viewport, floors, system), `figma_check_layout` gains `briefId?` (default: the brief in force, which the server fills in). Unit conversion everywhere is the design brief's rule: device units = frame px × device width ÷ frame width, the device width coming from `details.viewport`.
+All are `figma_check_layout` audits judged after the existing walk from the census (`src/plugin/craft.ts`'s `Census` / `Index`), plain functions over boxes, paints and node properties, with every threshold in one exported table per audit for calibration (as `CRAFT` and `TELLS` are). Where an audit needs the brief's numbers (platform, viewport, floors, system), `figma_check_layout` gains `briefId?` (default: the brief in force, which the server sends, outranked by the brief the checked work belongs to (since 2026-10-20)). Unit conversion everywhere is the design brief's rule: device units = frame px × device width ÷ frame width, the device width coming from `details.viewport`.
 
 ### 4.0 Fixes to existing kinds
 

@@ -77,7 +77,7 @@ The agent then stops once the plan exists (for motion: the storyboard, the style
 
 ### Prompts in your app's menu
 
-Apps that show MCP prompts offer ten starting points, such as `design_in_figma`, `storyboard_motion`, `animate_in_figma`, `critique_design`, `build_board` and `build_deck`. Claude Code lists them as `/figxel:design_in_figma` and splits what you type after one on spaces `[C-176]`; VS Code lists them as `/figxel.design_in_figma` `[C-178]`. [Using Figxel as an Agent § Prompts](agents/using-the-mcp.md#prompts) has every argument.
+Apps that show MCP prompts offer eleven starting points, such as `design_in_figma`, `storyboard_motion`, `animate_in_figma`, `critique_design`, `build_board` and `build_deck`. Claude Code lists them as `/figxel:design_in_figma` and splits what you type after one on spaces `[C-176]`; VS Code lists them as `/figxel.design_in_figma` `[C-178]`. [Using Figxel as an Agent § Prompts](agents/using-the-mcp.md#prompts) has every argument.
 
 You do not need them. A plain message works, because the server tells every agent to read its skill before it designs, animates or reviews.
 
@@ -136,7 +136,7 @@ What to expect:
 
 > Make a 12-second Instagram Reel ad for Slow Wheel's weekend class, 1080×1920 at 30 fps. Audience: people scrolling on a Sunday evening. Message: book a weekend, leave with your own mug. End on the booking URL and the logo. Stop after the storyboard so I can approve it.
 
-The agent works like a motion designer, and by default the tools hold it to that order ([The motion process setting](#the-motion-process-setting)):
+The agent works like a motion designer, and by default the tools hold it to that order ([The process setting](#the-process-setting)):
 
 1. **Brief and directions**, on a "Storyboard" page.
 2. **Beat sheet and storyboard.** The beats on a tempo grid, then timed panels with `figma_create_storyboard`. Every line of copy stays on screen long enough to read `[C-241]`.
@@ -199,6 +199,8 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 - **`figma_check_layout`** measures a frame and returns numbers with a fix for each finding: text that overflows instead of wrapping, overlapping or clipped content, low contrast, placeholder copy, and raw colours where the file has styles. With `audit: ["craft", "tells"]` it adds finish defects and signs of a generated look. `ok: true` means no errors and no warnings. Ask for it on any frame: *"Run figma_check_layout with the craft and tells audits on the hero and list the findings."*
 - **Renders** (`figma_export_node`) are for judgement. Positions and sizes come from the document, not the picture: a model once called a card cut off that ended 200 px inside its frame `[C-070]`. To keep renders, ask the agent to save them (`figma_save_screenshots`); they land in the exports folder.
 - **The report** at the end lists the choices, the placeholders and what remains. A finding kept on purpose is named there with its reason.
+- **`figma_stress_test`** makes copies of a screen with translated, longer and bigger content and with many or no list items, checks each and says what broke, mapped back to your layers; the copies are deleted unless you ask to keep them. Ask for it on any screen real content will fill.
+- **`figma_get_changes`** lists every call the agent made in this session, newest last, and any edit of yours to something it had touched. Ask the agent what it changed, or read it yourself.
 
 ### Videos
 
@@ -209,13 +211,16 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 ### Undo, and what the agent deletes
 
 - **One call, one undo step.** Every write call ends with one undo boundary `[C-023]`, so Ctrl+Z in Figma (Cmd+Z on macOS) takes back the agent's most recent call `[C-059]`. A whole section built with `figma_create_from_spec` is one call. On boards and decks this is not yet measured `[C-151]`.
-- **Undo through the agent reaches further.** `figma_undo_step` asks for confirmation because it returns to the agent's last checkpoint, so a change you made by hand since then can go too `[C-024]`. If you have edited by hand, ask the agent to delete what it created instead (`figma_delete_nodes`).
+- **Take back a whole instruction.** The agent marks the start of each instruction with `figma_savepoint`; ask it to undo the instruction and `figma_rollback` takes back every call since, in one step, then checks that what it created is gone. It refuses when you or a collaborator changed anything since the savepoint, including a variable or style changed by hand, because an undo would take your edit back too `[C-024]`; it then tells you what changed and offers to delete only what it created. Two apps sharing one Figma connection never undo each other's calls.
+- **It never overwrites what you changed.** If you edit something the agent read earlier, its next write to that node is refused (`STALE`) until it reads it again, so a stale copy never replaces your edit `[C-397]`. `BRIDGE_CONFLICTS` changes that ([Configuration](configuration.md)). `figma_undo_step` still exists but reaches back to the agent's last undo boundary, so a change you made since can go too; prefer a rollback.
 - **The agent deletes only what it created**: by exact id, and only ids its own calls returned in this session. It never deletes by searching for a name, never deletes a frame it did not create without asking, and builds at an empty spot so it never covers your work.
 - **Its working pages are yours.** Delete the Explorations or Storyboard page once you no longer need it.
 
-## The motion process setting
+## The process setting
 
-`BRIDGE_PROCESS` decides how strictly the tools hold an agent to the motion process. With **`strict`**, the default, `figma_set_keyframes` and `figma_remove_keyframes` answer `PROCESS_REQUIRED` until the agent has read the motion skill in this session and the frame has a plan (`figma_set_motion_plan`), and a final render (`final: true`) waits for a passing `figma_check_motion` at its frame rate since the frame's last keyframe change; previews always render, and a refusal changes nothing. With **`guided`**, those calls run and their results list the skipped steps as `processWarnings`, which suits a quick retime of an animation planned elsewhere. With **`off`**, nothing is checked. The plan is stored in the file and survives restarts; the rest belongs to the running server, so after your app restarts the agent reads the skill and runs the check again. Keyframes you change by hand are not seen, so ask for a fresh `figma_check_motion` before the final render. Set the variable in the server entry's environment, as [Configuration](configuration.md#where-to-set-them) shows.
+`BRIDGE_PROCESS` decides how strictly the tools hold an agent to a designer's process. With **`strict`**, the default, new work waits for a brief: before a new top-level frame, a spec into an empty frame, a new deck or a new board, the agent reads the skill of the role the work needs (UI/UX, graphic, brand, presentation and the others) and records the brief with `figma_set_brief`. The work ends with `figma_sign_off`, which runs the role's checks on what was built, takes the agent's critique scores and records the result in the file, and a final export (`final: true`) waits for a sign-off newer than the last change. Edits of existing work are never gated. The brief is drawn as a block beside the work, so you can read it and see whether the work was signed off; `figma_get_brief` lets a second agent continue it.
+
+The motion process works the same way. With **`strict`**, the default, `figma_set_keyframes` and `figma_remove_keyframes` answer `PROCESS_REQUIRED` until the agent has read the motion skill in this session and the frame has a plan (`figma_set_motion_plan`), and a final render (`final: true`) waits for a passing `figma_check_motion` at its frame rate since the frame's last keyframe change; previews always render, and a refusal changes nothing. With **`guided`**, those calls run and their results list the skipped steps as `processWarnings`, which suits a quick retime of an animation planned elsewhere. With **`off`**, nothing is checked. The plan is stored in the file and survives restarts; the rest belongs to the running server, so after your app restarts the agent reads the skill and runs the check again. Keyframes you change by hand are not seen, so ask for a fresh `figma_check_motion` before the final render. Set the variable in the server entry's environment, as [Configuration](configuration.md#where-to-set-them) shows.
 
 ## Tips
 
@@ -239,4 +244,4 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 - [Roadmap](reference/roadmap.md#next-steps): what comes next, including the live runs for FigJam and Slides.
 - Found a problem? [Open an issue](https://github.com/AvYour/figxel-mcp/issues).
 
-New since 0.1.0: `setup --register`, which lists the plugin in Figma desktop so the manual import can be skipped ([Quickstart](../README.md#quickstart)). The [changelog](../CHANGELOG.md) has the rest.
+New in 0.2.0: a brief before new work and a sign-off before a final export, a guard against overwriting your edits with a change journal and a safe rollback, and `figma_stress_test`. Since 0.1.1, `setup --register` lists the plugin in Figma desktop so the manual import can be skipped ([Quickstart](../README.md#quickstart)). The [changelog](../CHANGELOG.md) has the rest.

@@ -3,7 +3,9 @@
 // template copy, stacked frames — and the QA audits: raw values where a design
 // system exists (including one that lives only in a library), duplicate
 // component and variant names, and fonts outside the expected families.
-// Plus the scope fix: every selected root is checked, not the page.
+// Plus the scope fix: every selected root is checked, not the page; the
+// contrast exceptions and platform floor of the role spec (§4.0); and the
+// brief block, which no check reads as design.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -13,6 +15,7 @@ import { CHECK_OPS, checkLayout, type AuditKind } from "../src/plugin/ops/check.
 import type { OpContext } from "../src/plugin/ops/index.js";
 import type { Bridge } from "../src/server/bridge.js";
 import { registerRead } from "../src/server/tools/read.js";
+import { BRIEF_KEY, BRIEF_NAMESPACE, type BriefRecord } from "../src/shared/roles.js";
 
 type N = Record<string, unknown> & { id: string; name: string; type: string; children?: N[]; parent?: N | null };
 let seq = 0;
@@ -270,6 +273,92 @@ describe("the check_layout op", () => {
   });
 });
 
+// Role spec §4.0: the exceptions WCAG 2.2 makes to contrast (SC 1.4.3, 1.4.11)
+// and the platform's own text floor; and the brief block, a working note every
+// check skips.
+describe("contrast exceptions, the platform floor and the brief block", () => {
+  const grey = [{ type: "SOLID", color: { r: 0.8, g: 0.8, b: 0.8 } }];
+  const white = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+  const faint = (name = "Label") => mk("TEXT", name, [10, 10, 80, 20], { characters: "Book", fills: grey, fontSize: 14 });
+  const brief = (over: Partial<BriefRecord> = {}): BriefRecord => ({
+    v: 1, id: "9:1", role: "ux", gear: "page", title: "Bench booking", status: "open",
+    createdAt: "2026-10-16T09:00:00Z", updatedAt: "2026-10-16T09:00:00Z",
+    lines: { goal: "members book a bench", message: "You fix your own bike here.", success: ["books within one scroll"] },
+    details: {}, deliverables: [], ...over,
+  });
+  const lowContrast = async (root: N, audit: AuditKind[] = []) => (await check(root, audit)).issues.filter((i) => i.kind === "low_contrast");
+
+  it("low_contrast skips text in a disabled variant, a disabled instance, or one with a Disabled boolean on — and still finds the rest", async () => {
+    const variant = (state: string) =>
+      mk("COMPONENT", `State=${state}`, [0, 0, 100, 40], { fills: white, variantProperties: { State: state } }, [faint(`${state} label`)]);
+    const set = mk("COMPONENT_SET", "Button", [0, 0, 300, 100], { fills: white }, [variant("Default"), variant("Disabled")]);
+    expect(kinds(await lowContrast(set))).toEqual(["low_contrast:Default label"]);
+
+    const inst = (props: Record<string, unknown>) => mk("INSTANCE", "Book", [0, 0, 100, 40], { fills: white, componentProperties: props }, [faint()]);
+    expect(await lowContrast(inst({ State: { type: "VARIANT", value: "Inactive" } }))).toEqual([]);
+    expect(await lowContrast(inst({ "Disabled#12:3": { type: "BOOLEAN", value: true } }))).toEqual([]);
+    expect(await lowContrast(inst({ "Disabled#12:3": { type: "BOOLEAN", value: false } }))).toHaveLength(1);
+  });
+
+  it("low_contrast on a logotype — the node or an ancestor named logo, wordmark or lockup — is info, as SC 1.4.3 exempts it", async () => {
+    const f = mk("FRAME", "Header", [0, 0, 400, 80], { fills: white }, [
+      mk("FRAME", "Logo lockup", [0, 0, 120, 40], {}, [faint("Brand")]),
+      faint("Nav item"),
+    ]);
+    const found = await lowContrast(f);
+    expect(found.map((i) => [i.name, i.severity])).toEqual([["Brand", "info"], ["Nav item", "warning"]]);
+    expect(found[0]!.detail).toMatch(/part of a logo, which WCAG 2\.2 SC 1\.4\.3 exempts/);
+  });
+
+  it("weak_graphic_contrast skips a hairline in an inactive variant (SC 1.4.11)", async () => {
+    const rule = () => mk("LINE", "Divider", [0, 20, 100, 0], { strokes: grey, strokeWeight: 1, fills: [] });
+    const set = mk("COMPONENT_SET", "Row", [0, 0, 300, 100], { fills: white }, [
+      mk("COMPONENT", "State=Default", [0, 0, 100, 40], { fills: white, variantProperties: { State: "Default" } }, [rule()]),
+      mk("COMPONENT", "State=Disabled", [0, 50, 100, 40], { fills: white, variantProperties: { State: "Disabled" } }, [rule()]),
+    ]);
+    const found = (await check(set, ["craft"])).issues.filter((i) => i.kind === "weak_graphic_contrast");
+    expect(found).toHaveLength(1);
+    expect(found[0]!.nodeId).toBe(set.children![0]!.children![0]!.id);
+  });
+
+  it("min_text takes iOS's 11 pt minimum at the frame's scale when no floor is given; the brief's own floor wins", async () => {
+    const phone = () => mk("FRAME", "Slots", [0, 0, 1080, 2338], { fills: white }, [
+      mk("TEXT", "Caption", [40, 40, 400, 30], { characters: "Open now", fills: ink, fontSize: 24 }),
+      mk("TEXT", "Body", [40, 100, 400, 40], { characters: "Book a bench", fills: ink, fontSize: 32 }),
+    ]);
+    const ios = brief({ details: { platform: "ios", viewport: "390x844" } });
+    const run = (b: BriefRecord | undefined, more: Record<string, unknown> = {}) =>
+      checkLayout(phone() as never, 1000, noYield, { audit: new Set(["craft"]), ...(b ? { brief: b } : {}), ...more });
+    // 11 pt on a 390 pt phone drawn 1080 wide is 11 × 1080 ÷ 390 ≈ 30.5 frame px.
+    const found = (await run(ios)).issues.filter((i) => i.kind === "min_text");
+    expect(found.map((i) => i.name)).toEqual(["Caption"]);
+    expect(found[0]!.detail).toMatch(/is 24 px, under this frame's floor of 30\.5 px \(iOS's 11 pt minimum, Apple HIG, at this frame's scale/);
+    // Drawn at device size, the floor is 11 px.
+    const atSize = mk("FRAME", "Slots", [0, 0, 390, 844], { fills: white }, [mk("TEXT", "Tiny", [10, 10, 100, 12], { characters: "Terms", fills: ink, fontSize: 10 })]);
+    expect((await checkLayout(atSize as never, 100, noYield, { audit: new Set(["craft"]), brief: ios })).issues.filter((i) => i.kind === "min_text")).toHaveLength(1);
+    expect((await run(brief({ details: { platform: "web" } }))).issues.filter((i) => i.kind === "min_text")).toEqual([]);
+    expect((await run(undefined)).issues.filter((i) => i.kind === "min_text")).toEqual([]);
+    expect((await run({ ...ios, lines: { ...ios.lines, minTextSize: 20 } })).issues.filter((i) => i.kind === "min_text")).toEqual([]);
+    expect((await run(ios, { minTextSize: 28 })).issues.filter((i) => i.kind === "min_text").map((i) => i.name)).toEqual(["Caption"]);
+  });
+
+  it("every check skips the brief block, but never the root or a node the brief lists as its own deliverable", async () => {
+    const record = (deliverables: string[] = []) => JSON.stringify(brief({ deliverables }));
+    const block = mk("FRAME", "Brief · Bench booking", [0, 0, 720, 400], { fills: white }, [faint("Status line")]);
+    block.getSharedPluginData = (ns: string, key: string) => (ns === BRIEF_NAMESPACE && key === BRIEF_KEY ? record() : "");
+    const screen = mk("FRAME", "Slots", [800, 0, 390, 844], { fills: white }, [faint("Caption")]);
+    const page = mk("PAGE", "Flow", [0, 0, 0, 0], {}, [block, screen]);
+    const r = await check(page, ["craft", "a11y", "states", "copy", "system"]);
+    expect(r.issues.filter((i) => i.nodeId === block.id || i.name === "Status line")).toEqual([]);
+    expect(kinds(r.issues.filter((i) => i.kind === "low_contrast"))).toEqual(["low_contrast:Caption"]);
+    // Checked by itself, the block is the root: what was asked for is checked.
+    expect(kinds(await lowContrast(block))).toEqual(["low_contrast:Status line"]);
+    // A brief stored on the work, which lists the work as a deliverable, is not a note.
+    screen.getSharedPluginData = (ns: string, key: string) => (ns === BRIEF_NAMESPACE && key === BRIEF_KEY ? record([screen.id]) : "");
+    expect(kinds(await lowContrast(page))).toEqual(["low_contrast:Caption"]);
+  });
+});
+
 // The tool as a client sees it, on a server with nothing but the read group:
 // the new passes and parameters pass the schema and reach the plugin as sent.
 describe("the figma_check_layout schema", () => {
@@ -295,16 +384,26 @@ describe("the figma_check_layout schema", () => {
   });
   const call = async (args: Record<string, unknown>) => (await client.callTool({ name: "figma_check_layout", arguments: args })) as { isError?: boolean };
 
-  it("takes craft, tells and handoff, a safe area and a size floor, and forwards them as sent", async () => {
+  it("takes every audit, the role audits and briefId included, a safe area and a size floor, and forwards them as sent", async () => {
     forwarded.length = 0;
-    const args = { nodeId: "1:2", audit: ["tokens", "names", "fonts", "board", "craft", "tells", "handoff"], safeArea: "64,250,952,1330", minTextSize: 28 };
+    const args = {
+      nodeId: "1:2",
+      audit: ["tokens", "names", "fonts", "board", "craft", "tells", "handoff", "a11y", "states", "copy", "system", "deck", "mark", "icons", "library"],
+      safeArea: "64,250,952,1330",
+      minTextSize: 28,
+      briefId: "12:40",
+    };
     expect((await call(args)).isError).toBeFalsy();
     expect(forwarded).toEqual([{ op: "check_layout", params: expect.objectContaining(args) }]);
   });
 
-  it("refuses an eighth audit, an unknown one, a safe area that is not a string and a floor under 1 — before the plugin is asked", async () => {
+  // Fifteen audits now (the role spec's wave A adds a11y, states, copy and
+  // system, wave B deck, mark, icons and library), so a sixteenth entry is the
+  // one past the cap.
+  it("refuses a sixteenth audit, an unknown one, a safe area that is not a string and a floor under 1 — before the plugin is asked", async () => {
     forwarded.length = 0;
-    expect((await call({ audit: ["craft", "tells", "tokens", "names", "fonts", "board", "handoff", "craft"] })).isError).toBe(true);
+    const all = ["craft", "tells", "tokens", "names", "fonts", "board", "handoff", "a11y", "states", "copy", "system", "deck", "mark", "icons", "library"];
+    expect((await call({ audit: [...all, "craft"] })).isError).toBe(true);
     expect((await call({ audit: ["craft", "vibes"] })).isError).toBe(true);
     expect((await call({ safeArea: [64, 250, 952, 1330] })).isError).toBe(true);
     expect((await call({ minTextSize: 0.5 })).isError).toBe(true);
@@ -315,11 +414,12 @@ describe("the figma_check_layout schema", () => {
     const { tools } = await client.listTools();
     const t = tools.find((x) => x.name === "figma_check_layout")!;
     expect(t.description!.length).toBeLessThanOrEqual(1024);
-    expect(t.description).toMatch(/craft \(finish:.*`safeArea`, `minTextSize`\), tells \(the generated look, info only\)/);
+    expect(t.description).toMatch(/craft \(finish:.*`safeArea`, `minTextSize`\), tells \(generated look; warning if the brief avoids it\)/);
     expect(t.description).toMatch(/figma_export_node shows the picture/);
     expect(t.description).toMatch(/Reads only\.$/);
+    for (const name of ["a11y", "states", "copy", "system", "deck", "mark", "icons", "library", "`briefId`"]) expect(t.description).toContain(name);
     expect(Object.keys((t.inputSchema as { properties: Record<string, unknown> }).properties)).toEqual(
-      expect.arrayContaining(["audit", "safeArea", "minTextSize"]),
+      expect.arrayContaining(["audit", "safeArea", "minTextSize", "briefId"]),
     );
   });
 });

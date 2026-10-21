@@ -54,6 +54,7 @@ import { bytesOf } from "../binary.js";
 import { defaultExportName, resolveSavePath, writeExport, type ExportRoots } from "../exports.js";
 import { DEFAULT_MEDIA_TOOLS, isMissing, nodeExecFile, noFfmpegHint, type ExecFileLike, type MediaTools } from "../ffmpeg.js";
 import { fileNow, finalCall, finalGate, keyframeGate, sessionIdOf, withProcessWarnings, type AcceptedNote, type MotionProcess } from "../motion-process.js";
+import { finalExportGate, type RoleProcess } from "../role-process.js";
 import { errorResult, okResult } from "../results.js";
 import { heartbeat, VideoJobs, waitFor, type VideoJob } from "../video-jobs.js";
 import { readAnnotations, writeAnnotations } from "./annotations.js";
@@ -472,6 +473,7 @@ function registerExportVideo(
   vo: VideoToolOptions,
   jobs: VideoJobs<Rendered>,
   proc: MotionProcess | undefined,
+  roles?: RoleProcess,
 ): void {
   if (!wanted("export_video")) return;
   const { run, tools } = vo;
@@ -785,7 +787,13 @@ function registerExportVideo(
         } else if (final) {
           const gate = await finalGate(proc, bridge, nodeId, addressed.session, fps, extra.signal);
           if (gate.refusal) return refuse(gate.refusal);
-          mark = { final: true, warnings: gate.warnings, accepted: gate.accepted ?? [] };
+          // A frame that belongs to a brief also waits for its sign-off, which runs the motion
+          // audit itself (figma_sign_off), so a signed frame has already passed the check above.
+          const signed = roles
+            ? await finalExportGate(roles, bridge, [nodeId], addressed.session, `figma_export_video { nodeId: "${nodeId}", fps: ${fps}, final: true }`, { signal: extra.signal })
+            : { warnings: [] as string[] };
+          if (signed.refusal) return refuse(signed.refusal);
+          mark = { final: true, warnings: [...gate.warnings, ...signed.warnings], accepted: gate.accepted ?? [] };
           sessionId = gate.session;
         } else {
           sessionId = await sessionIdOf(bridge, addressed.session);
@@ -860,6 +868,8 @@ export interface MotionOptions {
   maxWaitS?: number;
   /** The motion process gate (motion-process.ts). Without it nothing is gated: a test of the tools alone. */
   process?: MotionProcess;
+  /** The role process (role-process.ts): a final render of a frame that belongs to a brief also needs its sign-off (spec §3.7). */
+  roles?: RoleProcess;
 }
 
 /**
@@ -1013,5 +1023,6 @@ export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportR
     { run: opts.execFile ?? nodeExecFile, tools: opts.media ?? DEFAULT_MEDIA_TOOLS, maxWaitS: opts.maxWaitS ?? DEFAULT_MAX_WAIT_S },
     new VideoJobs<Rendered>(),
     proc,
+    opts.roles,
   );
 }

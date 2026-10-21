@@ -94,8 +94,10 @@ describe("the editor table", () => {
     // The whole catalog before FigJam and Slides, plus figma_review_video, which never reaches Figma,
     // figma_create_storyboard, measured by spikes/results/live-storyboard.json, figma_set_motion_plan,
     // whose one write that run measured too, and the three audio tools, which work on files
-    // (generate_audio's nodeId goes through check_motion's own row).
-    expect(notYes("yes")).toHaveLength(119);
+    // (generate_audio's nodeId goes through check_motion's own row); then the role process's three:
+    // figma_get_brief reads, figma_set_brief and figma_sign_off write as the motion plan does; then
+    // trust's four, yes ahead of spikes/live-trust.mjs as the role tools are.
+    expect(notYes("yes")).toHaveLength(126);
     expect(["analyze_audio", "add_audio", "generate_audio"].map((op) => EDITOR_SUPPORT[op])).toEqual([
       { figma: "yes", figjam: "yes", slides: "yes" },
       { figma: "yes", figjam: "yes", slides: "yes" },

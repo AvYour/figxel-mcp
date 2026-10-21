@@ -128,7 +128,7 @@ Cursor reads `~/.cursor/mcp.json` (every project) or `.cursor/mcp.json` (one pro
 }
 ```
 
-On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Cursor's MCP page states no limit on the number of tools `[C-284]`; it has not been measured with Figxel's 133 tools. If Cursor refuses that many, trim them (see [Model notes](#model-notes)).
+On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Cursor's MCP page states no limit on the number of tools `[C-284]`; it has not been measured with Figxel's 140 tools. If Cursor refuses that many, trim them (see [Model notes](#model-notes)).
 
 ### VS Code
 
@@ -155,7 +155,7 @@ code --add-mcp '{"name":"figxel","command":"npx","args":["-y","figxel-mcp@latest
 
 In PowerShell, edit the file instead: quoting JSON for a native command differs there.
 
-**Too many tools.** A VS Code chat request can have at most 128 tools enabled, and fails above that with "Cannot have more than 128 tools per request." `[C-286]`. Figxel registers 133 tools by default, so it is over the limit on its own. Deselect tools (or whole servers) in the chat's tools picker, or turn on virtual tools with the setting `github.copilot.chat.virtualTools.threshold` `[C-286]`. Starting the server with a smaller `BRIDGE_TOOLSET` also works (see [Model notes](#model-notes)).
+**Too many tools.** A VS Code chat request can have at most 128 tools enabled, and fails above that with "Cannot have more than 128 tools per request." `[C-286]`. Figxel registers 140 tools by default, so it is over the limit on its own. Deselect tools (or whole servers) in the chat's tools picker, or turn on virtual tools with the setting `github.copilot.chat.virtualTools.threshold` `[C-286]`. Starting the server with a smaller `BRIDGE_TOOLSET` also works (see [Model notes](#model-notes)).
 
 Prompts run as `/figxel.design_in_figma`, and resources are attached through **Add Context** `[C-178]`.
 
@@ -213,7 +213,7 @@ Windsurf's MCP documentation now redirects to Devin Desktop's, which reads `mcpS
 
 On Windows, use `"command": "cmd", "args": ["/c", "npx", "-y", "figxel-mcp@latest"]`. Whether an existing Windsurf install still reads an older config file is not documented `[C-289]`.
 
-**Too many tools.** Cascade can use at most 100 tools at any one time `[C-289]`, and Figxel registers 133 by default, so trim them with `BRIDGE_TOOLSET` (see [Model notes](#model-notes)).
+**Too many tools.** Cascade can use at most 100 tools at any one time `[C-289]`, and Figxel registers 140 by default, so trim them with `BRIDGE_TOOLSET` (see [Model notes](#model-notes)).
 
 ### Hermes
 
@@ -337,6 +337,6 @@ MCP_TOOL_TIMEOUT=3600000 claude          # PowerShell: $env:MCP_TOOL_TIMEOUT = "
 ## Model notes
 
 - **Tool schemas are kept portable.** Every tool's input schema stays inside a conservative JSON Schema subset (no `anyOf`/`$ref`/`const`/`format`…, every object has `properties`, every array has `items`), so apps can translate it for any provider. `test/schema-portability.test.ts` enforces this in CI for every tool, including ones added later.
-- **Some apps cap the number of tools.** VS Code allows 128 per chat request `[C-286]` and Devin Desktop's Cascade 100 at a time `[C-289]`, while Figxel registers 133 by default. OpenAI's function-calling guide suggests fewer than 20 functions at the start of a turn, as a soft suggestion `[C-290]`.
+- **Some apps cap the number of tools.** VS Code allows 128 per chat request `[C-286]` and Devin Desktop's Cascade 100 at a time `[C-289]`, while Figxel registers 140 by default. OpenAI's function-calling guide suggests fewer than 20 functions at the start of a turn, as a soft suggestion `[C-290]`.
 - **Smaller and local models do better with fewer tools.** Trim per app, in the app's own tool picker if it has one, or with an environment variable in that app's server entry: `BRIDGE_TOOLSET=core` (20 tools) or a group list such as `read,export` ([tools.md § Trimming the toolset](reference/tools.md#trimming-the-toolset)). `figma_get_guide` stays registered in every toolset but `none`, so a trimmed agent still gets the skills.
 - **Nothing depends on the model.** `figma_status` is the first call for any model: it works without a plugin and says what to do next.

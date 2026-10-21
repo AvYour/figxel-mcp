@@ -156,7 +156,7 @@ const FOR_ASSISTANT = { audience: ["assistant" as const] };
 /**
  * One static resource per SKILL.md; one template whose list names every
  * reference. `onRead` hears every read, so a skill read here counts as one read
- * through figma_get_guide (the motion process, motion-process.ts).
+ * through figma_get_guide (the process gates' skill ledger, motion-process.ts).
  */
 export function registerSkillResources(server: McpServer, onRead?: (skill: Skill, uri: string) => void): void {
   for (const skill of SKILLS) {

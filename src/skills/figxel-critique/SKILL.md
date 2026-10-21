@@ -5,13 +5,13 @@ description: Review a Figma design or motion piece like a panel of senior critic
 
 # Critique — measured lenses, in rounds
 
-A maker cannot see their own first build. In the 2026-10-09 run every scene builder reported ok, and the first critique round then made 36 findings; three measured rounds took the motion and design scores from 6.5 to 8, every verdict still "fix". A critique here is a sequence of lenses: each a separate pass with its own checklist, each finding with a number, each fix written as tool calls. One agent runs them in turn. When the client can run subagents, give the message and originality lenses to one that receives only the brief and the node id: it has not seen your intentions.
+A maker cannot see their own first build: in a measured run every builder reported ok, and the first critique round made 36 findings. A critique here is a sequence of lenses: each a separate pass with its own checklist, each finding with a number, each fix written as tool calls. One agent runs them in turn. Message and originality go to a reviewer who has not seen your intentions: the critique_cold prompt, or the owner. A review that could not run in a fresh context opens its report with "self-reviewed".
 
 ## Set up
 
-1. **Cold read first.** Before re-reading the brief, take the round's sample (a still: the read and the squint of each view, as the design skill's `finish` section says; motion: section `sampling`) and write, from the renders alone: the reading order (what is seen first, second, third) and the one-sentence takeaway. You cannot unsee your own build notes, so commit these to the reply before anything else.
-2. Re-read the brief: the design's brief block, or the user's request. Compare: the first element against the brief's focal point, the takeaway against its message line. A mismatch is a major finding of the message lens.
-3. Say in one line per lens what it will judge in this piece, then run the lenses (section `lenses`).
+1. **Cold read first.** Before re-reading the brief, take the round's sample (a still: the read and the squint of each view, as the design skill's `finish` section says; motion: section `sampling`) and write, from the renders alone: the reading order (what is seen first, second, third) and the one-sentence takeaway. Your build notes cannot be unseen, so commit these to the reply first.
+2. Re-read the brief: figma_get_brief { nodeId: <the work> }, or the user's request. Compare: the first element against the brief's focal point, the takeaway against its message line. A mismatch is a major finding of the message lens.
+3. **Verdict before numbers.** From the renders and the brief alone, write each lens's verdict and findings (section `lenses`). Only then read the measurements (figma_check_layout; for motion, figma_check_motion) and merge: a number confirms, sharpens or adds a finding. Write one line on what the eye missed and one on what the numbers missed. A census read first steers judgement toward what a tool can count.
 
 ## Lenses by gear
 
@@ -22,7 +22,7 @@ A maker cannot see their own first build. In the 2026-10-09 run every scene buil
 | A top-gear piece | the same six | `lenses`, `rounds` | 3 |
 | A motion piece | motion craft; design and type; technical QA; the brief's own lens; originality at the directions, on the styleframes and in round 1 on the render | `motion-checks`, `sampling`, `rounds` | 3 (a sting 1) |
 
-Read the first section of the Read column now, the next when a round reaches its step.
+Read the first section of the Read column now, the next when a round reaches its step. A role adds its own lenses: ux adds usability and accessibility (figma_get_guide { topic: "ux", section: "usability" }).
 
 ## The finding schema
 
@@ -34,19 +34,10 @@ Read the first section of the Read column now, the next when a round reaches its
 Severity is set by these triggers, not by how the judge feels about the piece:
 
 - **Blocker:** a figma_check_layout error or a figma_check_motion error; the message unreadable; text cut or covered; contrast failing on content people need.
-- **Major:** the cold read's first element or takeaway differs from the brief; a cluster match no one named; an unanswered craft info at the focal point; the build off its own rules on a key element.
+- **Major:** the cold read's first element or takeaway differs from the brief; a cluster match no one named; an unanswered craft info at the focal point; the build off its own rules on a key element; missing substance, a view made "clean" by being mostly empty, running text set small or grey, or an idea that stops after the first view.
 - **Minor:** craft a peer would catch elsewhere: a tangency, near-equal sizes, a punctuation slip.
 
-Scores follow the findings: a blocker caps the lens at 5, a major at 7; 8 means only minors remain, each with a fix or a reason; 9 means the minors are fixed and nothing is left but taste; 10 means a senior designer would change nothing.
-
-An example (the price is a child of an auto-layout column):
-
-```
-type and composition · score 7 · verdict fix
-- major · where: "Team price" 12:345 · measured: right edge 955 (x 600 + width 355), column edge 1016 · problem: the price shares no edge with the plan details above it, so the column reads loose · fix: figma_resize_nodes { nodeIds: ["12:345"], sizing: { horizontal: "fill" } } and figma_set_text_properties { nodeIds: ["12:345"], align: "right" }
-```
-
-Inside an auto-layout the layout owns x and y, so a fix changes sizing, alignment, padding or gap; figma_move_nodes x/y fixes apply only to absolute layers.
+Scores follow the findings: a blocker caps the lens at 5, a major at 7; 8 means only minors remain, each with a fix or a reason; 9 means the minors are fixed and nothing is left but taste; 10 means a senior designer would change nothing. Section `rounds` has a worked finding.
 
 ## The sign-off bar
 
@@ -54,16 +45,16 @@ Inside an auto-layout the layout owns x and y, so a fix changes sizing, alignmen
 - figma_check_layout ok: true, and every craft and tells info answered: fixed, or kept with its reason in the report.
 - For motion: figma_check_motion ok: true, any finding the brief intends in the plan's `accept` and named in the report; every `template_move` and `easing_census` info answered.
 - The last round introduced no regression.
-- Stop at the bar or at the gear's round budget, three at most; then report what is left.
+- Stop at the bar or at the gear's round budget, three at most; then report what is left. figma_sign_off records it, scores and rounds.
 
 ## A round
 
-Sample → cold read → run the lenses → merge the fixes → apply them in one batch → check → look for regressions in the neighbours of every change. Section `rounds` has each step.
+Sample → cold read → verdicts, then the numbers → merge the fixes → apply them in one batch → check → look for regressions in the neighbours of every change. Section `rounds` has each step.
 
 ## Sections of this skill
-- `lenses` (references/lenses.md) — the checklist of each lens, the squint test and the originality lens.
-- `motion-checks` (references/motion-checks.md) — what the motion lenses check: keys, frames, cuts, reading, layout over time, rhythm, delivery.
+- `lenses` (references/lenses.md) — each lens's checklist, the squint test, originality.
+- `motion-checks` (references/motion-checks.md) — the motion lenses' checks: keys, frames, cuts, reading, layout, rhythm, delivery.
 - `sampling` (references/sampling.md) — how to see a still or a motion piece: checks, renders, close-ups, stills, metrics.
-- `rounds` (references/rounds.md) — finding ids, merging conflicting fixes, one batch, regression checks, and when to stop.
+- `rounds` (references/rounds.md) — finding ids, merging conflicting fixes, one batch, regressions, when to stop.
 
-Evidence (claim ids, for maintainers): [C-206] [C-238] [C-239]
+Evidence (claim ids, for maintainers): [C-206] [C-238] [C-239] [C-386]

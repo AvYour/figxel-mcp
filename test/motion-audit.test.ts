@@ -915,7 +915,7 @@ describe("figma_check_motion on the server (src/server/tools/check-motion.ts)", 
     const ok = await call({ brandId: "9-1" });
     expect((ok.structuredContent as { issues: MotionIssue[] }).issues.some((i) => i.rule === "brand_late" && i.nodeId === "9:1")).toBe(true);
     const outside = await call({ brandId: "7:7" });
-    expect(outside.structuredContent).toMatchObject({ code: "INVALID_PARAM", message: expect.stringMatching(/`brandId` 7:7 is not inside/) });
+    expect(outside.structuredContent).toMatchObject({ code: "INVALID_PARAM", message: expect.stringMatching(/`brandId` 7:7 is not among the layers read in "Frame"/) });
   });
 
   it("a plugin that answers without a snapshot predates the tool: INTERNAL, with the way out", async () => {

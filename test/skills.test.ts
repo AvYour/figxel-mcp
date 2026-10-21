@@ -210,21 +210,43 @@ describe("the move from guides.ts kept every word (snapshot of a6ebb06)", () => 
   // else is drift. A later edit of an old topic's content is declared in
   // REWRITTEN with its reason, which takes that topic out of the checks below.
   const REWRITTEN: Record<string, string> = {
-    workflow: "points new work at the design and storyboard skills by gear; every element earns its place instead of decoration by default",
-    build: "the worked example taught generated tells (a caps eyebrow, a centred block, identical icon cards, vague copy, a blob, one radius); a second example reaches the opposite answer from its brief",
-    check: "the craft and tells audits, safeArea and minTextSize, the squint test, and a pointer to figma_check_motion",
+    workflow:
+      "points new work at the design and storyboard skills by gear; every element earns its place instead of decoration by default; " +
+      "the role process (2026-10-16): state the role and the gear, read the role's skill, figma_set_brief first, the finish ends with figma_sign_off; " +
+      "trust (2026-10-19): figma_savepoint at the start of each instruction, what STALE asks for, the report from figma_get_changes, figma_rollback to undo an instruction; prose trimmed to stay in budget",
+    build:
+      "the worked example taught generated tells (a caps eyebrow, a centred block, identical icon cards, vague copy, a blob, one radius); a second example reaches the opposite answer from its brief; " +
+      "trust (2026-10-19): the example opens with figma_savepoint, and its report lists what changed from figma_get_changes",
+    check:
+      "the craft and tells audits, safeArea and minTextSize, the squint test, and a pointer to figma_check_motion; " +
+      "the role process (2026-10-16): the a11y, states, copy and system audits with their kinds, severities and fixes, and briefId; " +
+      "role quality (2026-10-20): tells by default under a page or top brief, a kind on its avoid list a warning, and the create result's tells",
     tools:
       "rows for the storyboard, animatic, motion-check and video-review tools, and the changed ones; figma_set_motion_plan and the final render (2026-10-14); " +
-      "a sound row that names no tool: the audio tools were held back (2026-10-14, docs/superpowers/plans/2026-10-14-audio-held.md)",
+      "a sound row that names no tool: the audio tools were held back (2026-10-14, docs/superpowers/plans/2026-10-14-audio-held.md); " +
+      "the role process (2026-10-16): rows for figma_set_brief, figma_get_brief and figma_sign_off, the new audits and final exports; " +
+      "trust (2026-10-19): rows for figma_savepoint, figma_get_changes, figma_rollback and figma_stress_test",
     typography: "body sizes and leading from C-210, the accented-word habit, figures checked at display size, and criteria before figma_suggest_fonts' ranking; families checked by filter, figma_suggest_fonts optional (acceptance run 1); new text's lineHeight and letterSpacing as strings, a bare number px (found later)",
-    slides: "a new deck runs the design skill's page gear; the deck principles became decisions the brief makes (C-218)",
+    slides:
+      "a new deck runs the design skill's page gear; the deck principles became decisions the brief makes (C-218); " +
+      "the role process (2026-10-16): the presentation brief and sign-off, and a story section (the arc, a sentence per slide, assertion headlines, density by room, the deck audit)",
+    figjam:
+      "the role process (2026-10-16): a new board starts with a board-role brief (figma_set_brief) and ends with figma_sign_off once the board audit passes",
     motion:
       "the mechanics section gained the frame-grid facts, cut pairs, job-mode rendering, readback and a UI micro-motion recipe (plan §1.2); " +
       "the index opens with the senior motion designer's role and the stages the tools enforce: a plan before keyframes, a passing check before the final render (BRIDGE_PROCESS, 2026-10-14); " +
-      "the index sends delivery to the formats section, whose sound part is one neutral line since the audio tools were held back (2026-10-14)",
-    safety: "job mode on figma_export_video, the restored-window rule, and created ids inside an animated frame (plan §1.2); what PROCESS_REQUIRED asks for (2026-10-14)",
-    "design-system": "decides whose system the file holds before applying it: another brand's styles are reference (acceptance run 1)",
-    "code-to-design": "fonts checked with figma_get_fonts' family filter or a figma_create_text try, never the unfiltered list (acceptance run 1)",
+      "the index sends delivery to the formats section, whose sound part is one neutral line since the audio tools were held back (2026-10-14); " +
+      "the role process (2026-10-16): a role-motion brief first, the plan takes what it leaves out from it, figma_sign_off before the final render",
+    safety:
+      "job mode on figma_export_video, the restored-window rule, and created ids inside an animated frame (plan §1.2); what PROCESS_REQUIRED asks for (2026-10-14); " +
+      "the role process (2026-10-16): PROCESS_REQUIRED for new work and final exports too; " +
+      "trust (2026-10-19): figma_savepoint and figma_rollback replace the figma_undo_step advice, what ROLLBACK_BLOCKED and STALE ask for, force only on the person's word, the report from figma_get_changes",
+    "design-system":
+      "decides whose system the file holds before applying it: another brand's styles are reference (acceptance run 1); " +
+      "the role process (2026-10-16): the design-system role's brief, its components' states (the ux skill's states section), figma_sign_off",
+    "code-to-design":
+      "fonts checked with figma_get_fonts' family filter or a figma_create_text try, never the unfiltered list (acceptance run 1); " +
+      "the role process (2026-10-16): the replica brief, figma_set_brief with role ux and gear replica, and figma_sign_off",
     spec: "lineHeight and letterSpacing take figma_set_text_properties' strings (\"auto\", \"24\", \"150%\", \"-2%\"); a bare number is px (acceptance run 1, found later)",
   };
   const checked = (topics: string[]) => topics.filter((t) => !(t in REWRITTEN));

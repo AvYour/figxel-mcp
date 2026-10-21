@@ -25,6 +25,17 @@ const LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 export const PROCESS_MODES = ["strict", "guided", "off"] as const;
 export type ProcessMode = (typeof PROCESS_MODES)[number];
 
+/**
+ * BRIDGE_CONFLICTS — the stale-write guard (trust spec §2.3), sent with every
+ * write request (RequestMsg.guard): "refuse" lets the plugin refuse a write
+ * whose target a person or a collaborator changed after the agent last read
+ * or wrote it (STALE, nothing changed), "warn" runs it and lists the
+ * conflicts in its result, "off" checks nothing. A call's `force: true`
+ * overrides a refusal for that call only.
+ */
+export const CONFLICT_MODES = ["refuse", "warn", "off"] as const;
+export type ConflictsMode = (typeof CONFLICT_MODES)[number];
+
 export interface Config {
   toolset: Toolset;
   allowEval: boolean;
@@ -38,6 +49,8 @@ export interface Config {
   allowUnverified: boolean;
   /** BRIDGE_PROCESS: the motion process gate, "strict" by default. */
   processMode: ProcessMode;
+  /** BRIDGE_CONFLICTS: the stale-write guard every write carries, "refuse" by default. */
+  conflicts: ConflictsMode;
   autolaunch: boolean;
   sessionWaitMs: number;
   home: string;
@@ -108,6 +121,11 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
   if (!PROCESS_MODES.includes(processMode)) {
     throw new ConfigError(`BRIDGE_PROCESS="${env.BRIDGE_PROCESS}" must be one of ${PROCESS_MODES.join(", ")}`);
   }
+  // The same rule: a misspelt "refuse" must not leave writes unguarded.
+  const conflicts = (env.BRIDGE_CONFLICTS?.trim() || "refuse") as ConflictsMode;
+  if (!CONFLICT_MODES.includes(conflicts)) {
+    throw new ConfigError(`BRIDGE_CONFLICTS="${env.BRIDGE_CONFLICTS}" must be one of ${CONFLICT_MODES.join(", ")}`);
+  }
 
   // A program name is looked up on PATH; a path is used as given. BRIDGE_FFMPEG
   // alone, as a path, also looks for ffprobe in the same folder.
@@ -125,6 +143,8 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
     allowUnverified: flag(env, "BRIDGE_ALLOW_UNVERIFIED"),
     // Per process too: the gate keeps the state of the client this process serves.
     processMode,
+    // Per process as well: a proxy sends its own mode with each write it forwards (peer.ts).
+    conflicts,
     // Inert since 2026-10-07: auto-launch was removed (ADR #32) because it had
     // to raise Figma over whatever the operator was doing. The flag is still
     // parsed so an existing .env does not fail validation; nothing reads it.

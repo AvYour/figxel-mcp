@@ -8,7 +8,8 @@
 import { BridgeError, ErrorCode } from "../../shared/errors.js";
 import { MOTION_PLAN_KEY, MOTION_PLAN_NAMESPACE, parseMotionPlan, type MotionPlanRecord } from "../../shared/motion-plan.js";
 import { beforeMutating } from "../guard.js";
-import { byId, reqStr, topLevelFrameOf, type FigmaLike, type NodeLike } from "../read.js";
+import { childrenOf } from "../board-read.js";
+import { byId, canvasTwins, reqStr, sameLayer, topLevelFrameOf, type FigmaLike, type NodeLike } from "../read.js";
 import type { OpContext, PluginOp } from "./index.js";
 
 type DataNode = NodeLike & {
@@ -38,10 +39,19 @@ export function readMotionPlan(frame: NodeLike): { plan: MotionPlanRecord | null
   return "plan" in parsed ? { plan: parsed.plan } : { plan: null, invalid: parsed.invalid };
 }
 
-/** A layer the plan names (brandId, ctaId) must be one of the frame's own. */
-async function checkMember(plan: Record<string, unknown>, key: "brandId" | "ctaId", frame: NodeLike): Promise<void> {
+/**
+ * A layer the plan names (brandId, ctaId) must be one of the frame's own. The
+ * frame is compared as a layer, not by id: during a second-id stretch the
+ * layer's parents lead to the frame's second handle, while `nodeId` resolved
+ * to its first [C-199]. During a stretch — the layer's parents lead to
+ * another handle of the frame, or the page lists the frame twice — a layer
+ * named by the id its parent lists is named by a temporary id, which stops
+ * resolving when the stretch ends [C-199]: the plan is stored, with a warning
+ * that says so.
+ */
+async function checkMember(plan: Record<string, unknown>, key: "brandId" | "ctaId", frame: NodeLike, stretch: boolean): Promise<string | undefined> {
   const id = plan[key];
-  if (typeof id !== "string") return;
+  if (typeof id !== "string") return undefined;
   let node: NodeLike;
   try {
     node = await byId(api(), id);
@@ -49,15 +59,24 @@ async function checkMember(plan: Record<string, unknown>, key: "brandId" | "ctaI
     const e = err instanceof BridgeError ? err : invalid(String(err));
     throw new BridgeError(e.code, `\`${key}\`: ${e.message}`, e.hint ? { hint: e.hint } : {});
   }
-  if (topLevelFrameOf(node)?.id !== frame.id) {
+  const top = topLevelFrameOf(node);
+  if (!top || !sameLayer(top, frame)) {
     throw invalid(`\`${key}\` "${node.name}" (${node.id}) is not inside "${frame.name}".`, "Name a layer of the planned frame.");
   }
+  const listed = node.parent ? childrenOf(node.parent)?.some((c) => c.id === node.id) : false;
+  if (listed && (stretch || top.id !== frame.id)) {
+    return (
+      `\`${key}\` ${node.id} is the id Figma lists "${node.name}" under while its frame's layers have temporary ids; ` +
+      "it stops resolving when that ends. Store the plan again with the id the layer's create call returned."
+    );
+  }
+  return undefined;
 }
 
 const setMotionPlan: PluginOp = {
   write: true,
   async run(ctx: OpContext) {
-    const { frame, json, replaced } = await beforeMutating(async () => {
+    const { frame, json, replaced, warnings } = await beforeMutating(async () => {
       const nodeId = reqStr(ctx.params, "nodeId");
       const plan = ctx.params.plan;
       if (!isObject(plan) || plan.v !== 1 || !isObject(plan.brief) || !Array.isArray(plan.beats) || plan.beats.length === 0) {
@@ -71,16 +90,22 @@ const setMotionPlan: PluginOp = {
       }
       const frame = topLevelFrameOf(node);
       if (!frame) throw invalid(`"${node.name}" is not inside a top-level frame.`, "Pass the frame the piece is animated in, or any layer inside it.");
-      await checkMember(plan, "brandId", frame);
-      await checkMember(plan, "ctaId", frame);
+      const twins = canvasTwins(frame);
+      const warnings = [await checkMember(plan, "brandId", frame, twins.length > 0), await checkMember(plan, "ctaId", frame, twins.length > 0)].filter((w): w is string => !!w);
+      if (twins.length) {
+        warnings.push(
+          `The page lists "${frame.name}" as ${[frame.id, ...twins].join(" and ")} while Figma lists its layers under temporary ids: ` +
+            "use the id its create call returned for it; the other stops resolving when that ends.",
+        );
+      }
       if (typeof (frame as DataNode).setSharedPluginData !== "function") {
         throw new BridgeError(ErrorCode.UNSUPPORTED, `A ${frame.type} takes no shared plugin data in this editor.`);
       }
       const before = readMotionPlan(frame);
-      return { frame, json, replaced: before.plan !== null || before.invalid !== undefined };
+      return { frame, json, replaced: before.plan !== null || before.invalid !== undefined, warnings };
     });
     (frame as DataNode).setSharedPluginData!(MOTION_PLAN_NAMESPACE, MOTION_PLAN_KEY, json);
-    return { frameId: frame.id, frameName: frame.name, replaced };
+    return { frameId: frame.id, frameName: frame.name, replaced, ...(warnings.length ? { warnings } : {}) };
   },
 };
 

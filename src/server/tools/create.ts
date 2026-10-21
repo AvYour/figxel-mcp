@@ -18,14 +18,23 @@ import {
   variableValueParam,
   weightParam,
 } from "./params.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { tellsByDefault } from "../../shared/avoid.js";
 import { BridgeError, ErrorCode } from "../../shared/errors.js";
+import { toolName } from "../../shared/ops.js";
 import type { Bridge } from "../bridge.js";
-import { errorResult } from "../results.js";
-import { forwardTool, type Extra } from "./forward.js";
+import { withProcessWarnings } from "../motion-process.js";
+import { errorResult, okResult } from "../results.js";
+import { fileOf, GATED_OPS, newWorkGate, type RoleProcess } from "../role-process.js";
+import { addressCall, forwardTool, type Extra } from "./forward.js";
 import { writeAnnotations } from "./annotations.js";
 import { paintStyleShape, styleDescription, textStyleShape, variablePropsShape } from "./tokens.js";
 
-/** Shared params for every write tool: session picker + caller-owned retry key. */
+/**
+ * Shared params for every write tool: session picker, caller-owned retry key,
+ * and `force` for the stale-write guard (trust spec §2.3). `force` never
+ * reaches the op's params: forwardTool moves it into the request's guard.
+ */
 export const WRITE_PARAMS = {
   session: z
     .string()
@@ -39,6 +48,13 @@ export const WRITE_PARAMS = {
       "Caller-owned retry key, ≤128 chars. Re-calling with the same key never executes twice: it returns the existing " +
         "result, or waits for the op still in flight. Supply your own for anything large — if the MCP client times out " +
         "(rather than the bridge), only a key you chose can be used to retry safely.",
+    ),
+  force: z
+    .boolean()
+    .optional()
+    .describe(
+      "Overwrite on purpose. A write to a node someone changed after you last read it is refused (STALE); read it again " +
+        "and resend instead. Pass true only when the person said to overwrite their edit.",
     ),
 };
 
@@ -97,7 +113,61 @@ export function parseSpecParam(raw: unknown): Record<string, unknown> | Array<Re
   return spec;
 }
 
-export function registerCreate(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean): void {
+/**
+ * A create call behind the role process (role-process.ts): new work waits for
+ * a brief in force (strict refuses, guided warns), an edit runs at once. The
+ * gate judges the call as addressed; the forward addresses it again, so a
+ * link's warning still reaches the result. Without `roles`, or with
+ * BRIDGE_PROCESS=off, it is a plain forward.
+ */
+export async function forwardNewWork(
+  bridge: Bridge,
+  roles: RoleProcess | undefined,
+  op: string,
+  params: Record<string, unknown>,
+  args: Record<string, unknown>,
+  extra: Extra,
+): Promise<CallToolResult> {
+  const session = args.session as string | undefined;
+  const key = args.idempotencyKey as string | undefined;
+  const forward = () => forwardTool(bridge, op, params, extra, { session, idempotencyKey: key });
+  if (!roles?.active || !GATED_OPS.has(op)) return forward();
+  let addressed: Awaited<ReturnType<typeof addressCall>>;
+  try {
+    addressed = await addressCall(bridge, op, params, session);
+  } catch (err) {
+    return errorResult(err instanceof BridgeError ? err.withKey(key) : err, { unchanged: true });
+  }
+  const gate = await newWorkGate(roles, bridge, toolName(op), op, addressed.params, addressed.session, extra.signal);
+  if (gate.refusal) return errorResult(gate.refusal.withKey(key), { unchanged: true });
+  // Tells while building: a spec built under a page or top brief comes back with its tells measured.
+  const tells = op === "create_from_spec" ? await tellsBriefFor(roles, bridge, addressed.session) : undefined;
+  if (!tells) return withProcessWarnings(await forward(), gate.warnings);
+  const result = await forwardTool(bridge, op, { ...params, tells: { briefId: tells } }, extra, { session, idempotencyKey: key, shape: withTellsSkipped });
+  return withProcessWarnings(result, gate.warnings);
+}
+
+/**
+ * The brief whose tells figma_create_from_spec measures on what it built
+ * (role quality plan W3): the brief in force for the file, when it binds at
+ * its gear (shared/avoid.ts tellsByDefault), else none.
+ */
+async function tellsBriefFor(roles: RoleProcess, bridge: Bridge, session: string | undefined): Promise<string | undefined> {
+  const ref = roles.inForce((await fileOf(bridge, session)).key);
+  return ref && tellsByDefault(ref.role, ref.gear, ref.avoid ?? []) ? ref.briefId : undefined;
+}
+
+/** A plugin that predates tells while building ignores the request: the result says so rather than nothing. */
+export const TELLS_NOT_MEASURED =
+  "The tells of what was built were not measured: the connected plugin predates tells while building (re-run it to update). figma_check_layout { nodeId, audit: [\"tells\"] } measures them.";
+
+function withTellsSkipped(data: unknown): CallToolResult {
+  if (!isObject(data) || data.tells !== undefined || data.tellsSkipped !== undefined) return okResult(data);
+  return okResult({ ...data, tellsSkipped: TELLS_NOT_MEASURED });
+}
+
+/** `roles` is the role process the create tools stand behind (role-process.ts); without it nothing is gated. */
+export function registerCreate(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, roles?: RoleProcess): void {
   const tool = (
     op: string,
     title: string,
@@ -120,10 +190,7 @@ export function registerCreate(server: McpServer, bridge: Bridge, wanted: (op: s
             { unchanged: true },
           );
         }
-        return forwardTool(bridge, op, params, extra, {
-          session: args.session as string | undefined,
-          idempotencyKey: args.idempotencyKey as string | undefined,
-        });
+        return forwardNewWork(bridge, roles, op, params, args, extra);
       },
     );
   };

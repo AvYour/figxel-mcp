@@ -401,7 +401,11 @@ export interface SnapshotNode {
 }
 
 export interface MotionSnapshot {
-  root: { id: string; name: string; width?: number; height?: number; durationS: number | null; timelineId?: string };
+  /**
+   * The frame read. `handles`: every id the page lists it under, when it lists
+   * it more than once during a second-id stretch [C-199], this id first.
+   */
+  root: { id: string; name: string; width?: number; height?: number; durationS: number | null; timelineId?: string; handles?: string[] };
   /** The root first, then its descendants in document order: every parent before its children. */
   nodes: SnapshotNode[];
   truncated: boolean;
@@ -416,4 +420,22 @@ export interface MotionSnapshot {
   plan?: MotionPlanRecord | null;
   /** Why a stored plan could not be read. */
   planInvalid?: string;
+  /**
+   * Ids the check names (the plan's brandId and ctaId, and those the call
+   * asked for) that resolve to a layer listed here under another id, mapped
+   * to that id: during a second-id stretch the listing gives second ids while
+   * a plan holds the ids create calls returned [C-199]. Empty when every
+   * named id is listed as it is; absent only from a plugin built before it.
+   */
+  aliases?: Record<string, string>;
+  /**
+   * Named ids that resolve to a layer its parent lists under another id, but
+   * that two or more listed layers match: the check cannot tell which listed
+   * layer it is [C-199].
+   */
+  unmapped?: string[];
+  /** Named ids that resolve to a layer outside this frame, the whole frame read. */
+  outside?: string[];
+  /** Named ids that resolve to nothing: deleted, or a temporary id that stopped resolving [C-199]. */
+  gone?: string[];
 }

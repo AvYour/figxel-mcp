@@ -31,6 +31,7 @@ import {
   type StyleTarget,
   type VariableLike,
 } from "../bind.js";
+import { buildTells, tellsAsked } from "../build-tells.js";
 import { CancelledError, createPacer, type Pacer } from "../chunk.js";
 import { str } from "../read.js";
 import { checkModeName, parseLength, parseLineHeight } from "../tokens.js";
@@ -1767,6 +1768,9 @@ const createFromSpec: PluginOp = {
       }
       ctx.progress(created.length, created.length, "done");
       const refs = Object.fromEntries([...b.refs].map(([r, n]) => [r, n.id]));
+      // Tells while building, when the server asks (a page or top brief in force): never fails the build.
+      const tellsBrief = tellsAsked(ctx.params);
+      const tells = tellsBrief ? await buildTells(figma as unknown as { getNodeByIdAsync(id: string): Promise<unknown> }, rootIds, tellsBrief, ctx) : undefined;
       return {
         rootId: rootIds[0],
         ...(many ? { rootIds } : {}),
@@ -1775,6 +1779,7 @@ const createFromSpec: PluginOp = {
         ...(b.refs.size ? { refs } : {}),
         // Top-down builds read every placed node back; an empty list is the proof [C-146].
         ...(b.topDown ? { drift: driftOf(b) } : {}),
+        ...(tells ?? {}),
       };
     } catch (err) {
       // No rollback, by design: one op = one Ctrl+Z, and the ids are returned so

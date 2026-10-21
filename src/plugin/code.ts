@@ -1,5 +1,6 @@
 // The plugin sandbox — spec §5.2. Thin wiring: route ops, run them one at a
-// time, apply idempotency, report progress, commit one undo step per write op.
+// time, apply idempotency, report progress, commit one undo step per write op,
+// and tell trust.ts what runs, so it can attribute changes and guard writes.
 
 import { editorRefusal } from "../shared/editors.js";
 import { BridgeError, ErrorCode } from "../shared/errors.js";
@@ -11,6 +12,7 @@ import { changedNothing, IdempotencyStore, type StoredResult } from "./idempoten
 import type { HelloInfo, SandboxToUi, UiToSandbox } from "./messages.js";
 import { PLUGIN_OPS } from "./ops/index.js";
 import { editorType } from "./safe.js";
+import { TRUST, agentOf, withConflicts, type Conflict } from "./trust.js";
 
 // Option A, chosen by the yield spike (2026-10-07, Figma desktop 126.9.11,
 // spikes/results/yield.json): setTimeout exists, fires, and hands the editor
@@ -215,15 +217,37 @@ async function execute(req: RequestMsg): Promise<void> {
     }),
   );
 
-  let result: StoredResult;
-  try {
-    const data = await op.run({ requestId: req.id, params: req.params, yieldToHost, progress, isCancelled });
-    const keyed = key && data && typeof data === "object" && !Array.isArray(data);
-    result = { ok: true, data: keyed ? { ...(data as Record<string, unknown>), idempotencyKey: key } : data };
-  } catch (err) {
-    result = toStored(err, key);
+  // The stale-write guard (trust.ts), before the op runs: a target someone else
+  // changed after the agent's view of it. A refusal is answered like the editor
+  // gate's — the op never ran, so no undo step is committed — but after
+  // store.begin, so a replay of work already done is never refused, and the
+  // refusal's `created: []` frees the key below. No guard (an older server):
+  // nothing happens here.
+  let conflicts: Conflict[] = [];
+  let result: StoredResult | null = null;
+  if (op.write && req.guard) {
+    const checked = await TRUST.guard(req.op, req.params, req.guard);
+    if (checked.refusal) result = toStored(checked.refusal, key);
+    conflicts = checked.conflicts;
   }
-  if (op.write) figma.commitUndo(); // one tool call = one Ctrl+Z step, even on partial failure
+
+  if (!result) {
+    // Which server process sent it: a rollback undoes only its own agent's calls.
+    const span = await TRUST.begin(req.op, req.params, op.write, agentOf(req.guard));
+    try {
+      const touched = (ids: readonly string[]) => TRUST.touched(span, ids);
+      const data = withConflicts(await op.run({ requestId: req.id, params: req.params, yieldToHost, progress, isCancelled, touched }), conflicts);
+      const keyed = key && data && typeof data === "object" && !Array.isArray(data);
+      result = { ok: true, data: keyed ? { ...(data as Record<string, unknown>), idempotencyKey: key } : data };
+    } catch (err) {
+      result = toStored(err, key);
+    }
+    if (op.write) {
+      figma.commitUndo(); // one tool call = one Ctrl+Z step, even on partial failure
+      TRUST.committed(result);
+    }
+    await TRUST.end(span, result);
+  }
 
   // A failure that reports `partial.created: []` provably changed nothing, so it
   // must not pin the key: a corrected retry under the same key should run, not
@@ -260,7 +284,8 @@ figma.ui.onmessage = (raw: unknown) => {
 };
 
 figma.showUI(__html__, { width: 300, height: 280, themeColors: true, title: PLUGIN_NAME });
-startEvents({ emit, delay: (ms) => scheduler.delay(ms) });
+TRUST.setDelay((ms) => scheduler.delay(ms));
+startEvents({ emit, delay: (ms) => scheduler.delay(ms) }, TRUST);
 
 void (async () => {
   const stored = (await figma.clientStorage.getAsync(TOKEN_KEY)) as unknown;

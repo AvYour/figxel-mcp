@@ -21,7 +21,7 @@
 // `Buffer.from` would compile and then fail at runtime inside Figma.
 
 import { BridgeError, ErrorCode } from "../shared/errors.js";
-import { OPAQUE_TYPES, childrenOf, guardAll, opaqueBox, previewOf, readView } from "./board-read.js";
+import { OPAQUE_TYPES, childrenOf, field, guardAll, opaqueBox, previewOf, readView } from "./board-read.js";
 import { screenSizing } from "./context.js";
 import type { YieldToHost } from "./chunk.js";
 import { overflowText } from "./dialect.js";
@@ -475,6 +475,126 @@ export function topLevelFrameOf(node: NodeLike): NodeLike | null {
   let n: NodeLike = node;
   while (n.parent && !CANVAS_TYPES.has(n.parent.type)) n = n.parent;
   return n.parent && !CANVAS_TYPES.has(n.type) ? n : null;
+}
+
+/** How deep sameLayer follows parents before it gives up: deeper than any layer tree the runs met. */
+const SAME_LAYER_DEPTH = 64;
+
+/** A box member as a number, or undefined; read through the guard, as a member may throw [C-145]. */
+function boxOf(node: NodeLike, key: "x" | "y" | "width" | "height"): number | undefined {
+  const v = field(node, key);
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+/**
+ * Whether two handles are one layer. During a second-id stretch Figma hands
+ * out a second handle for a layer of an animated frame, under another id, and
+ * may list its frame on the page twice; reads through either id agree [C-199].
+ * An id compare then calls one layer two: a plan's brand layer "outside" its
+ * own frame, or a search that finds the frame twice. So two handles with
+ * other ids are one layer when their type, name and box agree and then — for
+ * a layer with children — the children listed under each are the same ids
+ * (every listing gives the second ids during a stretch [C-199]), or — for a
+ * leaf inside a frame — their parents are one layer, followed up to the
+ * canvas, whose ids do not change. A second handle belongs to a layer of an
+ * animated frame, so a leaf on the page or in a section never has one. Under
+ * one parent a listing gives a layer once, so two leaves are one layer only
+ * when the parent lists exactly one of them: two it lists, or two it does
+ * not, are two. Two stacked copies of a frame have children of their own, so
+ * they stay two. Two identical leaves still both match the one handle their
+ * listing does not give, which is why a caller that needs a single answer
+ * counts its matches.
+ */
+export function sameLayer(a: NodeLike, b: NodeLike, depth = 0): boolean {
+  if (a === b || a.id === b.id) return true;
+  if (depth > SAME_LAYER_DEPTH || a.type !== b.type || a.name !== b.name) return false;
+  for (const k of ["x", "y", "width", "height"] as const) {
+    const va = boxOf(a, k);
+    const vb = boxOf(b, k);
+    if (va === undefined && vb === undefined) continue;
+    if (va === undefined || vb === undefined || Math.abs(va - vb) > 0.01) return false;
+  }
+  const ka = childrenOf(a) ?? [];
+  const kb = childrenOf(b) ?? [];
+  if (ka.length > 0 || kb.length > 0) return ka.length === kb.length && ka.every((c, i) => c.id === kb[i]!.id);
+  const pa = a.parent;
+  const pb = b.parent;
+  if (!pa || !pb || CANVAS_TYPES.has(pa.type) || CANVAS_TYPES.has(pb.type)) return false;
+  if (pa.id === pb.id) {
+    const listed = childrenOf(pa) ?? [];
+    if (listed.some((c) => c.id === a.id) === listed.some((c) => c.id === b.id)) return false;
+  }
+  return sameLayer(pa, pb, depth + 1);
+}
+
+/**
+ * What sameLayer compares for a layer with children, as one key: type, name,
+ * box and the ids of the children listed under it. Two such handles are one
+ * layer exactly when their keys match, so finding a twin is one lookup.
+ */
+function containerKey(node: NodeLike, kids: readonly NodeLike[]): string {
+  const box = (["x", "y", "width", "height"] as const).map((k) => {
+    const v = boxOf(node, k);
+    return v === undefined ? "" : String(Math.round(v * 100) / 100);
+  });
+  return `${node.type}|${node.name}|${box.join(",")}|${kids.map((c) => c.id).join(",")}`;
+}
+
+/**
+ * Layers met so far, each once: a handle that is a second handle of a layer
+ * already in the set is not added [C-199]. Only layers with children are
+ * matched, because the layer a page lists twice during a stretch is an
+ * animated frame, which holds its animated layers; and they are matched by
+ * key, so a page of thousands of layers, stacked lookalikes included, costs
+ * one pass, not a comparison of every pair. `handles` keeps every id a layer
+ * was met under, the first one first.
+ */
+export class LayerSet {
+  private readonly ids = new Set<string>();
+  private readonly byKey = new Map<string, NodeLike>();
+  private readonly met = new Map<NodeLike, string[]>();
+
+  /** Adds `node` and answers true, or answers false when it is already in the set under this or another handle. */
+  add(node: NodeLike): boolean {
+    if (this.ids.has(node.id)) return false;
+    this.ids.add(node.id);
+    const kids = childrenOf(node) ?? [];
+    if (kids.length > 0) {
+      const key = containerKey(node, kids);
+      const first = this.byKey.get(key);
+      if (first) {
+        this.met.get(first)!.push(node.id);
+        return false;
+      }
+      this.byKey.set(key, node);
+    }
+    this.met.set(node, [node.id]);
+    return true;
+  }
+
+  /** Every id `node` was met under, its own first. */
+  handles(node: NodeLike): string[] {
+    return this.met.get(node) ?? [node.id];
+  }
+}
+
+/**
+ * The other ids a top-level frame's page or section lists it under: during a
+ * second-id stretch the canvas may list an animated frame a second time
+ * [C-199]. Empty outside a stretch, and for a frame with no children.
+ */
+export function canvasTwins(frame: NodeLike): string[] {
+  const canvas = frame.parent;
+  const kids = childrenOf(frame) ?? [];
+  if (!canvas || kids.length === 0) return [];
+  const key = containerKey(frame, kids);
+  const out: string[] = [];
+  for (const c of childrenOf(canvas) ?? []) {
+    if (c.id === frame.id || c.type !== frame.type || c.name !== frame.name) continue;
+    const ck = childrenOf(c) ?? [];
+    if (ck.length > 0 && containerKey(c, ck) === key) out.push(c.id);
+  }
+  return out;
 }
 
 /** What the user has selected. It lives on the page (PageNode.selection); the PluginAPI object has no `selection`. */

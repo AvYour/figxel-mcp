@@ -10,8 +10,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { Bridge } from "../bridge.js";
+import type { RoleProcess } from "../role-process.js";
 import { readAnnotations, writeAnnotations } from "./annotations.js";
-import { WRITE_PARAMS } from "./create.js";
+import { forwardNewWork, WRITE_PARAMS } from "./create.js";
 import { forwardTool, type Extra } from "./forward.js";
 import { fitDescription, hexColor } from "./params.js";
 
@@ -40,18 +41,16 @@ const slideId = z.string().describe('A slide id ("12:34") or a figma.com/slides 
  * /slides/ link) are normalised by forwardTool like every node id (figma-url.ts
  * ID_KEYS lists slideId, slideIds, afterSlideId and beforeSlideId), so a link
  * also picks the deck's session and a batch step gets the same treatment.
+ * `roles` gates figma_create_slides on an empty deck: a new deck waits for a
+ * brief (role-process.ts); without it nothing is gated.
  */
-export function registerSlides(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean): void {
+export function registerSlides(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, roles?: RoleProcess): void {
   const write = (op: string, title: string, description: string, shape: z.ZodRawShape) => {
     if (!wanted(op)) return;
     server.registerTool(
       `figma_${op}`,
       { title, description: fitDescription(description), inputSchema: { ...shape, ...WRITE_PARAMS }, annotations: writeAnnotations(op) },
-      async (args: Record<string, unknown>, extra: Extra) =>
-        forwardTool(bridge, op, args, extra, {
-          session: args.session as string | undefined,
-          idempotencyKey: args.idempotencyKey as string | undefined,
-        }),
+      async (args: Record<string, unknown>, extra: Extra) => forwardNewWork(bridge, roles, op, args, args, extra),
     );
   };
 

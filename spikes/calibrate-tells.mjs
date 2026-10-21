@@ -53,7 +53,10 @@ if (!FINISHED.length) {
 // What the audits can report; the tells are what this run calibrates.
 const TELLS = ["default_typeface", "flat_hierarchy", "too_many_sizes", "mostly_centred", "centred_block", "eyebrow_everywhere", "measure",
   "leading", "card_trio", "nested_cards", "one_radius", "nested_radius", "same_shadow", "default_gradient", "glow", "emoji_icon",
-  "chrome_string", "divider_everywhere"];
+  "chrome_string", "divider_everywhere",
+  // Role quality plan W2 (2026-10-20); the generic page is not built for them, so a quiet one is "not tested".
+  "skeleton_repeat", "flat_rhythm", "boxiness", "centred_stage", "icon_tile", "kpi_tile", "greeting_title", "accent_share",
+  "hue_pair", "reflex_display_face", "cluster_1", "cluster_2", "cluster_3", "cluster_4", "cluster_5", "cluster_6"];
 const CRAFT = ["near_size", "no_shared_edge", "tangent", "glyph_gaps", "oldstyle_figures", "unbalanced_space", "safe_area",
   "low_contrast_over_shape", "min_text", "stroke_crosses_text", "edge_slices_text", "weak_graphic_contrast"];
 // The tells the generic page is built to trip. One it was not built for and that stays quiet there is "not tested", not "silent".

@@ -26,6 +26,7 @@ import { ensureLoaded } from "../pages.js";
 import { tryGet } from "../safe.js";
 import { listStyles, variableDefs } from "./tokens.js";
 import {
+  LayerSet,
   bool,
   byId,
   collect,
@@ -451,6 +452,11 @@ const searchNodes: PluginOp = {
     // Content, not names: a sticky's layer name need not be its text, and a
     // connector's never is (create-connector.md:107). A table hit names its cell.
     const cells = new Map<NodeLike, { row: number; column: number }>();
+    // Each layer once. During a second-id stretch the page may list an
+    // animated frame twice, once under its second id, and the layers inside
+    // come back under the same second ids through both [C-199].
+    const seen = new Set<string>();
+    const tops = new LayerSet();
     const matches = (node: NodeLike) => {
       if (type && node.type !== type) return false;
       if (needle) {
@@ -462,6 +468,10 @@ const searchNodes: PluginOp = {
         if (!hit) return false;
         if (hit.cell) cells.set(node, hit.cell);
       }
+      if (seen.has(node.id)) return false;
+      const top = node.parent?.type === "PAGE" || node.parent?.type === "SECTION";
+      if (top && !tops.add(node)) return false;
+      seen.add(node.id);
       return true;
     };
     const scopeKey = `search:${scope}:${root.id}:${query ?? ""}:${type ?? ""}${componentId ? `:${componentId}` : ""}${text ? `:text=${text}` : ""}`;

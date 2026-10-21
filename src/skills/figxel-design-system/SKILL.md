@@ -23,10 +23,12 @@ Apply instead of raw values:
 Create a system when the file has none and the user wants one (topic "library" has the full playbook):
 - tokens: figma_create_variable_collection, then a whole family per call with figma_create_variables (value strings: "#1a2b3c", "16", "true", "alias:color/blue/500"); scopes and codeSyntax later with figma_set_variable_properties.
 - styles: figma_create_paint_style, figma_create_text_style, figma_create_effect_style.
-- components: build the element (a spec with type "component", or an existing frame + figma_convert_to_component), then make it configurable with figma_add_component_property (TEXT for labels, BOOLEAN to show/hide an icon, INSTANCE_SWAP for a nested icon). Variants: name each component "Size=Large, State=Default", then figma_combine_as_variants. Instances change through figma_set_instance_properties — never detach to edit a label.
+- components: build the element (a spec with type "component", or an existing frame + figma_convert_to_component), then make it configurable with figma_add_component_property (TEXT for labels, BOOLEAN to show/hide an icon, INSTANCE_SWAP for a nested icon). Variants: name each component "Size=Large, State=Default", then figma_combine_as_variants. Never detach an instance to edit it.
 - light/dark: figma_add_variable_mode + figma_set_variable_value per mode (extra modes need a paid Figma plan — Figma's refusal is returned as is). A mode shows nowhere until a frame uses it: figma_set_variable_mode { nodeIds: [<frame>], collectionName, mode: "Dark" }.
 
 figma_check_layout lists raw colours when the file has styles or variables they should be bound to; { audit: ["tokens"] } names each unbound colour, spacing and radius, and { audit: ["handoff"] } gives the share bound to the system, detached instances and duplicate styles.
+
+**The design-system role.** New tokens, styles or components: figma_set_brief { role: "design-system", gear, title, goal, message, success, details } first, `details.scope` tokens, components or both (`platforms`, `modes`, `components` when known). Every interactive component has its states as variants of one `State` property (the ux skill's `states` section). figma_sign_off ends it: tokens, names, fonts, states and a11y must pass.
 
 ## Sections of this skill
 - section `library` (references/library.md, or figma_get_guide { topic: "design-system", section: "library" }) — build a token and component library, in order.

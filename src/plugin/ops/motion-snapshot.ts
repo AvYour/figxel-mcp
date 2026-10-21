@@ -20,7 +20,7 @@ import { bindingAt, fieldFromString, manualTracksToText, valueToString } from ".
 // The gate's words come from motion.ts, so a gated account reads alike from every motion op [C-115].
 import { GATED, noMotion } from "./motion.js";
 import { readMotionPlan } from "./motion-plan.js";
-import { byId, int, selectionOf, str, topLevelFrameOf, walk, type FigmaLike, type NodeLike } from "../read.js";
+import { LayerSet, byId, canvasTwins, int, lookUp, sameLayer, selectionOf, str, strList, topLevelFrameOf, walk, type FigmaLike, type NodeLike } from "../read.js";
 
 type Any = Record<string, unknown>;
 
@@ -76,13 +76,18 @@ async function animated(frame: NodeLike, budget: { left: number }, ctx: OpContex
   return found;
 }
 
-/** Top-level frames on the page, those inside sections included. */
+/**
+ * Top-level frames on the page, those inside sections included, each once:
+ * during a second-id stretch the page may list a frame a second time, under
+ * its second id [C-199].
+ */
 function canvasFrames(page: NodeLike): NodeLike[] {
   const out: NodeLike[] = [];
+  const met = new LayerSet();
   const visit = (parent: NodeLike) => {
     for (const c of childrenOf(parent) ?? []) {
       if (c.type === "SECTION") visit(c);
-      else out.push(c);
+      else if (met.add(c)) out.push(c);
     }
   };
   visit(page);
@@ -102,9 +107,10 @@ async function resolveRoot(ctx: OpContext, maxNodes: number): Promise<{ root: No
     return { root: top, from: "node" };
   }
   const tops: NodeLike[] = [];
+  const met = new LayerSet();
   for (const s of selectionOf(f)) {
     const top = topLevelFrameOf(s);
-    if (top && !tops.some((t) => t.id === top.id)) tops.push(top);
+    if (top && met.add(top)) tops.push(top);
   }
   if (tops.length === 1) return { root: tops[0]!, from: "selection" };
   if (tops.length > 1) {
@@ -204,6 +210,10 @@ const checkMotion: PluginOp = {
     const first = Array.isArray(timelines) ? ((timelines[0] ?? null) as Any | null) : null;
     const durationS = num(first?.duration) ?? null;
 
+    // The plan of the frame about to be read, so the server judges against that frame's own plan.
+    const stored = readMotionPlan(root);
+    const { targets, gone } = await namedLayers([stored.plan?.brandId, stored.plan?.ctaId, ...(strList(ctx.params, "resolveIds") ?? [])]);
+
     const nodes: SnapshotNode[] = [];
     let truncated = false;
     await walk(
@@ -221,12 +231,14 @@ const checkMotion: PluginOp = {
     );
     ctx.progress(nodes.length, nodes.length);
     const rootBox = nodes[0]!;
-    // The plan of the frame just read, so the server judges against that frame's own plan.
-    const stored = readMotionPlan(root);
+    const { aliases, unmapped, outside } = listedAs(targets, new Set(nodes.map((n) => n.id)), truncated);
+    // Every id the page lists this frame under, so a check is recorded under whichever one a later call names [C-199].
+    const twins = canvasTwins(root);
     return {
       root: {
         id: root.id,
         name: root.name,
+        ...(twins.length ? { handles: [root.id, ...twins] } : {}),
         ...(rootBox.width !== undefined ? { width: rootBox.width } : {}),
         ...(rootBox.height !== undefined ? { height: rootBox.height } : {}),
         durationS: durationS === null ? null : Math.round(durationS * 10000) / 10000,
@@ -238,9 +250,60 @@ const checkMotion: PluginOp = {
       from,
       plan: stored.plan,
       ...(stored.invalid ? { planInvalid: stored.invalid } : {}),
+      aliases,
+      ...(unmapped.length ? { unmapped } : {}),
+      ...(outside.length ? { outside } : {}),
+      ...(gone.length ? { gone } : {}),
     };
   },
 };
+
+/** The layers behind the ids a check names, each looked up once, and the ids that resolve to nothing (`gone`). */
+async function namedLayers(ids: ReadonlyArray<string | undefined>): Promise<{ targets: Array<{ id: string; handle: NodeLike }>; gone: string[] }> {
+  const targets: Array<{ id: string; handle: NodeLike }> = [];
+  const gone: string[] = [];
+  for (const id of new Set(ids)) {
+    if (typeof id !== "string" || id === "") continue;
+    let handle: NodeLike | null = null;
+    try {
+      handle = await lookUp(api(), id);
+    } catch {
+      handle = null;
+    }
+    if (handle) targets.push({ id, handle });
+    else gone.push(id);
+  }
+  return { targets, gone };
+}
+
+/**
+ * For each named layer the walk did not read under its own id: the listed
+ * id it is (`aliases`), or that two or more listed layers match it
+ * (`unmapped`), or — when the walk read the whole frame — that it is not in
+ * this frame (`outside`) [C-199]. The match is counted over the handle's
+ * whole sibling listing, not over the layers read, so a walk cut by
+ * `maxNodes` never turns two matches into one; an alias is given only when
+ * its one match was read. A layer its own parent lists, missing from a cut
+ * walk, is past the cut: none of them.
+ */
+function listedAs(
+  targets: ReadonlyArray<{ id: string; handle: NodeLike }>,
+  listed: ReadonlySet<string>,
+  truncated: boolean,
+): { aliases: Record<string, string>; unmapped: string[]; outside: string[] } {
+  const aliases: Record<string, string> = {};
+  const unmapped: string[] = [];
+  const outside: string[] = [];
+  for (const { id, handle } of targets) {
+    if (listed.has(id)) continue;
+    const siblings = (handle.parent ? childrenOf(handle.parent) : undefined) ?? [];
+    const same = siblings.some((s) => s.id === id) ? [handle] : siblings.filter((s) => sameLayer(s, handle));
+    if (same.length > 1) unmapped.push(id);
+    else if (same.length === 1 && listed.has(same[0]!.id)) aliases[id] = same[0]!.id;
+    else if (!truncated) outside.push(id);
+  }
+  return { aliases, unmapped, outside };
+}
 
 /** Wired into PLUGIN_OPS by the integrator (src/plugin/ops/index.ts). */
 export const MOTION_SNAPSHOT_OPS: Record<string, PluginOp> = {

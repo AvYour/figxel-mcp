@@ -4,7 +4,7 @@ An operating guide for any AI agent driving Figma through Figxel.
 
 This is not a tool list — the tool list is [`docs/reference/tools.md`](../reference/tools.md). This is **how to work**, and every rule below is here because the alternative was measured and failed.
 
-**An agent never reads this file.** A connected agent sees only what the server sends. Every word of that guidance lives in one place, the Agent Skills folders under [`src/skills/`](../../src/skills/), and the same bytes reach a model five ways: a pointer in the server `instructions` at initialize, `figma_get_guide` (the floor every client has), ten MCP prompts, `skill://` resources, and the folders themselves installed as skills `[C-237]`. `src/server/guides.ts` keeps only the `instructions` and a view of the tree under the topic names `figma_get_guide` has always answered. This page is the human-readable record of why; [The skills](#the-skills) below lists what is there.
+**An agent never reads this file.** A connected agent sees only what the server sends. Every word of that guidance lives in one place, the Agent Skills folders under [`src/skills/`](../../src/skills/), and the same bytes reach a model five ways: a pointer in the server `instructions` at initialize, `figma_get_guide` (the floor every client has), eleven MCP prompts, `skill://` resources, and the folders themselves installed as skills `[C-237]`. `src/server/guides.ts` keeps only the `instructions` and a view of the tree under the topic names `figma_get_guide` has always answered. This page is the human-readable record of why; [The skills](#the-skills) below lists what is there.
 
 ## The one rule
 
@@ -36,7 +36,20 @@ The loop is how each part gets built. What comes before it (a brief, real altern
 
 A design made in one pass reads as generated. The 2026-10-09 motion run is the model the skills follow: directors, judges, a build bible, builders and three rounds of critics raised its critic scores from 6.5–7 to 7.5–8; it still lacked styleframes before the build and a lens that held its look against generated defaults, so both are stages here `[C-206]` `[C-208]`. One agent runs every role as a pass with an exit gate, one after another; subagents are an optional speed-up `[C-238]`.
 
-**State the gear first.** It scales the process to the job `[C-239]`:
+**Name the role first, then the gear.** New work is done as the professional it needs would do it, and each role has its own workflow, with planning before the work and testing after it `[C-383]` `[C-384]`:
+
+| Role | The work | Skill read first | Before the work | After the work |
+|---|---|---|---|---|
+| ux | anything people operate: screens, flows, web pages | `ux` | the task, the flow, a screen per step and the states each screen needs; for an app screen or a dashboard, its one question and finding (section `screens`) | the states, accessibility and copy passes, a usability walk against the ten heuristics `[C-367]` |
+| graphic, illustration | posters, ads, posts, print; icons and illustration | `graphic` | the medium, its size and the moment of viewing; for icons the construction grid | the optical pass and the system audit; icons on one grid and stroke |
+| brand | a mark and its identity | `brand` | positioning and the category's default | the mark at its smallest size, in one colour and reversed |
+| presentation | decks | `slides` | the story, a sentence per slide | density by room, assertion headlines |
+| design-system | tokens and components | `design-system` | scope and platforms | states, naming, library completeness |
+| board, motion | FigJam boards; anything that moves | `figjam`; `storyboard` | purpose and outcome; the beat sheet | the board rules; the frame-by-frame check |
+
+Under `BRIDGE_PROCESS=strict` (the default) the tools hold the agent to it `[C-384]`: a new top-level frame, a spec into an empty frame, a new deck or board waits for `figma_set_brief` (after the role's skill is read); the work ends with `figma_sign_off`, which runs the role's audits, takes the critique scores and records a sign-off in the file `[C-386]`; a final export waits for that sign-off. Edits of existing work are never gated. `figma_get_brief` reads a frame's brief and adopts an open one, so a second agent continues the work.
+
+**Then the gear.** It scales the process to the job `[C-239]`:
 
 | Gear | When | Process |
 |---|---|---|
@@ -61,7 +74,7 @@ Motion has its own gears in the `motion` skill (edit, UI micro-motion, sting, pi
 
 `figma_check_layout` is the instrument every agent has: per node, with numbers and a fix, it reports text that overflows instead of wrapping, text over text, clipping, nodes sticking out of their parent, low contrast `[C-075]`, zero sizes, empty frames, default names and raw colours. `ok: true` means no errors and no warnings. Read the document, do not eyeball the picture.
 
-On new design, add `audit: ["craft", "tells"]`. `craft` reports finish defects of the kind the 2026-10-09 critics measured (unshared edges, near-equal sizes, tangencies); `tells` reports the measurable signs of generated design, as `info` only until a calibration run shows which rules separate generic from finished work `[C-248]`. Every info is answered: fixed, or kept with its reason in the report.
+On new design, add `audit: ["craft", "tells"]`. `craft` reports finish defects of the kind the 2026-10-09 critics measured (unshared edges, near-equal sizes, tangencies); `tells` reports the measurable signs of generated design, as `info` only until a calibration run shows which rules separate generic from finished work `[C-248]`. Every info is answered: fixed, or kept with its reason in the report. Under a page or top brief `tells` runs by default, and a kind on the brief's `avoid` list (figma_set_brief) is a warning that no answer clears; figma_create_from_spec's result lists those matches (`tells`) as each section is built.
 
 `safeArea` is passed only where something covers part of the frame (a platform's interface, overscan, trim). A web or app view passes none: its fold is a success line, measured from `figma_get_design_context { absolute: true }` `[C-270]`.
 
@@ -110,7 +123,14 @@ Two things this catches that a screenshot does not:
 | Components | `figma_combine_as_variants`, `figma_add_component_property`, `figma_set_instance_properties` | Change an instance without detaching it |
 | Property on many nodes | `figma_set_fills`, `figma_set_opacity`, `figma_set_strokes`, … | Per-item `items[]` results |
 | Geometry | `figma_move_nodes`, `figma_resize_nodes`, `figma_rotate_nodes` | Per-item results |
-| Check it | `figma_check_layout` | After every section; fix errors and warnings. On new design add `audit: ["craft", "tells"]` |
+| Check it | `figma_check_layout` | After every section; fix errors and warnings. On new design add `audit: ["craft", "tells"]`; a role adds its own audits (`a11y`, `states`, `copy`, `system`, `deck`, `mark`, `icons`, `library`), measured against the checked work's own brief, else the brief in force |
+| Record the brief | `figma_set_brief` | Before the first new frame: role, gear, title, goal, message, success and the role's details; `briefId` adds directions, the choice, styleframes and the system as the work goes |
+| Read a brief | `figma_get_brief` | A frame's brief and its last sign-off; with no node, the file's open briefs. Reading an open brief adopts it |
+| Finish | `figma_sign_off` | The role's audits, the lens scores, rounds and answers; `ok: false` lists each blocker with its call. A final export waits for it |
+| Mark an instruction's start | `figma_savepoint` | At the start of each instruction, so it can be taken back whole |
+| What the agent changed | `figma_get_changes` | Every call in this session, and anyone's edit to what the agent touched; the report quotes it |
+| Take back an instruction | `figma_rollback` | Back to a savepoint in one step; refused (`ROLLBACK_BLOCKED`) when someone else changed anything since, with the agent's own creations to delete instead |
+| Test with real content | `figma_stress_test` | Before sign-off on any screen real content fills: copies with translated, longer and bigger content, checked |
 | Look at it | `figma_export_node` | The render as an image the model sees — for judgement, not positions |
 | Save renders to disk | `figma_save_screenshots` | Writes files, keeps image bytes out of context |
 | How-to for a task | `figma_get_guide` | The skills: no arguments gives the loop, `{ topic: "skills" }` the catalog, and every answer ends with the calls for the rest |
@@ -168,7 +188,7 @@ Use renders for judgement calls. Use `figma_check_layout`, `figma_check_motion` 
 
 ## The skills
 
-Eleven skills, each a folder `src/skills/figxel-<short>/` holding a `SKILL.md` (frontmatter `name` and `description`, then an index) and `references/<section>.md`, one level deep `[C-174]`. The short name is the `figma_get_guide` topic; section slugs are unique across the tree. Four are process skills written for this pass. The other seven carry fifteen of the sixteen earlier topics; the sixteenth, the old `motion` text, is now the `mechanics` section of the `motion` skill. Every old topic name still resolves.
+Fourteen skills, each a folder `src/skills/figxel-<short>/` holding a `SKILL.md` (frontmatter `name` and `description`, then an index) and `references/<section>.md`, one level deep `[C-174]`. The short name is the `figma_get_guide` topic; section slugs are unique across the tree. Four are process skills written for this pass. The other seven carry fifteen of the sixteen earlier topics; the sixteenth, the old `motion` text, is now the `mechanics` section of the `motion` skill. Every old topic name still resolves.
 
 | Skill (topic) | What it is for | Sections |
 |---|---|---|
@@ -182,7 +202,10 @@ Eleven skills, each a folder `src/skills/figxel-<short>/` holding a `SKILL.md` (
 | `code-to-design` | Rebuilding in Figma what already exists in code | — |
 | `prototype` | Interactions, scrolling, flows | — |
 | `figjam` | Boards: a wrapper section, one zone per call, connectors last | `board-recipes` |
-| `slides` | Decks: plan every slide, 3–5 slides per batch | `deck-recipes` |
+| `slides` | Decks: plan every slide, 3–5 slides per batch | `story`, `deck-recipes` |
+| `ux` | Screens, flows and anything people operate: the flow first, app screens and dashboards, every state, accessibility in numbers, copy, a usability walk, sign-off | `flows`, `screens`, `states`, `accessibility`, `content`, `usability` |
+| `graphic` | Fixed formats: posters, ads, print, icons and illustration | `placements`, `grid`, `illustration` |
+| `brand` | Marks and identities: the mark at its smallest size, versions, clear space, guidelines | `identity`, `guidelines` |
 
 **Getting one.** `figma_get_guide` with no arguments returns `workflow`; `{ topic: "design" }` returns a skill's index; `{ topic: "design", section: "brief" }` or `{ topic: "brief" }` returns a section; `{ topic: "skills" }` returns the catalog. Every answer ends with a footer of at most 1,200 bytes: the exact calls for the skill's other sections, then one line per other skill, so a client with only tools reaches every byte. `{ topic: "motion" }` now returns the new motion index; the earlier motion text is its `mechanics` section. Text from `figma_get_guide` is authoritative over an installed copy.
 
@@ -199,6 +222,7 @@ A prompt is a starting message the user picks from the client's menu, not someth
 | `storyboard_motion` | `brief`, `duration` (seconds), `placement` (e.g. "Instagram Story"), `checkpoint` | `storyboard` + `beat-sheet` |
 | `animate_in_figma` | `nodeId`, `brief`, `checkpoint` | `motion` + `easing` |
 | `critique_design` | `nodeId`, `lens` (one lens or "all") | `critique` + `lenses`, or `motion-checks` for a motion lens |
+| `critique_cold` | `nodeId` (the work or its brief), `lenses` (comma-separated; default the cold lenses) | `critique` + `lenses`; a reviewer in a fresh context scores message and originality before it reads the numbers |
 | `build_board` | `brief` (required) | `figjam` + `spec` (the `figma_create_from_spec` grammar) |
 | `build_deck` | `brief` (required), `slideCount` | `slides` + `spec`; a new deck of five or more slides is pointed at `design`'s page gear |
 | `design_to_code` | `nodeId`, `target` | `design-to-code` |

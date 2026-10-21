@@ -15,8 +15,9 @@ import { ASPECTS, CAPTIONS, planStoryboard, SNAPS, STORYBOARD_LIMITS as L } from
 import type { Bridge } from "../bridge.js";
 import { toNodeId } from "../figma-url.js";
 import { errorResult } from "../results.js";
+import type { RoleProcess } from "../role-process.js";
 import { writeAnnotations } from "./annotations.js";
-import { WRITE_PARAMS } from "./create.js";
+import { forwardNewWork, WRITE_PARAMS } from "./create.js";
 import { forwardTool, type Extra } from "./forward.js";
 import { fitDescription } from "./params.js";
 
@@ -158,13 +159,17 @@ function registerAnimatic(server: McpServer, bridge: Bridge, wanted: (op: string
   );
 }
 
-/** Registers figma_create_storyboard and, after it, figma_create_animatic: each only when the toolset wants it. */
-export function registerStoryboard(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean): void {
-  registerStoryboardTool(server, bridge, wanted);
+/**
+ * Registers figma_create_storyboard and, after it, figma_create_animatic: each
+ * only when the toolset wants it. `roles` gates the storyboard, always new
+ * work (role-process.ts); an animatic is made from one, so it never waits.
+ */
+export function registerStoryboard(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, roles?: RoleProcess): void {
+  registerStoryboardTool(server, bridge, wanted, roles);
   registerAnimatic(server, bridge, wanted);
 }
 
-function registerStoryboardTool(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean): void {
+function registerStoryboardTool(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, roles?: RoleProcess): void {
   if (!wanted("create_storyboard")) return;
   server.registerTool(
     "figma_create_storyboard",
@@ -182,10 +187,7 @@ function registerStoryboardTool(server: McpServer, bridge: Bridge, wanted: (op: 
         // Refused here, before the bridge was asked: nothing changed, a retry is safe [C-096].
         return errorResult(err instanceof BridgeError && args.idempotencyKey ? err.withKey(args.idempotencyKey as string) : err, { unchanged: true });
       }
-      return forwardTool(bridge, "create_storyboard", params, extra, {
-        session: args.session as string | undefined,
-        idempotencyKey: args.idempotencyKey as string | undefined,
-      });
+      return forwardNewWork(bridge, roles, "create_storyboard", params, args, extra);
     },
   );
 }

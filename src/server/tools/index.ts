@@ -9,8 +9,10 @@ import type { Bridge } from "../bridge.js";
 import type { Config, Logger } from "../config.js";
 import { checkMediaTools, nodeExecFile } from "../ffmpeg.js";
 import { MotionProcess } from "../motion-process.js";
+import { RoleProcess } from "../role-process.js";
 import { createShapeRecorder, registerBatch } from "./batch.js";
 import { registerAudio } from "./audio.js";
+import { registerBrief } from "./brief.js";
 import { registerCheckMotion } from "./check-motion.js";
 import { registerComponents } from "./components.js";
 import { registerCreate } from "./create.js";
@@ -30,13 +32,15 @@ import { registerSlides } from "./slides.js";
 import { registerStoryboard } from "./storyboard.js";
 import { registerStyle } from "./style.js";
 import { registerTokens } from "./tokens.js";
+import { registerTrust } from "./trust.js";
 
 /** Read ops whose server-side tool is implemented (spec §12 phase 1). */
 const IMPLEMENTED_READ = [
   "get_metadata", "get_pages", "get_node", "get_nodes_info", "get_selection", "get_design_context",
   "search_nodes", "scan_nodes_by_types", "scan_text_nodes", "get_styles", "get_variable_defs",
   "get_local_components", "get_fonts", "get_annotations", "get_reactions", "check_layout", "suggest_fonts",
-  "get_library_variables", "get_component", "get_motion_context", "check_motion", "get_slide_grid",
+  "get_library_variables", "get_component", "get_motion_context", "check_motion", "get_slide_grid", "get_brief",
+  "get_changes",
 ] as const;
 
 /** Create ops implemented so far (spec §12 phase 2). */
@@ -67,7 +71,7 @@ const IMPLEMENTED_STYLE = [
   "set_fills", "set_strokes", "set_corner_radius", "set_effects", "set_blend_mode", "set_layout_grids", "apply_style_to_node",
   "bind_variable_to_node", "set_reactions", "remove_reactions",
   "set_variable_mode", "update_style", "set_description", "set_keyframes", "remove_keyframes", "set_scroll_behavior", "set_prototype_flows",
-  "set_slide_transition", "set_motion_plan",
+  "set_slide_transition", "set_motion_plan", "set_brief", "sign_off", "savepoint", "rollback", "stress_test",
 ] as const;
 
 /** Meta ops answered by the plugin (figma_status is the bridge's own). */
@@ -105,9 +109,11 @@ export interface Registration {
 }
 
 /**
- * `motionProcess` is the motion process this server's tools share
- * (motion-process.ts): createApp passes the one its skill resources report to;
- * without it a fresh one runs in the configured mode.
+ * `motionProcess` and `roleProcess` are the process gates this server's tools
+ * share (motion-process.ts, role-process.ts): createApp passes the ones its
+ * skill resources report to. Without them fresh ones run in the configured
+ * mode; without `roleProcess`, the role process reads the motion process's
+ * skill ledger, so a skill is noted once for both.
  */
 export function registerTools(
   server: McpServer,
@@ -116,6 +122,7 @@ export function registerTools(
   startedAt: number,
   logger?: Logger,
   motionProcess?: MotionProcess,
+  roleProcess?: RoleProcess,
 ): Registration {
   const selected = selectOps(config.toolset, config.allowEval, config.enableAudio).map(toolName);
   const registered = selected.filter((t) => IMPLEMENTED.has(t.slice("figma_".length)));
@@ -123,8 +130,14 @@ export function registerTools(
   const media = { ffmpeg: config.ffmpeg, ffprobe: config.ffprobe };
   // figma_status's ffmpeg note names the audio tools only where they are registered.
   const audioRegistered = IMPLEMENTED_AUDIO.some((op) => registered.includes(toolName(op)));
-  const motion = motionProcess ?? new MotionProcess(config.processMode);
+  const motion = motionProcess ?? new MotionProcess(config.processMode, roleProcess?.ledger);
   motion.registered = new Set(registered);
+  const roles = roleProcess ?? new RoleProcess(config.processMode, motion.ledger);
+  // One read noted once; a caller that built the two with separate ledgers still has both hear it.
+  const ledger = { note: (short: string, via: string) => [...new Set([motion.ledger, roles.ledger])].forEach((l) => l.note(short, via)) };
+  // Strict holds only where the agent can satisfy it: the toolset decides (role-process.ts §3.9).
+  roles.registered = new Set(registered);
+  roles.allowUnverified = config.allowUnverified;
   const ctx = {
     bridge,
     config,
@@ -133,6 +146,7 @@ export function registerTools(
     registeredTools: registered,
     media: () => checkMediaTools(nodeExecFile, media, Date.now(), { audio: audioRegistered }),
     process: motion,
+    roles,
   };
 
   const wanted = (op: string) => registered.includes(toolName(op));
@@ -140,32 +154,36 @@ export function registerTools(
   // so the shapes are recorded from the first register call on.
   const shapeOf = createShapeRecorder(server);
   if (wanted("status")) registerStatus(server, ctx);
-  registerGuide(server, wanted, motion);
+  registerGuide(server, wanted, ledger);
   // Each group registers once and skips the ops the toolset did not select, so
   // BRIDGE_TOOLSET=core registers only the core tier within each group.
-  registerRead(server, bridge, wanted);
-  registerCreate(server, bridge, wanted);
+  registerRead(server, bridge, wanted, roles);
+  registerCreate(server, bridge, wanted, roles);
   registerModify(server, bridge, wanted, logger);
   registerStyle(server, bridge, wanted);
   registerNavigate(server, bridge, wanted);
   registerTypography(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted);
-  registerExport(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted);
+  registerExport(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, roles);
   registerTokens(server, bridge, wanted);
   registerComponents(server, bridge, wanted);
-  registerMotion(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media, maxWaitS: config.videoMaxWaitS, process: motion });
-  registerMotionPlan(server, bridge, wanted, motion);
+  registerMotion(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media, maxWaitS: config.videoMaxWaitS, process: motion, roles });
+  registerMotionPlan(server, bridge, wanted, motion, roles);
   registerCheckMotion(server, bridge, wanted, motion);
   registerReview(server, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
   // Held back: registers nothing unless BRIDGE_ENABLE_AUDIO=1 selected the audio group.
   registerAudio(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
   registerFigjam(server, bridge, wanted);
-  registerSlides(server, bridge, wanted);
-  registerStoryboard(server, bridge, wanted);
+  registerSlides(server, bridge, wanted, roles);
+  registerStoryboard(server, bridge, wanted, roles);
+  // The role process's own tools; a batch refuses them as steps.
+  registerBrief(server, bridge, wanted, { roles, motion });
+  // Trust (trust spec §2.4–§3): the journal, savepoints and rollback, the stress test. A batch refuses them as steps.
+  registerTrust(server, bridge, wanted);
   // The two-key rule (ADR #9) is enforced here: without BRIDGE_ALLOW_EVAL the op
   // is not selected, so `wanted` is already false and this returns immediately.
   if (logger) registerEval(server, bridge, logger, wanted, config.allowEval);
   // Last: a batch step may name any tool registered above.
-  registerBatch(server, bridge, wanted, shapeOf, motion);
+  registerBatch(server, bridge, wanted, shapeOf, motion, roles);
 
   return { selected, registered };
 }

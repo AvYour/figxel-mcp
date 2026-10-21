@@ -528,7 +528,8 @@ describe("the server forwards the new parameters to the plugin", () => {
 
   beforeAll(async () => {
     const home = mkdtempSync(join(tmpdir(), "fmcp-editors-write-"));
-    const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_SESSION_WAIT_MS: "2000" });
+    // Top-level sections and specs at page level are new work: the role gate is the role-process tests' to judge.
+    const config = loadConfig({ BRIDGE_HOME: home, BRIDGE_PORT: "0", BRIDGE_SESSION_WAIT_MS: "2000", BRIDGE_PROCESS: "off" });
     const token = readOrCreateToken(config.tokenPath);
     app = await createApp(config, token, quietLogger);
     const [a, b] = InMemoryTransport.createLinkedPair();

@@ -34,6 +34,7 @@ Board writes are verified live one tool at a time: figma_status lists what this 
 | A numbered marker | shape "label" |
 
 ## 6. Build: one zone per call
+- A new board starts with figma_set_brief { role: "board", gear: "page", title, goal, message, success, details } (`details`: purpose, participants, activity, outcome) and ends with figma_sign_off { nodeIds: [<wrapper>], lenses, rounds } once the board audit passes (lenses: purpose and reading order, structure, copy, finish QA).
 - First the wrapper: figma_create_from_spec { spec } with a white section (name "", a rough size); every zone then goes into it by parentId.
 - Then each zone: figma_create_from_spec { parentId: <wrapper>, spec } — the section, its title, its stickies or cards (`arrange` lays them out from their real sizes, `hug` fits the section), and its connectors by `ref`. Topic "spec" has the fields and a worked retro zone.
 - Stickies are 240×240, or 416×240 with `wide` (about 100 words or more); they grow taller with their text and never take a size.

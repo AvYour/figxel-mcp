@@ -14,6 +14,24 @@ export interface EventSink {
   delay(ms: number): Promise<void>;
 }
 
+/**
+ * Who changed what (trust.ts): every nodechange of the watched page and every
+ * page switch, undebounced, as they arrive. A watcher's failure never stops
+ * the events.
+ */
+export interface ChangeWatcher {
+  nodesChanged(e: NodeChangeEvent): void;
+  pageChanged(page: { id: string; name: string }): void;
+}
+
+function quietly(fn: () => void): void {
+  try {
+    fn();
+  } catch {
+    /* the watcher keeps its own state; the events go on */
+  }
+}
+
 function debounced(delay: (ms: number) => Promise<void>, fn: () => void): () => void {
   let generation = 0;
   return () => {
@@ -37,7 +55,7 @@ export function pageEvent(): EventMsg {
   return { t: "event", name: "page_changed", data: { pageId: figma.currentPage.id, pageName: figma.currentPage.name } };
 }
 
-export function startEvents(sink: EventSink): void {
+export function startEvents(sink: EventSink, watcher?: ChangeWatcher): void {
   const changed = new Set<string>();
   let changeCount = 0;
 
@@ -50,6 +68,7 @@ export function startEvents(sink: EventSink): void {
   });
 
   const onNodeChange = (e: NodeChangeEvent) => {
+    if (watcher) quietly(() => watcher.nodesChanged(e));
     for (const c of e.nodeChanges) {
       changed.add(c.id);
       changeCount++;
@@ -65,6 +84,7 @@ export function startEvents(sink: EventSink): void {
     watchedPage.off("nodechange", onNodeChange);
     watchedPage = figma.currentPage;
     watchedPage.on("nodechange", onNodeChange);
+    if (watcher) quietly(() => watcher.pageChanged({ id: watchedPage.id, name: watchedPage.name }));
     sink.emit(pageEvent());
     flushSelection();
   });

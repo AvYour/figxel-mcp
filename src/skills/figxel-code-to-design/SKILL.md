@@ -7,6 +7,7 @@ description: Rebuild in Figma a screen or component that already exists in code.
 
 Building in Figma what already exists in code: the code is the brief. Unlike a free brief, do not invent content and do not choose fonts by mood — take both from the source.
 
+0. Record it before the first frame, three fields: figma_set_brief { role: "ux", gear: "replica", title, details: { source } } (role "design-system" for a component library; add `platform` and `viewport` to `details` so the a11y audit measures in the right units). figma_sign_off { nodeIds, lenses, rounds } ends it, with the finish QA lens.
 1. Read the source the user named and list its sections, the components it renders, and their DEFAULT props. Build the default state first.
 2. Font: take the family from the code (CSS variables, Tailwind theme.fontFamily, the theme) and resolve exact Figma family and style names with figma_get_fonts, `scope: "available"` with `families` set to the code's families, never the unfiltered list; a family it does not list, or no such filter, is tried in figma_create_text, whose `fellBack` says whether it loaded [C-267]. Use Inter only when the code names no font. After building, figma_check_layout { nodeId, audit: ["fonts"], expectFonts: ["<family>"] }: a wrong_font finding, or `fellBack` in a create result, is a failure to fix.
 3. Components, in this order:

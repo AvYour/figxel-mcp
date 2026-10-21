@@ -15,6 +15,7 @@ import type { Config } from "../config.js";
 import type { checkMediaTools } from "../ffmpeg.js";
 import type { MotionProcess } from "../motion-process.js";
 import { okResult } from "../results.js";
+import { fileFromRow, openBriefsSentence, type RoleProcess } from "../role-process.js";
 
 export interface StatusContext {
   bridge: Bridge;
@@ -29,6 +30,8 @@ export interface StatusContext {
   media?: () => ReturnType<typeof checkMediaTools>;
   /** The motion process this process's tools share (motion-process.ts). */
   process?: MotionProcess;
+  /** The role process beside it (role-process.ts): the mode it runs in for the active file, the skills read, the briefs. */
+  roles?: RoleProcess;
 }
 
 /** A session's build check, with a client restart added when this process's skills lag dist/ and nothing else is asked. */
@@ -105,6 +108,31 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
       ` Connected files: ${st.sessions.map((s) => `"${s.file.name ?? "untitled"}" (${editorOf(s.editorType)}, ${s.sessionId})`).join(", ")}.` +
       " Each editor runs different tools (sessions[].unavailableTools); pass `session` to pick the file.";
   }
+  // Work this process opened and has not signed off: the user sees it here (spec §3.8).
+  const openBriefs = ctx.roles ? openBriefsSentence(ctx.roles) : "";
+  if (openBriefs) hint += ` ${openBriefs}`;
+  // BRIDGE_PROCESS, the skills read, and the briefs this process holds; the role gate's mode is the active file's.
+  const process = ctx.process
+    ? {
+        mode: ctx.process.mode,
+        motionSkillRead: ctx.process.skillRead !== null,
+        ...(ctx.roles
+          ? {
+              roles: ctx.roles.label(fileFromRow(active ?? undefined, allowUnverified)),
+              skillsRead: ctx.roles.ledger.entries.map((e) => e.skill),
+              briefs: ctx.roles.briefs().map((b) => ({
+                briefId: b.briefId,
+                title: b.title,
+                role: b.role,
+                gear: b.gear,
+                status: b.status,
+                deliverables: b.deliverables,
+                signedAt: b.signedAt ?? null,
+              })),
+            }
+          : {}),
+      }
+    : undefined;
 
   return {
     bridge: {
@@ -124,6 +152,9 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
       // BRIDGE_ALLOW_UNVERIFIED as this process's calls see it: writes not yet
       // verified in a file's editor run instead of being refused.
       allowUnverified,
+      // BRIDGE_CONFLICTS: what a write to a node someone changed since the agent's read does (trust spec §2.3).
+      // This process's, also for a proxy: it sends its own with each write.
+      conflicts: ctx.config.conflicts,
       sessionWaitMs: ctx.config.sessionWaitMs,
     },
     // What figma_get_guide, the prompts and the skill:// resources serve here.
@@ -155,8 +186,7 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
           },
         }
       : {}),
-    // BRIDGE_PROCESS, and whether this client has read the motion skill the keyframe tools wait for.
-    ...(ctx.process ? { process: { mode: ctx.process.mode, motionSkillRead: ctx.process.skillRead !== null } } : {}),
+    ...(process ? { process } : {}),
     activeSession: active?.sessionId ?? null,
     sessions: st.sessions.map((s) => ({
       sessionId: s.sessionId,
@@ -211,8 +241,8 @@ export function registerStatus(server: McpServer, ctx: StatusContext): void {
         "Bridge and plugin connection status: whether this process holds the Figma connection or shares it, every " +
         "connected Figma file (session id, file, page, user, plugin version), each file's editor (Figma Design, FigJam " +
         "or Figma Slides) with the tools that do not run there (`unavailableTools`), the active session, the version " +
-        "of the skills figma_get_guide serves (`skills`), the motion process mode and whether the motion skill was read " +
-        "(`process`), this server's token file and fingerprint (the plugin window shows its own) with refused tokens " +
+        "of the skills figma_get_guide serves (`skills`), the process mode, the skills read and this session's briefs " +
+        "(`process`), the stale-write guard (`bridge.conflicts`: refuse, warn or off), this server's token file and fingerprint (the plugin window shows its own) with refused tokens " +
         "(`auth`), video export state (`videoExport`, `video`: ffmpeg), and a hint for what to do next. Answered by the " +
         "bridge itself — works even when no plugin is connected. Call this first, " +
         "and whenever another figma_ tool returns NO_SESSION, PORT_IN_USE, or UNSUPPORTED naming an editor.",

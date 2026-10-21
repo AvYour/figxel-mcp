@@ -127,7 +127,7 @@ describe("figma_export_frames_to_pdf in a deck (server)", () => {
       requests.push({ op, p });
       return { pages: [{ nodeId: "1:3", name: "A", bytes: 1, base64: page }, { nodeId: "1:5", name: "C", bytes: 1, base64: page }], failed: [], slideIds: ["1:3", "1:5"], skippedSlides: ["1:4"] };
     });
-    expect(Object.keys(t.config.inputSchema)).toEqual(["nodeIds", "deck", "includeSkipped", "outputPath", "session"]);
+    expect(Object.keys(t.config.inputSchema)).toEqual(["nodeIds", "deck", "includeSkipped", "outputPath", "final", "session"]);
     expect(z.object(t.config.inputSchema).strict().safeParse({ deck: true, outputPath: "d.pdf" }).success).toBe(true);
     const both = await t.handler({ nodeIds: ["1:2"], deck: true, outputPath: "deck.pdf" }, extra);
     expect(both.structuredContent).toMatchObject({ code: "INVALID_PARAM", safeToRetry: true });
