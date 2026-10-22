@@ -120,14 +120,20 @@ export function makeBatchOp(lookup: () => Record<string, PluginOp>): PluginOp {
       });
 
       const done: Array<{ index: number; op: string; ok: true; result: unknown }> = [];
-      // Each step reports its own progress in its own units; the batch's count is the one that means something here.
-      const quiet: OpContext = { ...ctx, progress: () => {} };
       for (let i = 0; i < steps.length; i++) {
         const { op, params } = steps[i]!;
         ctx.progress(i, steps.length, op);
+        // A step's own progress goes on in batch units (step i at d/t is i + d/t): it is what keeps
+        // the bridge's idle timer from reading one long step as a stall.
+        const step: OpContext = {
+          ...ctx,
+          params,
+          progress: (d, t, phase) => ctx.progress(i + (t ? Math.min(d / t, 1) : 0), steps.length, phase ?? op),
+        };
         try {
+          await ctx.yieldToHost(); // a cancel sent during the last step is read before the next one starts
           if (ctx.isCancelled()) throw new BridgeError(ErrorCode.CANCELLED, "Cancelled between steps.");
-          done.push({ index: i, op, ok: true, result: await ops[op]!.run({ ...quiet, params }) });
+          done.push({ index: i, op, ok: true, result: await ops[op]!.run(step) });
         } catch (err) {
           const e = err instanceof BridgeError ? err : new BridgeError(ErrorCode.INTERNAL, err instanceof Error ? err.message : String(err));
           // Only a first step that changed nothing leaves the whole batch

@@ -98,7 +98,7 @@ const DETAILS = z
       .strict()
       .optional()
       .describe("ux: the system bars, in device units, with their source."),
-    source: text().optional().describe("ux, design-system: the code path a replica copies."),
+    source: text().optional().describe("ux, design-system — the code path a replica copies."),
     // graphic
     medium: z.enum(["print", "social", "ooh", "web", "editorial", "packaging"]).optional().describe("graphic."),
     viewing: text().optional().describe('graphic: the moment of viewing, e.g. "a phone feed, under 2 s".'),
@@ -136,8 +136,8 @@ const DETAILS = z
     // design-system
     scope: z.enum(["tokens", "components", "both"]).optional().describe("design-system."),
     platforms: list(10).optional().describe("design-system."),
-    modes: list(20).optional().describe("design-system: the variable modes."),
-    components: list(L.deliverables).optional().describe("design-system: the inventory."),
+    modes: list(20).optional().describe("design-system — the variable modes."),
+    components: list(L.deliverables).optional().describe("design-system — the inventory."),
     // board
     purpose: text().optional().describe("board."),
     participants: text().optional().describe("board: who, and how many."),

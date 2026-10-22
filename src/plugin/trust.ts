@@ -190,7 +190,15 @@ export interface ChangeRecord {
   at: number;
   /** The node and every ancestor up to the document, at change time. */
   ancestry: readonly string[];
+  /** What a property change named (NodeChangeProperty); none for a creation or a deletion. */
+  props?: readonly string[];
 }
+
+/** What a playing Motion timeline was measured to report as changed [C-404], and the moves it can key. */
+/** A target the guard found changed: what changed under it, and whether only a timeline could have. */
+type Found = Conflict & { label: string; changedId: string; changedName: string; playback: boolean };
+
+const PLAYBACK_PROPS = new Set(["opacity", "width", "height", "effects", "cornerRadius", "fills", "strokes", "parent", "x", "y", "rotation", "relativeTransform"]);
 
 /** contract: a target changed by someone else after the agent's view of it. */
 export interface Conflict {
@@ -633,7 +641,7 @@ export class Trust {
   }
 
   private keep(raw: Raw, by: By): void {
-    const rec: ChangeRecord = { nodeId: raw.id, name: raw.name, by, at: raw.at, ancestry: raw.ancestry };
+    const rec: ChangeRecord = { nodeId: raw.id, name: raw.name, by, at: raw.at, ancestry: raw.ancestry, ...(raw.props?.length ? { props: raw.props } : {}) };
     remember(this.foreign, raw.id, rec, LIMITS.changes);
     for (const id of raw.ancestry) remember(this.under, id, rec, LIMITS.under);
     this.lastForeign = rec;
@@ -650,7 +658,7 @@ export class Trust {
    */
   async guard(op: string, params: Record<string, unknown>, guard: Guard): Promise<{ conflicts: Conflict[]; refusal?: BridgeError }> {
     if (!guard || guard.conflicts === "off") return { conflicts: [] };
-    const found: Array<Conflict & { label: string; changedId: string; changedName: string }> = [];
+    const found: Found[] = [];
     try {
       for (const id of targetsOf(op, params)) {
         const c = await this.conflictFor(id);
@@ -664,17 +672,50 @@ export class Trust {
     return { conflicts, refusal: this.stale(op, found) };
   }
 
-  private async conflictFor(id: string): Promise<(Conflict & { label: string; changedId: string; changedName: string }) | null> {
+  private async conflictFor(id: string): Promise<Found | null> {
     const info = await this.lookup(id);
     if (!info) return null; // gone: the op reports that itself
     const viewedAt = this.viewedAt(info.ids);
     if (viewedAt === undefined) return null; // never read or written: nothing to overwrite unseen
     const c = this.under.get(id);
     if (!c || c.at <= viewedAt) return null;
-    return { nodeId: id, name: info.name, by: c.by, at: c.at, viewedAt, label: info.label, changedId: c.nodeId, changedName: c.name };
+    // Every change under it since then, not only the latest: one that no longer shows (a playing
+    // timeline reports as edits [C-404]) neither refuses the write nor hides one that does.
+    const open = await this.stillShowing(id, viewedAt);
+    const last = open[open.length - 1];
+    if (!last) return null;
+    const playback = open.every((r) => !!r.props?.length && r.props.every((p) => PLAYBACK_PROPS.has(p)));
+    return { nodeId: id, name: info.name, by: last.by, at: last.at, viewedAt, label: info.label, changedId: last.nodeId, changedName: last.name, playback };
   }
 
-  private stale(op: string, found: Array<Conflict & { label: string; changedId: string; changedName: string }>): BridgeError {
+  /** The foreign changes under `id` after `since` that still show, oldest first. */
+  private async stillShowing(id: string, since: number): Promise<ChangeRecord[]> {
+    const ctx = newContext();
+    const open: ChangeRecord[] = [];
+    for (const r of this.foreign.values()) {
+      if (r.at > since && r.ancestry.includes(id) && !(await this.goneSince(r, ctx))) open.push(r);
+    }
+    return open.sort((a, b) => a.at - b.at);
+  }
+
+  /**
+   * A change that no longer shows: its layer is as the agent last saw it, or it
+   * changed properties of an id that no longer resolves — the temporary id a
+   * playing timeline reported under [C-404]. A deletion is not one: it names no
+   * properties.
+   */
+  private async goneSince(r: ChangeRecord, ctx: HashContext): Promise<boolean> {
+    try {
+      const node = await this.nodeById(r.nodeId);
+      if (!node || field(node, "removed") === true) return !!r.props?.length;
+      const rec = this.seen.get(r.nodeId);
+      return !!rec && !rec.removed && unchangedSince(rec, node, r.props, this.affected, ctx);
+    } catch {
+      return false; // unreadable: not shown to be gone
+    }
+  }
+
+  private stale(op: string, found: Found[]): BridgeError {
     const first = found[0]!;
     const who = first.by === "person" ? "you" : "a collaborator";
     const inside = first.changedId !== first.nodeId ? ` (inside it, "${first.changedName}" ${first.changedId})` : "";
@@ -689,8 +730,12 @@ export class Trust {
           "then send the call again; or pass force: true to overwrite on purpose."
         : `Read it again (figma_get_node { nodeId: "${first.nodeId}" } or figma_get_design_context), then send the call again; ` +
           "or pass force: true to overwrite on purpose.";
+    // Only properties a timeline animates changed: playback reports as edits, and the layers are as before once it stops [C-404].
+    const playing = found.every((c) => c.playback)
+      ? " If a Motion timeline is playing in Figma, ask the person to stop it, then send the call again: playback reports as edits."
+      : "";
     const conflicts = found.map(({ nodeId, name, by, at, viewedAt }) => ({ nodeId, name, by, at, viewedAt }));
-    return new BridgeError(ErrorCode.STALE, message, { hint, partial: { created: [], conflicts } });
+    return new BridgeError(ErrorCode.STALE, message, { hint: hint + playing, partial: { created: [], conflicts } });
   }
 
   /**

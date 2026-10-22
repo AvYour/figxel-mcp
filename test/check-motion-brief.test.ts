@@ -203,3 +203,38 @@ describe("the check_layout op with a motion brief", () => {
     expect(r.audit!.note).toMatch(/A motion brief \(briefId\) leaves to the frames what rests on a keyed layer's rest pose, as figma_sign_off does\./);
   });
 });
+
+describe("a text whose colour keys differ from its static fill (the live case of 2026-10-21, a claim keyed white on a #111 band)", () => {
+  const color = (hex: string) => ({
+    type: "COLOR",
+    value: { r: parseInt(hex.slice(1, 3), 16) / 255, g: parseInt(hex.slice(3, 5), 16) / 255, b: parseInt(hex.slice(5, 7), 16) / 255, a: 1 },
+  });
+  const band = (keys: string[]) => {
+    const claim = text("Claim L1", [64, 196, 924, 84], "Designed and animated in Figma", 64, {
+      // As live: one TRANSLATION_X key besides the colour keys, so its keys carry it.
+      manualKeyframeTracks: {
+        TRANSLATION_X: { keyframes: [{ timelinePosition: 0, value: { type: "FLOAT", value: 0 } }] },
+        fills: { 0: { keyframes: keys.map((hex, i) => ({ timelinePosition: i, value: color(hex) })) } },
+      },
+    });
+    const root = mk("FRAME", "Video", [0, 0, 1080, 1350], { fills: solid("#f3f4f1") }, [
+      mk("FRAME", "Header", [0, 0, 1080, 470], { fills: solid("#111111") }, [claim]),
+    ]);
+    onPage(root);
+    return root;
+  };
+  const lowContrast = (issues: Issue[]) => issues.filter((i) => i.kind === "low_contrast");
+
+  it("is judged in the colour its first key shows, not the static fill under it [C-191]", async () => {
+    expect(lowContrast((await check(band(["#ffffff"]), brief("graphic", "section"))).issues)).toEqual([]);
+    // The static fill alone still counts where nothing keys it.
+    expect(lowContrast((await check(band([]), brief("graphic", "section"))).issues)).toHaveLength(1);
+  });
+
+  it("under a motion brief, keys that change its colour leave a low first frame to the rendered frames", async () => {
+    // It starts #111 on the #111 band and turns white: the first frame alone does not tell what the viewer reads.
+    const r = await check(band(["#111111", "#ffffff"]), MOTION);
+    expect(lowContrast(r.issues)).toEqual([]);
+    expect(r.restPose?.notJudged.low_contrast).toBe(1);
+  });
+});

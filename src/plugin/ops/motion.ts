@@ -265,7 +265,7 @@ export interface Settled<T> {
  * the first writes happened.
  */
 async function settle<T extends { text: string }>(
-  ctx: Pick<OpContext, "yieldToHost">,
+  ctx: Pick<OpContext, "yieldToHost"> & Partial<Pick<OpContext, "progress">>,
   nodeId: string,
   items: T[],
   pending: (tracks: unknown, item: T) => boolean,
@@ -287,6 +287,7 @@ async function settle<T extends { text: string }>(
   let tracks = read(live, "manualKeyframeTracks");
   let missing = items.filter((i) => pending(tracks, i));
   for (let round = 0; round < REPAIR_ROUNDS && missing.length > 0; round++) {
+    ctx.progress?.(round + 1, REPAIR_ROUNDS, "repairing keyframes Figma did not keep");
     for (const item of missing) {
       try {
         rewrite(await fresh(), item);
@@ -312,7 +313,7 @@ async function settle<T extends { text: string }>(
  * through the same check.
  */
 export function verifyTracks(
-  ctx: Pick<OpContext, "yieldToHost">,
+  ctx: Pick<OpContext, "yieldToHost"> & Partial<Pick<OpContext, "progress">>,
   nodeId: string,
   plans: TrackPlan[],
   before: ReadonlyMap<string, KeyframeText[]>,

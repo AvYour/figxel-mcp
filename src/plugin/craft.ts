@@ -825,11 +825,13 @@ function faintHairlines(c: Census, ix: Index, push: Push): void {
     const ground = under ? under.solid?.color : c.backdrop(l.node);
     if (!ground) continue;
     const alpha = l.strokeSolid.opacity * num(l.a.opacity, 1);
+    if (alpha <= 0.01) continue; // it paints nothing here: a hidden ring a key shows later has no contrast at rest
     const seen = mix(l.strokeSolid.color, ground, alpha);
     const ratio = contrastRatio(seen, ground);
     if (ratio >= CRAFT.graphicContrast) continue;
+    // Against the frame: under a motion brief a layer keys move or fade is judged on the rendered frames.
     push(l, "weak_graphic_contrast",
       `its ${r1(weight)} px stroke is ${ratio.toFixed(2)}:1 against the ground (${hex(seen)} on ${hex(ground)}); a line people need ` +
-        `to read the content needs ${CRAFT.graphicContrast}:1. Darken or thicken it — or leave it, if nobody needs it.`);
+        `to read the content needs ${CRAFT.graphicContrast}:1. Darken or thicken it — or leave it, if nobody needs it.`, undefined, "frame");
   }
 }

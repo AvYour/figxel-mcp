@@ -307,6 +307,57 @@ function accentVariable(w: ReturnType<typeof world>) {
   return { accent, set };
 }
 
+describe("a Motion timeline playing in Figma reports as edits [C-404]", () => {
+  /** A playing timeline: property changes, origin LOCAL, on a layer listed under a temporary id. */
+  const playing = (w: ReturnType<typeof world>) => {
+    const temp = w.add("65:1", "Title", "TEXT", w.card);
+    temp.opacity = 0.4;
+    return temp;
+  };
+
+  it("once playback stops and its temporary ids stop resolving, a write is not refused", async () => {
+    const { w, trust } = setup();
+    await read(trust, "get_node", { nodeId: w.card.id });
+    advance(1_000);
+    const temp = playing(w);
+    emit(trust, changed(temp, ["opacity"]), changed(temp, ["width", "effects"]));
+    w.remove(temp);
+    const r = await trust.guard("set_fills", { nodeId: w.card.id }, REFUSE);
+    expect(r).toEqual({ conflicts: [] });
+  });
+
+  it("while it plays the write is refused, and the hint says to stop the timeline", async () => {
+    const { w, trust } = setup();
+    await read(trust, "get_node", { nodeId: w.card.id });
+    advance(1_000);
+    emit(trust, changed(playing(w), ["opacity"]));
+    const r = await trust.guard("set_fills", { nodeId: w.card.id }, REFUSE);
+    expect(r.refusal?.code).toBe("STALE");
+    expect(r.refusal?.hint).toMatch(/timeline is playing/);
+  });
+
+  it("a layer back as the agent saw it is not a conflict; a person's edit beside playback still is", async () => {
+    const { w, trust } = setup();
+    w.title.opacity = 1;
+    await read(trust, "get_node", { nodeId: w.title.id });
+    advance(1_000);
+    w.title.opacity = 0.4;
+    emit(trust, changed(w.title, ["opacity"]));
+    w.title.opacity = 1; // playback stopped: the layer shows its own value again
+    expect((await trust.guard("set_fills", { nodeId: w.title.id }, REFUSE)).conflicts).toEqual([]);
+
+    await read(trust, "get_node", { nodeId: w.card.id });
+    advance(1_000);
+    emit(trust, edit(w.body)); // a real edit
+    const temp = playing(w);
+    emit(trust, changed(temp, ["opacity"]));
+    w.remove(temp);
+    const r = await trust.guard("set_fills", { nodeId: w.card.id }, REFUSE);
+    expect(r.refusal?.code).toBe("STALE");
+    expect(r.refusal?.hint).not.toMatch(/timeline is playing/);
+  });
+});
+
 describe("content decides, time is a hint (findings 6, 6b, 6c)", () => {
   it("(a) a write whose nodechange arrives after the settle window, then a second write to the node: no STALE, nothing listed", async () => {
     const { w, trust } = setup();

@@ -1,0 +1,842 @@
+{
+  "spike": "live-playback",
+  "date": "2026-10-22",
+  "page": "Page 1",
+  "summary": {
+    "events": 471,
+    "dropped": 0,
+    "eventsWhilePlaying": 0,
+    "eventsWhileStill": 471,
+    "types": {
+      "PROPERTY_CHANGE": 471
+    },
+    "origins": {
+      "LOCAL": 471
+    },
+    "properties": {
+      "parent": 2,
+      "width": 70,
+      "opacity": 375,
+      "effects": 25,
+      "height": 11,
+      "cornerRadius": 11,
+      "fills": 2
+    },
+    "playheadReads": {
+      "undefined": 244
+    },
+    "playheadRange": null,
+    "distinctIds": 189,
+    "idsNotResolvingAfter": 189,
+    "idPrefixes": {
+      "65": 471
+    },
+    "personChangesMeanwhile": 200
+  },
+  "unresolvedSample": [
+    "65:173",
+    "65:219",
+    "65:231",
+    "65:258",
+    "65:280",
+    "65:302",
+    "65:208",
+    "65:212",
+    "65:237",
+    "65:238",
+    "65:211",
+    "65:239",
+    "65:210",
+    "65:240",
+    "65:209",
+    "65:241",
+    "65:175",
+    "65:176",
+    "65:178",
+    "65:179"
+  ],
+  "eventsSample": [
+    {
+      "at": 101093,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:173",
+      "props": [
+        "parent"
+      ]
+    },
+    {
+      "at": 101286,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:219",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101286,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:231",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101286,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:258",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101286,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:280",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101286,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:302",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:208",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:212",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:219",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:231",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:237",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:238",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:258",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:280",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101446,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:302",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:219",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:231",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:258",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:280",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:302",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:211",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:212",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:238",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101605,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:239",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101750,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:219",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101750,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:231",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101750,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:258",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101750,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:280",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101750,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:302",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 101888,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:210",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101888,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:211",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101888,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:239",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 101888,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:240",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 102122,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:209",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 102122,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:210",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 102122,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:240",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 102122,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:241",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:175",
+      "props": [
+        "effects"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:176",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:178",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:179",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:201",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:207",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:209",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:232",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:241",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:242",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:244",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:323",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:324",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:328",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:329",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:330",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:436",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:438",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:440",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:451",
+      "props": [
+        "height"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:452",
+      "props": [
+        "height"
+      ]
+    },
+    {
+      "at": 105845,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:503",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 106007,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:175",
+      "props": [
+        "effects"
+      ]
+    }
+  ],
+  "ticksSample": [
+    {
+      "at": 906
+    },
+    {
+      "at": 1910
+    },
+    {
+      "at": 2907
+    },
+    {
+      "at": 3908
+    },
+    {
+      "at": 4910
+    },
+    {
+      "at": 5907
+    },
+    {
+      "at": 7105
+    },
+    {
+      "at": 7930
+    },
+    {
+      "at": 8916
+    },
+    {
+      "at": 9921
+    },
+    {
+      "at": 10925
+    },
+    {
+      "at": 11964
+    },
+    {
+      "at": 12923
+    },
+    {
+      "at": 13923
+    },
+    {
+      "at": 15213
+    },
+    {
+      "at": 15929
+    },
+    {
+      "at": 16910
+    },
+    {
+      "at": 17918
+    },
+    {
+      "at": 18923
+    },
+    {
+      "at": 26395
+    },
+    {
+      "at": 26917
+    },
+    {
+      "at": 30109
+    },
+    {
+      "at": 31009
+    },
+    {
+      "at": 31919
+    },
+    {
+      "at": 32915
+    },
+    {
+      "at": 33931
+    },
+    {
+      "at": 34925
+    },
+    {
+      "at": 35920
+    },
+    {
+      "at": 37975
+    },
+    {
+      "at": 38924
+    },
+    {
+      "at": 39914
+    },
+    {
+      "at": 40911
+    },
+    {
+      "at": 41914
+    },
+    {
+      "at": 43674
+    },
+    {
+      "at": 44081
+    },
+    {
+      "at": 44914
+    },
+    {
+      "at": 45913
+    },
+    {
+      "at": 46918
+    },
+    {
+      "at": 47912
+    },
+    {
+      "at": 48913
+    },
+    {
+      "at": 49908
+    },
+    {
+      "at": 50912
+    },
+    {
+      "at": 51914
+    },
+    {
+      "at": 52910
+    },
+    {
+      "at": 53908
+    },
+    {
+      "at": 54908
+    },
+    {
+      "at": 55908
+    },
+    {
+      "at": 56907
+    },
+    {
+      "at": 57910
+    },
+    {
+      "at": 58919
+    },
+    {
+      "at": 59906
+    },
+    {
+      "at": 60907
+    },
+    {
+      "at": 61907
+    },
+    {
+      "at": 62906
+    },
+    {
+      "at": 63919
+    },
+    {
+      "at": 64919
+    },
+    {
+      "at": 65922
+    },
+    {
+      "at": 66906
+    },
+    {
+      "at": 67907
+    },
+    {
+      "at": 68921
+    },
+    {
+      "at": 69906
+    },
+    {
+      "at": 70918
+    },
+    {
+      "at": 71921
+    },
+    {
+      "at": 72918
+    },
+    {
+      "at": 73920
+    },
+    {
+      "at": 74920
+    },
+    {
+      "at": 75920
+    },
+    {
+      "at": 76907
+    },
+    {
+      "at": 77919
+    },
+    {
+      "at": 78916
+    },
+    {
+      "at": 79918
+    },
+    {
+      "at": 80916
+    },
+    {
+      "at": 81917
+    },
+    {
+      "at": 82917
+    },
+    {
+      "at": 83918
+    },
+    {
+      "at": 84915
+    },
+    {
+      "at": 85914
+    },
+    {
+      "at": 86915
+    },
+    {
+      "at": 87921
+    },
+    {
+      "at": 88916
+    }
+  ]
+}

@@ -136,7 +136,7 @@ export function registerTypography(server: McpServer, bridge: Bridge, roots: Exp
       "underlined link, a bulleted paragraph. Pick the " +
       "part with `match` (every occurrence, or the nth with `occurrence`) or with `start`/`end` character offsets. " +
       "Paragraph spacing, paragraph indent, `list` and its `indent` level widen to the whole paragraphs the part touches. To tie the part to the " +
-      "design system: `textStyle` and `fillStyle` (a local style's id or exact name), `colorVariable` (a COLOR " +
+      "design system, use `textStyle` and `fillStyle` (a local style's id or exact name), `colorVariable` (a COLOR " +
       "variable), and `variables` per text field. One colour source per call: `color`, `fillStyle` or `colorVariable`. " +
       "`link` takes a URL, or \"node:<id>\" to link to a layer in this file. Everything is checked before the text " +
       "changes. For whole-node properties (alignment, resizing, truncation) use figma_set_text_properties.",

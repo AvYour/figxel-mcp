@@ -1,6 +1,6 @@
 {
   "name": "figxel-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A read-write MCP server for Figma desktop, through a local plugin: Figma Design, FigJam and Slides tools, plus design, storyboard, motion and critique skills",
   "keywords": [
     "mcp",

@@ -713,6 +713,23 @@ describe("sign_off", () => {
     expect("signOff" in parsed && parsed.signOff.answers).toEqual(answers);
   });
 
+  it("an answer naming the layer by its other id covers it, as ids change during a second-id stretch [C-199]", async () => {
+    file();
+    const screen = onPage(mk("FRAME", "Hero", [0, 0, 800, 300], { fills: solid("#FFFFFF") }, [
+      text("Title", [40, 40, 700, 58], "Book a bench", 48),
+      text("Subtitle", [40, 140, 700, 62], "With a mechanic beside you", 52),
+    ]));
+    const subtitle = screen.children[1]!;
+    // The same layer under a second id: same type, name, box and parent, and the parent lists only the other one.
+    fake.nodes.set("8:99", { ...subtitle, id: "8:99", children: [] } as unknown as FakeNode);
+    const r = await newBrief({}, { ...BRIEF, deliverables: [screen.id] });
+    const id = r.briefId as string;
+    const open = (await run("sign_off", signParams(id, { answerKinds: ["craft"] }))).unanswered as Array<{ kind: string; nodeId: string }>;
+    expect(open.some((i) => i.nodeId === subtitle.id)).toBe(true);
+    const answers = open.map((i) => ({ kind: i.kind, nodeId: i.nodeId === subtitle.id ? "8:99" : i.nodeId, reason: "set this close on purpose" }));
+    expect(await run("sign_off", signParams(id, { answerKinds: ["craft"], answers }))).toMatchObject({ ok: true, unanswered: [] });
+  });
+
   it("a server blocker makes it fail however clean the checks, and is recorded as a failing attempt", async () => {
     file();
     const a = cleanScreen("Slots");

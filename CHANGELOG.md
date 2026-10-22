@@ -2,6 +2,17 @@
 
 Notable changes to `figxel-mcp`, newest first. A version marked **Unreleased** has not been published yet; its heading gets the release date when it is tagged ([CONTRIBUTING.md § Releasing](CONTRIBUTING.md#releasing)).
 
+## 0.2.1 — 2026-10-22
+
+### Fixed
+
+- **Playing a Motion timeline in Figma no longer blocks the agent's writes once it stops.** Playback reports as a person's edits, with origin `LOCAL` and under temporary ids, and the playhead reads only while the timeline is active in the editor `[C-404]`, so every write to an animated frame was refused `STALE` while and after the timeline played. The guard now refuses only for a change that still shows: a layer back as the agent last saw it, or a property change on an id that no longer resolves, does not count. While the timeline plays the write is still refused, and the hint says to stop the timeline.
+- **A text whose colour comes from keyframes is judged in the colour it shows.** `figma_check_layout` read the static fill under a fill track, so a title keyed white over a dark band was reported as dark on dark (`low_contrast`, 1.00:1) and blocked its sign-off. Before a track's first key that key's colour holds `[C-191]`, so that colour is measured now; under a motion brief, a text whose keys change its colour and whose first frame fails is left to the rendered frames and counted in `restPose`.
+- **A thin outline hidden at rest is no longer reported as invisible.** `weak_graphic_contrast` measured a ring at opacity 0 as the ground on the ground ("#ffffff on #ffffff"). A layer that paints nothing is skipped, and under a motion brief a layer its keys move or fade is judged on the rendered frames.
+- **A sign-off answer keeps covering its info when Figma changes a layer's id.** While Figma lists an animated frame's layers under temporary ids `[C-199]`, the ids changed between two sign-off calls and the answers stopped matching. An answer that names the same layer by another of its ids covers it now.
+- **A batch of slow steps no longer stops as stalled.** `figma_batch` muted each step's own progress, so a run of long keyframe writes answered `STALLED` or `CANCELLED` although every step worked on its own. A step's progress now reaches the bridge, and a cancel is read between steps.
+- **No tool description reads like an instruction to the model.** A client's prompt-injection scanner flagged `figma_set_text_range` for the words "design system:". The descriptions are reworded, and a test keeps such phrases out.
+
 ## 0.2.0 — 2026-10-21
 
 ### Upgrading

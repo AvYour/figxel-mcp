@@ -107,6 +107,17 @@ describe("guidance reaches the agent through MCP", () => {
     expect(spec.description).toMatch(/figma_get_guide \{ topic: "spec" \}/);
   });
 
+  it("no tool description or parameter reads like a directive to the model", async () => {
+    // Prompt-injection scanners in MCP clients flag such words in a server's tools: one logged
+    // figma_set_text_range's "design system:" as an attempt. A description must never trip them.
+    const flagged = [/\bsystem\s*:/i, /ignore (all )?(previous|prior) instructions/i, /\byou are now\b/i];
+    const { tools } = await client.listTools();
+    for (const t of tools) {
+      const text = `${t.description ?? ""} ${JSON.stringify(t.inputSchema)}`;
+      for (const re of flagged) expect(`${t.name} ${re.source}: ${re.test(text)}`).toBe(`${t.name} ${re.source}: false`);
+    }
+  });
+
   it("B-1: the spec guide names the text align words create_text takes, and where hug and fill work", async () => {
     const { tools } = await client.listTools();
     const text = tools.find((t) => t.name === "figma_create_text")!;

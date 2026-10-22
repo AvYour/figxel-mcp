@@ -50,7 +50,7 @@ import { briefFor, briefOn, fileIndex, pageOf, readShared } from "../brief-read.
 import { CRAFT_SEVERITY } from "../craft.js";
 import { fingerprint } from "../fingerprint.js";
 import { beforeMutating, unchanged } from "../guard.js";
-import { byId, str, type FigmaLike, type NodeLike } from "../read.js";
+import { byId, lookUp, sameLayer, str, type FigmaLike, type NodeLike } from "../read.js";
 import { editorType, tryGet } from "../safe.js";
 import {
   append,
@@ -827,6 +827,20 @@ async function checkDeliverable(
   // tokens only counts as run where the file has a system to bind to — check.ts decides that from its own signals.
   const ran = [...run].filter((a) => a !== "tokens" || p.audits.indexOf("tokens") >= 0 || r.system?.found === true);
   const covered = new Set(p.answers.map((a) => `${a.kind}\u0000${a.nodeId}`));
+  // During a second-id stretch the listed ids change between calls [C-199]: an answer that names
+  // the same layer by another of its ids covers the info too.
+  const named = new Map<string, NodeLike[]>();
+  for (const a of p.answers) {
+    const n = await lookUp(api(), a.nodeId).catch(() => null);
+    if (n) named.set(a.kind, [...(named.get(a.kind) ?? []), n]);
+  }
+  const isCovered = async (i: Issue): Promise<boolean> => {
+    if (covered.has(`${i.kind}\u0000${i.nodeId}`)) return true;
+    const answered = named.get(i.kind);
+    if (!answered?.length) return false;
+    const n = await lookUp(api(), i.nodeId).catch(() => null);
+    return !!n && answered.some((a) => sameLayer(a, n));
+  };
   const failures: Issue[] = [];
   const unanswered: Issue[] = [];
   const tally = new Map<AuditName, CheckSummary>();
@@ -844,7 +858,7 @@ async function checkDeliverable(
       }
     } else {
       if (sum) sum.infos++;
-      if (owner && p.answerKinds.indexOf(owner) >= 0 && !covered.has(`${i.kind}\u0000${i.nodeId}`)) {
+      if (owner && p.answerKinds.indexOf(owner) >= 0 && !(await isCovered(i))) {
         unanswered.push(i);
         if (sum) sum.unanswered++;
       }

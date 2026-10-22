@@ -66,6 +66,32 @@ describe("the batch op", () => {
     expect(r.steps.map((s) => `${s.index}:${s.op}:${s.ok}`)).toEqual(["0:rename_node:true", "1:set_opacity:true"]);
   });
 
+  it("passes each step's own progress on in batch units, so a long step does not read as stalled", async () => {
+    // Six slow set_keyframes steps once answered STALLED: the batch muted its steps' progress, so
+    // the bridge's idle timer saw nothing between step boundaries.
+    const ticks: Array<[number, number | undefined]> = [];
+    let yields = 0;
+    const slow: PluginOp = {
+      write: true,
+      async run(c) {
+        for (let k = 1; k <= 3; k++) c.progress(k, 3, "tracks");
+        return { ok: true };
+      },
+    };
+    const op = makeBatchOp(() => ({ ...table(), set_opacity: slow }));
+    await op.run({
+      ...ctx({ steps: [
+        { op: "rename_node", params: { nodeId: "1:2", name: "Card" } },
+        { op: "figma_set_opacity", params: { nodeIds: ["1:2"], opacity: 0.5 } },
+      ] }),
+      progress: (done, total) => void ticks.push([done, total]),
+      yieldToHost: async () => void yields++,
+    });
+    expect(ticks).toContainEqual([1 + 2 / 3, 2]);
+    expect(ticks.at(-1)).toEqual([2, 2]);
+    expect(yields).toBeGreaterThanOrEqual(2);
+  });
+
   it("stops at the first failure and reports what was applied and where it stopped", async () => {
     const op = makeBatchOp(() => table({ op: "set_opacity", err: new BridgeError(ErrorCode.INVALID_PARAM, "`opacity` must be between 0 and 1.", { partial: { created: [] } }) }));
     const e = await fails(op.run(ctx({ steps: JSON.stringify([

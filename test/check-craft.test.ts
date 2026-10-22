@@ -363,6 +363,11 @@ describe("weak_graphic_contrast", () => {
     expect(of((await check(rule("#dddddd", 3))).issues, "weak_graphic_contrast")).toEqual([]);
     expect(of((await check(rule("#dddddd", 1, { fills: white }))).issues, "weak_graphic_contrast")).toEqual([]);
   });
+
+  it("not a hairline that paints nothing at rest, such as a ring a key shows later", async () => {
+    // A hidden amber ring was reported as "#ffffff on #ffffff": at opacity 0 the stroke as it shows is the ground.
+    expect(of((await check(rule("#b98a00", 2, { opacity: 0 }))).issues, "weak_graphic_contrast")).toEqual([]);
+  });
 });
 
 // ── the audit as a whole ─────────────────────────────────────────────────────

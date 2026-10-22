@@ -1,0 +1,981 @@
+{
+  "spike": "live-playback",
+  "date": "2026-10-22",
+  "page": "Page 1",
+  "guard": {
+    "nodeId": "65:993",
+    "during": {
+      "ok": false,
+      "code": "STALE",
+      "hint": "Read it again (figma_get_node { nodeId: \"65:993\" } or figma_get_design_context), then send the call again; or pass force: true to overwrite on purpose. If a Motion timeline is playing in Figma, ask the person to stop it, then send the call again: playback reports as edits."
+    },
+    "after": {
+      "ok": true,
+      "code": null,
+      "hint": null
+    }
+  },
+  "summary": {
+    "events": 398,
+    "dropped": 0,
+    "eventsWhilePlaying": 398,
+    "eventsWhileStill": 0,
+    "types": {
+      "PROPERTY_CHANGE": 398
+    },
+    "origins": {
+      "LOCAL": 398
+    },
+    "properties": {
+      "opacity": 316,
+      "width": 54,
+      "cornerRadius": 10,
+      "height": 10,
+      "fills": 3,
+      "effects": 23
+    },
+    "playheadReads": {
+      "number": 143
+    },
+    "playheadRange": [
+      0,
+      16.2642
+    ],
+    "distinctIds": 120,
+    "idsNotResolvingAfter": 0,
+    "idPrefixes": {
+      "65": 398
+    },
+    "personChangesMeanwhile": 117
+  },
+  "unresolvedSample": [],
+  "eventsSample": [
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:845",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:871",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:877",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:878",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:889",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:898",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:900",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:901",
+      "props": [
+        "opacity",
+        "width"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:903",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:904",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:905",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:907",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:912",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:918",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:928",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:950",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:972",
+      "props": [
+        "width"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:997",
+      "props": [
+        "cornerRadius",
+        "width",
+        "height"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:998",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1001",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1009",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1024",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1030",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1032",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1033",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1034",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1035",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1036",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1037",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1038",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1039",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1040",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1041",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1042",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1043",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1044",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1045",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1046",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1047",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1048",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1049",
+      "props": [
+        "cornerRadius",
+        "fills",
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1050",
+      "props": [
+        "cornerRadius"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1052",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1053",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1054",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1055",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1056",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1057",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1058",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1059",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1060",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1061",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1062",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1063",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1064",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1065",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1066",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1067",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1068",
+      "props": [
+        "opacity"
+      ]
+    },
+    {
+      "at": 202304,
+      "ph": 0,
+      "type": "PROPERTY_CHANGE",
+      "origin": "LOCAL",
+      "id": "65:1069",
+      "props": [
+        "opacity"
+      ]
+    }
+  ],
+  "ticksSample": [
+    {
+      "at": 56210,
+      "ph": 15.581799
+    },
+    {
+      "at": 56251,
+      "ph": 15.581799
+    },
+    {
+      "at": 56501,
+      "ph": 15.581799
+    },
+    {
+      "at": 56756,
+      "ph": 15.581799
+    },
+    {
+      "at": 57006,
+      "ph": 15.581799
+    },
+    {
+      "at": 57256,
+      "ph": 15.581799
+    },
+    {
+      "at": 57508,
+      "ph": 15.581799
+    },
+    {
+      "at": 57756,
+      "ph": 15.581799
+    },
+    {
+      "at": 58001,
+      "ph": 15.581799
+    },
+    {
+      "at": 58252,
+      "ph": 15.581799
+    },
+    {
+      "at": 58502,
+      "ph": 15.581799
+    },
+    {
+      "at": 58751,
+      "ph": 15.581799
+    },
+    {
+      "at": 59001,
+      "ph": 15.581799
+    },
+    {
+      "at": 59251,
+      "ph": 15.581799
+    },
+    {
+      "at": 59501,
+      "ph": 15.581799
+    },
+    {
+      "at": 59751,
+      "ph": 15.581799
+    },
+    {
+      "at": 60001,
+      "ph": 15.581799
+    },
+    {
+      "at": 60251,
+      "ph": 15.581799
+    },
+    {
+      "at": 60501,
+      "ph": 15.581799
+    },
+    {
+      "at": 60752,
+      "ph": 15.581799
+    },
+    {
+      "at": 61001,
+      "ph": 15.581799
+    },
+    {
+      "at": 61251,
+      "ph": 15.581799
+    },
+    {
+      "at": 61502,
+      "ph": 15.581799
+    },
+    {
+      "at": 62639,
+      "ph": 15.581799
+    },
+    {
+      "at": 63639,
+      "ph": 15.581799
+    },
+    {
+      "at": 64639,
+      "ph": 15.581799
+    },
+    {
+      "at": 65639,
+      "ph": 15.581799
+    },
+    {
+      "at": 66641,
+      "ph": 15.581799
+    },
+    {
+      "at": 67391,
+      "ph": 15.581799
+    },
+    {
+      "at": 67507,
+      "ph": 15.581799
+    },
+    {
+      "at": 67751,
+      "ph": 15.581799
+    },
+    {
+      "at": 68004,
+      "ph": 15.581799
+    },
+    {
+      "at": 68642,
+      "ph": 15.581799
+    },
+    {
+      "at": 69643,
+      "ph": 15.581799
+    },
+    {
+      "at": 70721,
+      "ph": 15.581799
+    },
+    {
+      "at": 71652,
+      "ph": 15.581799
+    },
+    {
+      "at": 72651,
+      "ph": 15.581799
+    },
+    {
+      "at": 73646,
+      "ph": 15.581799
+    },
+    {
+      "at": 74760,
+      "ph": 15.581799
+    },
+    {
+      "at": 75749,
+      "ph": 15.581799
+    },
+    {
+      "at": 76704,
+      "ph": 15.581799
+    },
+    {
+      "at": 77653,
+      "ph": 15.581799
+    },
+    {
+      "at": 196888,
+      "ph": 15.581799
+    },
+    {
+      "at": 197005,
+      "ph": 15.581799
+    },
+    {
+      "at": 197278,
+      "ph": 15.581799
+    },
+    {
+      "at": 197506,
+      "ph": 15.581799
+    },
+    {
+      "at": 197960,
+      "ph": 15.581799
+    },
+    {
+      "at": 198102,
+      "ph": 15.581799
+    },
+    {
+      "at": 198272,
+      "ph": 15.581799
+    },
+    {
+      "at": 198500,
+      "ph": 15.581799
+    },
+    {
+      "at": 198764,
+      "ph": 15.581799
+    },
+    {
+      "at": 199003,
+      "ph": 15.581799
+    },
+    {
+      "at": 199252,
+      "ph": 15.581799
+    },
+    {
+      "at": 199505,
+      "ph": 15.581799
+    },
+    {
+      "at": 199754,
+      "ph": 15.581799
+    },
+    {
+      "at": 200013,
+      "ph": 15.581799
+    },
+    {
+      "at": 200257,
+      "ph": 15.581799
+    },
+    {
+      "at": 200501,
+      "ph": 15.581799
+    },
+    {
+      "at": 200758,
+      "ph": 15.581799
+    },
+    {
+      "at": 201001,
+      "ph": 15.581799
+    },
+    {
+      "at": 201254,
+      "ph": 15.581799
+    },
+    {
+      "at": 201501,
+      "ph": 15.581799
+    },
+    {
+      "at": 201751,
+      "ph": 15.581799
+    },
+    {
+      "at": 202000,
+      "ph": 15.581799
+    },
+    {
+      "at": 202281,
+      "ph": 0
+    },
+    {
+      "at": 202502,
+      "ph": 0
+    },
+    {
+      "at": 202753,
+      "ph": 0
+    },
+    {
+      "at": 203009,
+      "ph": 0
+    },
+    {
+      "at": 203251,
+      "ph": 0
+    },
+    {
+      "at": 203508,
+      "ph": 0
+    },
+    {
+      "at": 203761,
+      "ph": 0
+    },
+    {
+      "at": 204001,
+      "ph": 0
+    },
+    {
+      "at": 204303,
+      "ph": 0.0654
+    },
+    {
+      "at": 204511,
+      "ph": 0.2834
+    },
+    {
+      "at": 204780,
+      "ph": 0.5545
+    },
+    {
+      "at": 205030,
+      "ph": 0.805
+    },
+    {
+      "at": 205612,
+      "ph": 1.0631
+    },
+    {
+      "at": 206538,
+      "ph": 2.2901
+    },
+    {
+      "at": 206781,
+      "ph": 2.5562
+    },
+    {
+      "at": 207022,
+      "ph": 2.7984
+    }
+  ]
+}

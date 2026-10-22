@@ -67,7 +67,7 @@ import { judgeMark } from "../mark.js";
 import { judgeStates } from "../states.js";
 import { judgeSystem } from "../system.js";
 import { paletteNameOf, paletteNames, type PaletteKind } from "../figjam/palette.js";
-import { tracksToFieldNames } from "../motion-fields.js";
+import { bindingAt, tracksToFieldNames } from "../motion-fields.js";
 import { byId, int, str, strList, type FigmaLike, type NodeLike } from "../read.js";
 import { ensureLoaded } from "../pages.js";
 import { tryGet } from "../safe.js";
@@ -160,6 +160,12 @@ function visibleSolid(paints: unknown): { color: Rgb; opacity: number } | null {
     return null; // a gradient or image on top: the colour behind is not one colour
   }
   return null;
+}
+
+/** The index of the paint visibleSolid reads: the top visible one. */
+function topVisibleIndex(paints: unknown[]): number {
+  for (let i = paints.length - 1; i >= 0; i--) if ((paints[i] as Any).visible !== false) return i;
+  return -1;
 }
 
 function hex(c: Rgb): string {
@@ -879,18 +885,26 @@ export async function checkLayout(
   // Keyframes anywhere: the census measures one state of the motion, not the motion.
   const motion = { found: false, off: false };
   const keyed = new Map<NodeLike, string[]>();
-  /** The fields `n`'s keyframe tracks animate, read once; none once the Motion flag is known to be off. */
-  const keyedFields = (n: NodeLike): string[] => {
-    let f = keyed.get(n);
-    if (f) return f;
-    f = [];
+  const tracks = new Map<NodeLike, unknown>();
+  /** `n`'s keyframe tracks, read once; none once the Motion flag is known to be off. */
+  const tracksOf = (n: NodeLike): unknown => {
+    if (tracks.has(n)) return tracks.get(n);
+    let v: unknown;
     // A page, a slide grid or a row carries no keys, and the opaque ones are never read [C-136].
     if (!motion.off && n.type !== "PAGE" && !OPAQUE_TYPES.has(n.type)) {
       // Without the per-user Motion flag every read throws this: ask no more.
-      const tracks = tryGet(view(n), "manualKeyframeTracks");
-      if (tracks.ok) f = tracksToFieldNames(tracks.value).map((x) => x.toUpperCase());
-      else motion.off = /not a supported API/i.test(tracks.message);
+      const read = tryGet(view(n), "manualKeyframeTracks");
+      if (read.ok) v = read.value;
+      else motion.off = /not a supported API/i.test(read.message);
     }
+    tracks.set(n, v);
+    return v;
+  };
+  /** The fields `n`'s keyframe tracks animate; asking marks the frame animated when there are any. */
+  const keyedFields = (n: NodeLike): string[] => {
+    let f = keyed.get(n);
+    if (f) return f;
+    f = tracksToFieldNames(tracksOf(n)).map((x) => x.toUpperCase());
     if (f.length) motion.found = true;
     keyed.set(n, f);
     return f;
@@ -912,6 +926,27 @@ export async function checkLayout(
   };
   const notJudged = new Map<string, number>();
   const unjudged = (kind: string) => notJudged.set(kind, (notJudged.get(kind) ?? 0) + 1);
+  /**
+   * The solid a fill shows. Before a fill track's first key that key's colour holds and the static
+   * paint never shows [C-191]: a claim keyed white over a static #111 fill read "#111111 on #111111".
+   * `varies` when the keys hold more than one colour.
+   */
+  const shownFill = (n: NodeLike, paints: unknown): { solid: ReturnType<typeof visibleSolid>; varies: boolean } => {
+    const solid = visibleSolid(paints);
+    const index = Array.isArray(paints) ? topVisibleIndex(paints) : -1;
+    if (!solid || index < 0) return { solid, varies: false };
+    type Key = { timelinePosition?: unknown; value?: { type?: unknown; value?: Rgb & { a?: number } } };
+    const keys = bindingAt(tracksOf(n), { type: "INDEXED_ITEM", collection: "fills", index })?.keyframes;
+    const at = (k: Key) => (typeof k.timelinePosition === "number" ? k.timelinePosition : 0);
+    const colors = (Array.isArray(keys) ? (keys as Key[]) : [])
+      .filter((k) => k?.value?.type === "COLOR" && k.value.value)
+      .sort((a, b) => at(a) - at(b))
+      .map((k) => k.value!.value!);
+    const first = colors[0];
+    if (!first) return { solid, varies: false };
+    const varies = colors.some((c) => hex(c) !== hex(first) || (c.a ?? 1) !== (first.a ?? 1));
+    return { solid: { color: { r: first.r, g: first.g, b: first.b }, opacity: solid.opacity * (first.a ?? 1) }, varies };
+  };
   /** Under a motion brief: true, and counted, when keys move one of the two and not the other with it. */
   const apart = (kind: string, a: NodeLike, b: NodeLike): boolean => {
     if (!seen || carrierOf(a) === carrierOf(b)) return false;
@@ -1067,7 +1102,8 @@ export async function checkLayout(
       // a cursor bubble sitting over empty space as covering the title (measured live).
       const glyphs = (a.absoluteRenderBounds as Rect | null | undefined) ?? box;
       if (glyphs && chars.trim()) texts.push({ id: n.id, name: n.name, box: glyphs, order, node: n });
-      const fg = visibleSolid(a.fills);
+      const shown = shownFill(n, a.fills);
+      const fg = shown.solid;
       const bg = backdrop(n, view);
       // WCAG 2.2 SC 1.4.3 sets no contrast for text in an inactive component,
       // and none for a logotype: a disabled label is meant to recede, and a
@@ -1075,7 +1111,9 @@ export async function checkLayout(
       if (fg && bg && fg.opacity >= 0.99 && !isInactive(n)) {
         const ratio = contrastRatio(fg.color, bg);
         const need = isLargeText(a) ? 3 : 4.5;
-        if (ratio < need) {
+        // Keys that change its colour leave a motion piece's text to the rendered frames.
+        if (ratio < need && shown.varies && seen) unjudged("low_contrast");
+        else if (ratio < need) {
           const logo = inLogotype(n);
           add(n, "low_contrast", logo ? "info" : "warning",
             `contrast ${ratio.toFixed(2)}:1 (${hex(fg.color)} on ${hex(bg)}); ` +
