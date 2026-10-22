@@ -178,6 +178,8 @@ export interface WelcomeMsg {
   serverVersion: string;
   protocolVersion: number;
   limits: Limits;
+  /** A team's hub: the person the token names, which the plugin window shows. Absent on this computer. */
+  person?: string;
 }
 
 export interface RequestMsg {

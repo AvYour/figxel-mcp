@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BridgeError } from "../src/shared/errors.js";
-import { ConfigError, createLogger, loadConfig, migrateLegacyToken, readOrCreateToken } from "../src/server/config.js";
+import { ConfigError, createLogger, JOINED_FILE, loadConfig, migrateLegacyToken, readOrCreateToken, writeJoined } from "../src/server/config.js";
+import { inviteOf, parseInvite } from "../src/shared/invite.js";
 import { extractFileKey, extractNodeIdFromUrl, normalizeNodeId } from "../src/server/figma-url.js";
 import { parseFrame } from "../src/server/frames.js";
 import { ProgressForwarder } from "../src/server/mcp-progress.js";
@@ -40,6 +41,50 @@ describe("config (spec §4.4)", () => {
     expect(loadConfig({ BRIDGE_ENABLE_AUDIO: "1" }).enableAudio).toBe(true);
     expect(loadConfig({ BRIDGE_ENABLE_AUDIO: "0" }).enableAudio).toBe(false);
     expect(loadConfig({ BRIDGE_ENABLE_AUDIO: " " }).enableAudio).toBe(false);
+  });
+
+  it("BRIDGE_HUB_URL takes a wss:// hub (ws:// to this computer only) and BRIDGE_TOKEN a 64-hex token", () => {
+    const empty = { BRIDGE_HOME: mkdtempSync(join(tmpdir(), "fmcp-hub-")) }; // never this computer's own hub.json
+    expect(loadConfig(empty)).toMatchObject({ hubUrl: null, hubFrom: null, hubToken: null, hubTokenFrom: null });
+    expect(loadConfig({ BRIDGE_HUB_URL: " wss://mcp.figxel.example.dev/ " }).hubUrl).toBe("wss://mcp.figxel.example.dev");
+    expect(loadConfig({ BRIDGE_HUB_URL: "ws://127.0.0.1:38999" }).hubUrl).toBe("ws://127.0.0.1:38999");
+    // Over ws:// to another machine the token would travel in the clear.
+    expect(() => loadConfig({ BRIDGE_HUB_URL: "ws://mcp.figxel.example.dev" })).toThrow(/must be a wss:\/\/ address/);
+    expect(() => loadConfig({ BRIDGE_HUB_URL: "https://mcp.figxel.example.dev" })).toThrow(ConfigError);
+    expect(() => loadConfig({ BRIDGE_HUB_URL: "wss://hub.example.dev/?token=x" })).toThrow(ConfigError);
+    expect(() => loadConfig({ BRIDGE_HUB_URL: "mcp.figxel.example.dev" })).toThrow(/not an address/);
+    const token = "a".repeat(64);
+    expect(loadConfig({ ...empty, BRIDGE_TOKEN: ` ${token} ` })).toMatchObject({ hubToken: token, hubTokenFrom: "BRIDGE_TOKEN" });
+    expect(() => loadConfig({ BRIDGE_TOKEN: "~/.figxel/token" })).toThrow(/64 hexadecimal characters/);
+    expect(loadConfig({}).hubBind).toBe("127.0.0.1");
+    expect(loadConfig({ BRIDGE_HUB_BIND: "0.0.0.0" }).hubBind).toBe("0.0.0.0");
+    expect(() => loadConfig({ BRIDGE_HUB_BIND: "mcp.example.com" })).toThrow(/must be an IP address/);
+  });
+
+  it("a hub saved by `join` is every app's hub, the environment wins over it, and a broken file stops the server", () => {
+    const home = mkdtempSync(join(tmpdir(), "fmcp-joined-"));
+    const token = "b".repeat(64);
+    writeJoined(join(home, JOINED_FILE), "wss://mcp.figxel.example.dev", token);
+    expect(loadConfig({ BRIDGE_HOME: home })).toMatchObject({ hubUrl: "wss://mcp.figxel.example.dev", hubFrom: "joined", hubToken: token, hubTokenFrom: "join" });
+    expect(loadConfig({ BRIDGE_HOME: home, BRIDGE_HUB_URL: "wss://other.example.dev" })).toMatchObject({ hubUrl: "wss://other.example.dev", hubFrom: "env", hubToken: null });
+    writeFileSync(join(home, JOINED_FILE), "{ not json");
+    expect(() => loadConfig({ BRIDGE_HOME: home })).toThrow(/run `figxel-mcp leave`/);
+    writeFileSync(join(home, JOINED_FILE), JSON.stringify({ v: 1, url: "ws://mcp.figxel.example.dev", token }));
+    expect(() => loadConfig({ BRIDGE_HOME: home })).toThrow(/must be a wss:\/\/ address/); // never in the clear
+  });
+
+  it("BRIDGE_HUB_PUBLIC_URL is a hub's own wss:// address, for its invites", () => {
+    expect(loadConfig({ BRIDGE_HUB_PUBLIC_URL: "wss://mcp.figxel.example.dev/" }).hubPublicUrl).toBe("wss://mcp.figxel.example.dev");
+    expect(() => loadConfig({ BRIDGE_HUB_PUBLIC_URL: "https://mcp.figxel.example.dev" })).toThrow(/BRIDGE_HUB_PUBLIC_URL/);
+  });
+
+  it("an invite is the hub's address and a token, and nothing else", () => {
+    const token = "c".repeat(64);
+    expect(inviteOf("wss://mcp.figxel.example.dev/", token)).toBe(`wss://mcp.figxel.example.dev#${token}`);
+    expect(parseInvite(` wss://mcp.figxel.example.dev#${token} `)).toEqual({ url: "wss://mcp.figxel.example.dev", token });
+    expect(parseInvite("wss://mcp.figxel.example.dev")).toBeNull();
+    expect(parseInvite(`wss://mcp.figxel.example.dev#${token.slice(1)}`)).toBeNull();
+    expect(parseInvite(`https://mcp.figxel.example.dev#${token}`)).toBeNull();
   });
 
   it("refuses invalid values instead of guessing", () => {

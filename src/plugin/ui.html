@@ -4,42 +4,102 @@
 <meta charset="utf-8">
 <style>
   :root { color-scheme: light dark; }
+  [hidden] { display: none !important; }
   body {
-    margin: 0; padding: 12px; font: 12px/1.4 Inter, system-ui, sans-serif;
+    margin: 0; padding: 12px; font: 12px/1.45 Inter, system-ui, sans-serif;
     color: var(--figma-color-text, #222); background: var(--figma-color-bg, #fff);
   }
-  .status { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-  .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .status { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 7px; }
+  .status::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
   .status.ok { color: var(--figma-color-text-success, #14ae5c); }
   .status.wait { color: var(--figma-color-text-warning, #b86200); }
   .status.error { color: var(--figma-color-text-danger, #f24822); }
-  #detail { color: var(--figma-color-text-secondary, #666); margin: 4px 0 10px; min-height: 16px; word-break: break-word; }
-  form { display: flex; gap: 6px; margin-bottom: 10px; }
+  #detail { margin: 4px 0 12px; min-height: 17px; word-break: break-word; }
+  form { margin: 0 0 12px; }
+  form label { display: block; font-weight: 600; margin-bottom: 4px; }
+  .row { display: flex; gap: 6px; }
   input {
-    flex: 1; min-width: 0; padding: 6px; font: inherit; border-radius: 4px;
+    flex: 1; min-width: 0; padding: 6px 8px; font: inherit; border-radius: 5px;
     border: 1px solid var(--figma-color-border, #ccc); background: transparent; color: inherit;
   }
   button {
-    padding: 6px 10px; font: inherit; border-radius: 4px; border: 0; cursor: pointer;
+    padding: 6px 10px; font: inherit; border-radius: 5px; border: 0; cursor: pointer;
     background: var(--figma-color-bg-brand, #0d99ff); color: var(--figma-color-text-onbrand, #fff);
   }
-  button.link { background: none; color: var(--figma-color-text-brand, #0d99ff); padding: 0; }
-  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px;
+  button.link { background: none; color: var(--figma-color-text-brand, #0d99ff); padding: 0 0 0 6px; }
+  button.wide { width: 100%; margin-bottom: 8px; }
+  .footer { margin-top: 14px; text-align: right; font-size: 11px; }
+  .footer button.link { color: var(--figma-color-text-secondary, #666); }
+  #sign-in-box { margin: 0 0 12px; }
+  .code { font-size: 20px; font-weight: 700; letter-spacing: .08em; text-align: center; padding: 8px; margin-bottom: 4px;
+          border: 1px dashed var(--figma-color-border, #ccc); border-radius: 6px; }
+  .error-text { color: var(--figma-color-text-danger, #f24822); margin-top: 4px; }
+  .card { border: 1px solid var(--figma-color-border, #e5e5e5); border-radius: 8px; padding: 10px; }
+  .field { display: grid; grid-template-columns: 74px 1fr; align-items: baseline; gap: 6px; margin-bottom: 8px; }
+  .field:last-of-type { margin-bottom: 0; }
+  .key { color: var(--figma-color-text-secondary, #666); }
+  .value { min-width: 0; word-break: break-word; }
+  .seg { display: flex; border: 1px solid var(--figma-color-border, #ccc); border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+  .seg button { flex: 1; background: none; color: inherit; border-radius: 0; padding: 5px 6px; white-space: nowrap; }
+  .seg button.on { background: var(--figma-color-bg-selected, #e5f4ff); color: var(--figma-color-text-brand, #0d99ff); font-weight: 600; }
+  .sub { color: var(--figma-color-text-secondary, #666); margin-top: 6px; }
+  .meta { color: var(--figma-color-text-tertiary, #999); font-size: 11px; margin-top: 8px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 4px;
        color: var(--figma-color-text-secondary, #666); }
-  ol { list-style: none; margin: 0; padding: 0; font-family: ui-monospace, monospace; font-size: 11px; }
+  ol { list-style: none; margin: 0; padding: 0; font-size: 11px; }
   li { padding: 1px 0; color: var(--figma-color-text-secondary, #555); }
 </style>
 </head>
 <body>
   <div id="status" class="status wait">Starting…</div>
   <div id="detail"></div>
+
+  <div id="sign-in-box" hidden>
+    <button id="sign-in" type="button" class="wide">Sign in with the browser</button>
+    <button id="use-local-first" type="button" class="link" hidden>Use Figxel on this computer instead</button>
+    <div id="sign-in-code" class="code" hidden></div>
+    <button id="sign-in-again" type="button" class="link" hidden>Open the page again</button>
+  </div>
   <form id="token-form" hidden>
-    <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="64-character token">
-    <button type="submit">Save</button>
+    <label for="token-input" id="token-label">Token</label>
+    <div class="row">
+      <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="64-character token">
+      <button type="submit">Save</button>
+    </div>
   </form>
-  <button id="change-token" class="link" hidden>Change token</button>
-  <h2>Activity</h2>
+
+  <div class="card" id="card">
+    <div class="seg" role="group" aria-label="Connect to">
+      <button id="use-hub" type="button">Figxel Cloud</button>
+      <button id="use-local" type="button">This computer</button>
+    </div>
+    <form id="server-form" hidden>
+      <label for="server-input">Invite or team hub address</label>
+      <div class="row">
+        <input id="server-input" type="text" autocomplete="off" spellcheck="false" placeholder="wss://… (paste your invite)">
+        <button type="submit">Connect</button>
+      </div>
+      <div id="server-error" class="error-text" hidden></div>
+    </form>
+    <div class="field" id="where-host" hidden>
+      <span class="key">Hub</span>
+      <span class="value"><span id="hub-name"></span><button id="change-hub" class="link" type="button">Change</button></span>
+    </div>
+    <div class="field" id="who-row" hidden>
+      <span class="key">Signed in as</span>
+      <span id="who" class="value"></span>
+    </div>
+    <div class="field">
+      <span class="key">Token</span>
+      <span class="value"><span id="token-fp">not set</span><button id="change-token" class="link" type="button" hidden>Change</button></span>
+    </div>
+    <div id="meta" class="meta" hidden></div>
+  </div>
+
+  <h2>Recent activity</h2>
   <ol id="log"></ol>
+  <div id="log-empty" class="sub">Nothing yet. Your AI app's calls show here.</div>
+  <div class="footer"><button id="reset" type="button" class="link">Reset Figxel in this Figma</button></div>
   <!-- SCRIPT -->
 </body>
 </html>

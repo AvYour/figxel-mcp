@@ -1,0 +1,43 @@
+{
+  "ranAt": "2026-10-22T05:06:24.832Z",
+  "hub": "mcp.figxel.moirelabs.dev",
+  "idleS": 1800,
+  "checks": [
+    {
+      "name": "plugin welcomed",
+      "ok": true,
+      "detail": "session s-3"
+    },
+    {
+      "name": "welcome names the person",
+      "ok": true,
+      "detail": "as darrel"
+    },
+    {
+      "name": "figma_status shows the person's own file",
+      "ok": true,
+      "detail": "[\"live-hub 1cf025\"]"
+    },
+    {
+      "name": "a call goes through the hub and back",
+      "ok": true,
+      "detail": "197 ms"
+    },
+    {
+      "name": "a call after 1800 s idle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a stranger's plugin is refused",
+      "ok": true,
+      "detail": "close 4001"
+    },
+    {
+      "name": "a stranger's process learns no file or person",
+      "ok": true,
+      "detail": "{ \"bridge\": { \"version\": \"0.2.1\", \"role\": \"none\", \"listening\": false, \"reason\": \"HUB_REFUSED\", \"host\": \"mcp.figxel.moirelabs.dev\", \"po"
+    }
+  ],
+  "ok": true
+}

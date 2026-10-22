@@ -9,17 +9,21 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { inviteOf } from "../shared/invite.js";
 import { tokenFingerprint } from "../shared/token.js";
-import { PACKAGE_NAME, PLUGIN_NAME, SERVER_NAME, VERSION } from "../shared/version.js";
+import { PACKAGE_NAME, PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, SERVER_NAME, VERSION } from "../shared/version.js";
 import { Bridge, type BridgeOptions } from "./bridge.js";
-import { ConfigError, createLogger, loadConfig, migrateLegacyToken, readOrCreateToken, type Config, type Logger } from "./config.js";
+import { ConfigError, createLogger, joinedPathOf, loadConfig, migrateLegacyToken, readOrCreateToken, type Config, type Logger } from "./config.js";
+import { joinHub, leaveHub } from "./join.js";
 import { MotionProcess, SkillLedger } from "./motion-process.js";
 import { RoleProcess } from "./role-process.js";
+import { VideoJobs } from "./video-jobs.js";
 import { stripSchemaDialect } from "./schema-dialect.js";
 import { registerResources, registerSkillResources } from "./resources.js";
 import { registerTools, type Registration } from "./tools/index.js";
 import { SERVER_INSTRUCTIONS } from "./guides.js";
-import { bundledPluginDir, formatSetupReport, helpText, installedPluginDir, parseCommand, refreshInstalledPlugin, runSetup } from "./setup.js";
+import { bundledPluginDir, copyPlugin, formatSetupReport, helpText, installedPluginDir, parseCommand, refreshInstalledPlugin, runSetup } from "./setup.js";
+import { addPerson, peoplePath, readPeople, removePerson, runHub, setEmail } from "./hub.js";
 import { formatRegistrationReport, pluginToRegister, runFigmaRegistration, withRegistration } from "./figma-register.js";
 
 // What every client receives at initialize: the working contract and the
@@ -37,21 +41,24 @@ export interface App {
 // Logged once per process: the notice is useful, repeated on every tools/list it is noise.
 let dialectNoticeLogged = false;
 
-/** Build the MCP server + bridge. `connect` attaches a transport (stdio in production, in-memory in tests). */
-export async function createApp(
-  config: Config,
-  token: string,
-  logger: Logger,
-  bridgeOverrides: Partial<BridgeOptions> = {},
-): Promise<App> {
-  const startedAt = Date.now();
-  const server = new McpServer(
-    { name: SERVER_NAME, version: VERSION },
-    // `resources: {}` advertises the capability. Without it a client that lists
-    // resources gets nothing, even though the resource is registered — the
-    // registration alone does not put the capability on the wire.
-    { capabilities: { logging: {}, resources: {}, prompts: {} }, instructions: INSTRUCTIONS },
-  );
+/**
+ * What one agent's work keeps between its calls: the bridge it reaches Figma
+ * through, the skills it read, its motion and role processes (the briefs), and
+ * the renders it started. A process on a laptop holds one; the hub's web
+ * endpoint keeps one per person (web.ts), because a client such as ChatGPT
+ * opens a new MCP session for nearly every call, and a guide read in one
+ * session must count in the next.
+ */
+export interface AgentState {
+  bridge: Bridge;
+  ledger: SkillLedger;
+  motion: MotionProcess;
+  roles: RoleProcess;
+  videoJobs: VideoJobs<unknown>;
+}
+
+/** A started bridge and fresh processes, for a caller that shares them across MCP sessions. */
+export async function createAgentState(config: Config, token: string, logger: Logger, bridgeOverrides: Partial<BridgeOptions> = {}): Promise<AgentState> {
   const bridge = new Bridge({
     token,
     logger,
@@ -59,26 +66,81 @@ export async function createApp(
     sessionWaitMs: config.sessionWaitMs,
     allowUnverified: config.allowUnverified,
     tokenPath: config.tokenPath,
-    // BRIDGE_CONFLICTS: the stale-write guard every write carries (trust spec §2.3).
     conflicts: config.conflicts,
-    onPluginLog: (level, message) => {
-      if (!server.isConnected()) return;
-      void server.server
-        .sendLoggingMessage({ level: level === "warn" ? "warning" : level, logger: "figma-plugin", data: message })
-        .catch(() => {});
-    },
+    ...(config.hubUrl ? { hubUrl: config.hubUrl } : {}),
     ...bridgeOverrides,
   });
-  // One per process, as the client it serves: a skill read on any surface is noted once, in one
-  // ledger, and counts for both gates — the motion process's keyframes and the role process's briefs.
   const ledger = new SkillLedger();
-  const motionProcess = new MotionProcess(config.processMode, ledger);
-  const roleProcess = new RoleProcess(config.processMode, ledger);
-  const registration = registerTools(server, bridge, config, startedAt, logger, motionProcess, roleProcess);
+  const state: AgentState = { bridge, ledger, motion: new MotionProcess(config.processMode, ledger), roles: new RoleProcess(config.processMode, ledger), videoJobs: new VideoJobs() };
+  await bridge.start();
+  return state;
+}
+
+/**
+ * Build the MCP server + bridge. `connect` attaches a transport (stdio in
+ * production, in-memory in tests). With `shared`, the server serves that agent
+ * state instead of its own, and closing the app leaves the state's bridge open.
+ */
+export async function createApp(
+  config: Config,
+  token: string,
+  logger: Logger,
+  bridgeOverrides: Partial<BridgeOptions> = {},
+  shared?: AgentState,
+): Promise<App> {
+  const startedAt = Date.now();
+  // A web session (web.ts) names its title and the hub's icon, which an app listing the connector can show.
+  const site = config.webMode && config.hubPublicUrl ? config.hubPublicUrl.replace(/^ws/, "http") : null;
+  const server = new McpServer(
+    {
+      name: SERVER_NAME,
+      version: VERSION,
+      ...(site
+        ? {
+            title: PRODUCT_NAME,
+            icons: [
+              { src: `${site}/icon.png`, mimeType: "image/png", sizes: ["512x512"] },
+              { src: `${site}/favicon.svg`, mimeType: "image/svg+xml", sizes: ["any"] },
+            ],
+          }
+        : {}),
+    },
+    // `resources: {}` advertises the capability. Without it a client that lists
+    // resources gets nothing, even though the resource is registered — the
+    // registration alone does not put the capability on the wire.
+    { capabilities: { logging: {}, resources: {}, prompts: {} }, instructions: INSTRUCTIONS },
+  );
+  const bridge =
+    shared?.bridge ??
+    new Bridge({
+      token,
+      logger,
+      port: config.port,
+      sessionWaitMs: config.sessionWaitMs,
+      allowUnverified: config.allowUnverified,
+      tokenPath: config.tokenPath,
+      // BRIDGE_CONFLICTS: the stale-write guard every write carries (trust spec §2.3).
+      conflicts: config.conflicts,
+      // BRIDGE_HUB_URL: join a team's hub, never the port (cloud bridge).
+      ...(config.hubUrl ? { hubUrl: config.hubUrl } : {}),
+      onPluginLog: (level, message) => {
+        if (!server.isConnected()) return;
+        void server.server
+          .sendLoggingMessage({ level: level === "warn" ? "warning" : level, logger: "figma-plugin", data: message })
+          .catch(() => {});
+      },
+      ...bridgeOverrides,
+    });
+  // One per agent, as the client it serves: a skill read on any surface is noted once, in one
+  // ledger, and counts for both gates — the motion process's keyframes and the role process's briefs.
+  const ledger = shared?.ledger ?? new SkillLedger();
+  const motionProcess = shared?.motion ?? new MotionProcess(config.processMode, ledger);
+  const roleProcess = shared?.roles ?? new RoleProcess(config.processMode, ledger);
+  const registration = registerTools(server, bridge, config, startedAt, logger, motionProcess, roleProcess, shared?.videoJobs);
   registerResources(server, bridge);
   // Whatever the toolset: a client that surfaces resources reaches the skills even with BRIDGE_TOOLSET=none.
   registerSkillResources(server, (skill, uri) => ledger.note(skill.short, `the resource ${uri}`));
-  await bridge.start();
+  if (!shared) await bridge.start();
 
   // Remove the draft-07 `$schema` the SDK adds to every tool schema with
   // parameters. Without this, Claude Desktop — which goes through the Anthropic
@@ -113,7 +175,7 @@ export async function createApp(
     bridge,
     registration,
     async close() {
-      await bridge.close();
+      if (!shared) await bridge.close(); // a shared bridge belongs to its agent state
       await server.close().catch(() => {});
     },
   };
@@ -121,6 +183,51 @@ export async function createApp(
 
 export async function connect(app: App, transport: Transport): Promise<void> {
   await app.server.connect(transport);
+}
+
+/** `hub add | remove | list`: the team's table, edited in place; a running hub reads it again. */
+function runPeopleCommand(
+  command: { kind: "hub-add"; person: string; email?: string } | { kind: "hub-remove"; person: string } | { kind: "hub-email"; person: string; email: string } | { kind: "hub-list" },
+  path: string,
+  publicUrl: string | null,
+): void {
+  try {
+    if (command.kind === "hub-email") {
+      setEmail(path, command.person, command.email);
+      process.stdout.write(`"${command.person}" signs in with ${command.email.toLowerCase()}: Figma or Google, once that email is verified there.\n`);
+      return;
+    }
+    if (command.kind === "hub-add") {
+      const token = addPerson(path, command.person, new Date(), command.email);
+      // stdout carries the secret alone, so it can go straight to a file; the guidance goes to stderr.
+      if (publicUrl) {
+        process.stdout.write(`${inviteOf(publicUrl, token)}\n`);
+        process.stderr.write(
+          `Added "${command.person}" to ${path}. The invite above holds their token: it is shown once and kept nowhere on this server, ` +
+            `so send it to them privately. They paste it in the ${PLUGIN_NAME} plugin window (Team hub) and run: ` +
+            `npx -y ${PACKAGE_NAME}@latest join '<the invite>'. A running hub takes it within seconds.\n`,
+        );
+      } else {
+        process.stdout.write(`${token}\n`);
+        process.stderr.write(
+          `Added "${command.person}" to ${path}. The token above is shown once and kept nowhere on this server: ` +
+            "give it to them for the plugin window and for BRIDGE_TOKEN in their AI apps. A running hub takes it within seconds. " +
+            "Set BRIDGE_HUB_PUBLIC_URL to the hub's wss:// address to print an invite instead.\n",
+        );
+      }
+    } else if (command.kind === "hub-remove") {
+      removePerson(path, command.person);
+      process.stdout.write(`Removed "${command.person}". A running hub closes their connections within seconds.\n`);
+    } else {
+      const people = readPeople(path);
+      const line = (p: (typeof people)[number]) =>
+        [p.person, `added ${p.addedAt}`, p.email ?? "", (p.logins ?? []).map((l) => l.provider).join(",")].filter(Boolean).join("\t");
+      process.stdout.write(people.length ? people.map((p) => `${line(p)}\n`).join("") : `No one yet: ${path} is empty.\n`);
+    }
+  } catch (e) {
+    process.stderr.write(`[${SERVER_NAME}] error: ${e instanceof Error ? e.message : String(e)}\n`);
+    process.exitCode = 1;
+  }
 }
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
@@ -147,9 +254,52 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   let token: string;
   let logger: Logger;
   try {
+    // Before the configuration: leaving must work even when the saved hub no longer loads.
+    if (command.kind === "leave") {
+      process.stdout.write(`${leaveHub(joinedPathOf())}\n`);
+      return;
+    }
     config = loadConfig();
     logger = createLogger(config.logLevel);
+    if (command.kind === "hub-add" || command.kind === "hub-remove" || command.kind === "hub-email" || command.kind === "hub-list") {
+      runPeopleCommand(command, peoplePath(config.home), config.hubPublicUrl);
+      return;
+    }
+    if (command.kind === "join") {
+      const outcome = await joinHub(config, command.invite, logger);
+      process.stdout.write(`${outcome.message}\n`);
+      if (!outcome.saved) process.exitCode = 1;
+      return;
+    }
+    if (command.kind === "hub") {
+      const hub = await runHub(config, logger, { createApp, createAgentState });
+      const stop = () => void hub.stop().then(() => process.exit(0));
+      process.once("SIGINT", stop);
+      process.once("SIGTERM", stop);
+      return; // the listening hub keeps the process alive
+    }
     // --unregister and any --dry-run leave the home folder alone: no token, no plugin copy.
+    if (command.kind === "install") {
+      // The plugin, and nothing that a server on this computer would need: Figxel Cloud signs in through the browser.
+      const from = bundledPluginDir();
+      if (!from) throw new ConfigError(`The Figma plugin files are not next to this command, so there is nothing to copy. Reinstall ${PACKAGE_NAME}.`);
+      const pluginDir = installedPluginDir(config.home);
+      if (!command.dryRun) copyPlugin(from, pluginDir);
+      const r = runFigmaRegistration(pluginToRegister(pluginDir, from), { action: "register", force: command.force, dryRun: command.dryRun });
+      const next =
+        r.outcome === "refused"
+          ? ""
+          : [
+              "",
+              "Next:",
+              `  1. Open Figma desktop and a file, then ${PLUGIN_MENU_PATH}, and press Sign in.`,
+              "  2. In your AI app, add the connector https://mcp.figxel.moirelabs.dev/mcp and sign in the same way.",
+              "",
+            ].join("\n");
+      process.stdout.write(command.json ? `${JSON.stringify({ pluginDir, registration: r }, null, 2)}\n` : `${formatRegistrationReport(r, "install")}${next}`);
+      if (r.outcome === "refused") process.exitCode = 1;
+      return;
+    }
     const figma = command.kind === "setup" ? command.figma : undefined;
     if (command.kind === "setup" && figma && (figma.dryRun || figma.action === "unregister")) {
       const r = runFigmaRegistration(pluginToRegister(installedPluginDir(config.home), bundledPluginDir()), figma);
@@ -193,6 +343,12 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   // After an update the plugin copy setup made is the old one; never fatal.
   refreshInstalledPlugin(config.home, logger);
 
+  // The person's token for a team's hub (BRIDGE_TOKEN, or the one `join` saved), in place of this computer's file.
+  if (config.hubToken) token = config.hubToken;
+  if (config.hubUrl) {
+    const from = config.hubFrom === "joined" ? `saved by \`${PACKAGE_NAME} join\`` : "BRIDGE_HUB_URL";
+    logger.info(`joining the team's hub at ${new URL(config.hubUrl).host} (${from}); this process never takes the port`);
+  }
   const app = await createApp(config, token, logger);
   logger.info(
     `${PACKAGE_NAME} ${VERSION}: toolset ${config.toolset.kind}, ${app.registration.registered.length} tool(s) registered, process ${config.processMode}`,

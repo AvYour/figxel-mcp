@@ -563,7 +563,7 @@ describe("session choice by name", () => {
   type S = { state: SessionState };
   const session = (id: string, name: string, editorType: string, lastActiveAt: number): S => ({
     state: {
-      sessionId: id, instanceId: id, pluginVersion: "0", apiVersion: "1", editorType, ops: new Set(), file: { name, key: null },
+      sessionId: id, person: "local", instanceId: id, pluginVersion: "0", apiVersion: "1", editorType, ops: new Set(), file: { name, key: null },
       page: null, user: null, connectedAt: 0, lastSeenAt: 0, lastActiveAt, selection: null, lastNodesChanged: null,
     },
   });

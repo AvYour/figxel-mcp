@@ -10,6 +10,7 @@ import { CancelledError, chooseYield, createUiScheduler, throttleProgress, type 
 import { pageEvent, selectionEvent, startEvents } from "./events.js";
 import { changedNothing, IdempotencyStore, type StoredResult } from "./idempotency.js";
 import type { HelloInfo, SandboxToUi, UiToSandbox } from "./messages.js";
+import { tokenKey } from "./server-key.js";
 import { PLUGIN_OPS } from "./ops/index.js";
 import { editorType } from "./safe.js";
 import { TRUST, agentOf, withConflicts, type Conflict } from "./trust.js";
@@ -23,6 +24,12 @@ const YIELD_MODE: YieldMode = "timer";
 // An identifier, not the product name: plugins that already saved a token read
 // it under this key, so it stays across the rename (src/shared/version.ts).
 const TOKEN_KEY = "figma-mcp.token";
+/** The server the window connects to; absent is this computer (server-url.ts). */
+const SERVER_KEY = "figxel.server";
+/** The last team hub used, kept when the window goes back to this computer, so switching back is one click. */
+const LAST_HUB_KEY = "figxel.lastHub";
+let server: string | null = null;
+let lastHub: string | null = null;
 
 const post = (msg: SandboxToUi) => figma.ui.postMessage(msg);
 const scheduler = createUiScheduler((m) => post(m));
@@ -270,7 +277,32 @@ figma.ui.onmessage = (raw: unknown) => {
       else if (msg.msg.t === "cancel") onCancel(msg.msg);
       return;
     case "save-token":
-      void figma.clientStorage.setAsync(TOKEN_KEY, msg.token);
+      void figma.clientStorage.setAsync(tokenKey(server, TOKEN_KEY), msg.token);
+      return;
+    case "save-server":
+      server = msg.server;
+      void (async () => {
+        if (server) {
+          lastHub = server;
+          if (msg.token) await figma.clientStorage.setAsync(tokenKey(server, TOKEN_KEY), msg.token); // from an invite
+          await figma.clientStorage.setAsync(SERVER_KEY, server);
+          await figma.clientStorage.setAsync(LAST_HUB_KEY, server);
+        } else await figma.clientStorage.deleteAsync(SERVER_KEY);
+        await sendInit();
+      })();
+      return;
+    case "reset":
+      // clientStorage belongs to this plugin alone: every key in it is ours to forget.
+      void (async () => {
+        for (const key of await figma.clientStorage.keysAsync()) await figma.clientStorage.deleteAsync(key);
+        server = null;
+        lastHub = null;
+        await sendInit();
+      })();
+      return;
+    case "open-url":
+      // Only an https page: the sign-in page of the hub the window connects to.
+      if (msg.url.startsWith("https://")) figma.openExternal(msg.url);
       return;
     case "need-hello":
       post({ kind: "hello-info", hello: helloInfo() });
@@ -283,11 +315,20 @@ figma.ui.onmessage = (raw: unknown) => {
   }
 };
 
-figma.showUI(__html__, { width: 300, height: 280, themeColors: true, title: PLUGIN_NAME });
+figma.showUI(__html__, { width: 300, height: 420, themeColors: true, title: PLUGIN_NAME });
 TRUST.setDelay((ms) => scheduler.delay(ms));
 startEvents({ emit, delay: (ms) => scheduler.delay(ms) }, TRUST);
 
+/** The server and the token saved for it, to the UI, which connects. */
+async function sendInit(): Promise<void> {
+  const stored = (await figma.clientStorage.getAsync(tokenKey(server, TOKEN_KEY))) as unknown;
+  post({ kind: "init", token: typeof stored === "string" && stored ? stored : null, server, lastHub, hello: helloInfo() });
+}
+
 void (async () => {
-  const stored = (await figma.clientStorage.getAsync(TOKEN_KEY)) as unknown;
-  post({ kind: "init", token: typeof stored === "string" && stored ? stored : null, hello: helloInfo() });
+  const saved = (await figma.clientStorage.getAsync(SERVER_KEY)) as unknown;
+  server = typeof saved === "string" && saved ? saved : null;
+  const hub = (await figma.clientStorage.getAsync(LAST_HUB_KEY)) as unknown;
+  lastHub = typeof hub === "string" && hub ? hub : server;
+  await sendInit();
 })();

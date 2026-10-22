@@ -24,6 +24,7 @@ Figxel plugin in Figma desktop: ui.html (WebSocket) ⇄ code.js (Plugin API)
 
 - **Your AI app starts the server** with `npx`. Nothing runs as a background service.
 - **The plugin connects to the server** on your own machine. It has to be running in Figma: open it once per Figma session. It then reconnects by itself (within 3 s) every time an app starts the server, so you do not reopen it per chat.
+- **Or both connect to a team's hub** on a server, when your team runs one: see [Connecting to a team's hub](#connecting-to-a-teams-hub). Files are still read and written on your computer.
 
 ## Before any app
 
@@ -238,6 +239,57 @@ Register a **stdio** server with the command from [The server entry](#the-server
 ### Running from a clone
 
 Contributors run the server from a clone instead of the npm package: command `node` with the absolute path of the clone's `dist/server.js`, and the plugin imported from `dist/plugin/manifest.json`. See [CONTRIBUTING § Development setup](../CONTRIBUTING.md#development-setup).
+
+## Connecting to a team's hub
+
+When your team runs a hub ([docs/hub.md](hub.md)), the plugin and your AI apps connect to it instead of to this computer. Whoever runs it sends you an **invite**: one line with the hub's address and your own token, `wss://…#…`. Keep it private, as you would a password. Everything else in this page stays the same.
+
+0. **Install the plugin**, once: quit Figma desktop, then run `npx -y figxel-mcp@latest install`. It copies the plugin into `~/.figxel/plugin` and lists it under **Plugins → Development** in Figma, as `setup --register` does, with no server and no token on your computer.
+1. **The plugin.** A new Figxel window opens on **Welcome to Figxel** with one **Sign in** button, which signs in to Figxel Cloud (`mcp.figxel.moirelabs.dev`): the page that opens shows the same code as the window; sign in there with Figma or Google, and the window connects. For your team's own hub, press **Change** under Figxel Cloud and paste its address (or your invite), then **Sign in with the browser**. **Reset Figxel in this Figma**, at the bottom, forgets all of it and starts over. Each server keeps its own token, so this computer's token stays saved for later. Once connected, the window shows the hub and **Signed in as** your name: if the name is not yours, the invite is not either.
+2. **Your AI apps, all at once.** In a terminal, run once:
+
+   ```bash
+   npx -y figxel-mcp@latest join 'wss://mcp.figxel.example#<your token>'
+   ```
+
+   It checks the invite against the hub, says "as <your name>", and saves it in `~/.figxel/hub.json`, which every Figxel process on this computer reads when it starts. Restart your AI apps; their server entries stay as they are.
+
+An app can also be pointed at a hub on its own, with two settings in its server entry's environment ([Configuration § Where to set them](configuration.md#where-to-set-them)): `BRIDGE_HUB_URL`, the hub's address, and `BRIDGE_TOKEN`, your token. They win over what `join` saved. In Claude Code, for example `[C-279]`:
+
+```bash
+claude mcp add -s user figxel --env BRIDGE_HUB_URL=wss://mcp.figxel.example --env BRIDGE_TOKEN=<your token> -- npx -y figxel-mcp@latest
+```
+
+With `BRIDGE_HUB_URL` set, the server never takes this computer's port, so it cannot become a hub by accident; when the hub is away it keeps trying, and a call says it cannot reach the hub. Exports, imports, `saveTo` paths and ffmpeg run on this computer as before: only the plugin's requests and answers cross the hub. `figma_status` names the hub (`bridge.hub`) and says the process works through it.
+
+You see only your own Figma files, and nobody else on the hub sees yours: another person's file is as if it did not exist. To go back to this computer, press **This computer** in the plugin window and run `npx -y figxel-mcp@latest leave`, then restart your AI apps; **Team hub** takes the plugin back to the same hub in one click.
+
+### Apps by URL
+
+When the hub runs its web endpoint ([docs/hub.md § Web clients](hub.md#web-clients)), an app with no Figxel process on your computer reaches it at `https://mcp.figxel.example/mcp`. It signs in with OAuth, where the app opens the hub's sign-in page and you continue with Figma or Google (or paste your invite), or with your token in a header, `Authorization: Bearer <your token>` (the part of your invite after `#`). Your Figma connects to the hub as above. Files come back as download links that last an hour, not as files on your computer.
+
+- **ChatGPT** (developer mode): add the URL as a connector with OAuth `[C-407]`; it opens the hub's sign-in page.
+- **claude.ai** (and Claude Desktop's connectors): add a custom connector with the URL. It signs in with OAuth, or put the header in its request headers instead `[C-406]`.
+- **Claude Code** `[C-411]`:
+
+  ```bash
+  claude mcp add --transport http figxel https://mcp.figxel.example/mcp --header "Authorization: Bearer <your token>" --scope user
+  ```
+
+- **Cursor**: an entry in `mcp.json` with `url` and `headers`, the token read from an environment variable `[C-412]`:
+
+  ```json
+  { "mcpServers": { "figxel": { "url": "https://mcp.figxel.example/mcp", "headers": { "Authorization": "Bearer ${env:FIGXEL_TOKEN}" } } } }
+  ```
+
+- **VS Code**: an entry with `"type": "http"`, the token asked for once and stored by VS Code `[C-413]`:
+
+  ```json
+  { "inputs": [{ "type": "promptString", "id": "figxel-token", "description": "Figxel token", "password": true }],
+    "servers": { "figxel": { "type": "http", "url": "https://mcp.figxel.example/mcp", "headers": { "Authorization": "Bearer ${input:figxel-token}" } } } }
+  ```
+
+On the sign-in page, check the app's name and the address it returns to before you press **Allow**. The app keeps an access token, never your invite; whoever runs the hub ends every app's access by removing you or giving you a new invite.
 
 ---
 

@@ -69,7 +69,8 @@ export interface PeerError {
 export type ChunkField = "binary" | "base64";
 
 export type HubToPeer =
-  | { t: "peer-welcome"; hubPid: number; serverVersion: string; features?: string[] }
+  /** `person`: a team's hub names whose token the proxy presented; a laptop's hub sends none. */
+  | { t: "peer-welcome"; hubPid: number; serverVersion: string; features?: string[]; person?: string }
   /**
    * Sent before the hub closes a proxy whose token differs (4001), so the
    * proxy can say which process holds the port and which token file it uses.
@@ -122,7 +123,7 @@ const peerError = z.object({
 });
 
 const hubToPeer = z.union([
-  z.object({ t: z.literal("peer-welcome"), hubPid: z.number(), serverVersion: str, features: z.array(str).optional() }),
+  z.object({ t: z.literal("peer-welcome"), hubPid: z.number(), serverVersion: str, features: z.array(str).optional(), person: str.optional() }),
   z.object({ t: z.literal("peer-refused"), hubPid: z.number(), tokenPath: str.nullable(), fingerprint: str }),
   z.object({ t: z.literal("call-progress"), id, done: z.number(), total: z.number().optional(), phase: str.optional() }),
   z.object({

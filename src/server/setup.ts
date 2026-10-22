@@ -31,6 +31,17 @@ export type Command =
   /** `figma`: --register or --unregister, which figma-register.ts carries out. */
   | { kind: "setup"; json: boolean; figma?: RegistrationRequest }
   | { kind: "print-token" }
+  /** The plugin alone, listed in Figma desktop: for Figxel Cloud, with no server or token on this computer. */
+  | { kind: "install"; json: boolean; force: boolean; dryRun: boolean }
+  /** A team's hub on a server (hub.ts): run it, or edit its people table. */
+  | { kind: "hub" }
+  | { kind: "hub-add"; person: string; email?: string }
+  | { kind: "hub-email"; person: string; email: string }
+  | { kind: "hub-remove"; person: string }
+  | { kind: "hub-list" }
+  /** This computer's AI apps and a team's hub (join.ts): join with an invite, or leave. */
+  | { kind: "join"; invite: string }
+  | { kind: "leave" }
   | { kind: "version" }
   | { kind: "help" }
   | { kind: "error"; message: string };
@@ -53,6 +64,26 @@ export function parseCommand(argv: readonly string[]): Command {
     return { kind: "setup", json: rest.includes("--json"), ...(figma.request ? { figma: figma.request } : {}) };
   }
   if (first === "--print-token" && rest.length === 0) return { kind: "print-token" };
+  if (first === "install") {
+    const unknown = rest.filter((a) => !["--json", "--force", "--dry-run"].includes(a));
+    if (unknown.length > 0) return { kind: "error", message: `install takes only --json, --force and --dry-run, not "${unknown[0]}"` };
+    return { kind: "install", json: rest.includes("--json"), force: rest.includes("--force"), dryRun: rest.includes("--dry-run") };
+  }
+  if (first === "hub") {
+    const [verb, name, ...extra] = rest;
+    if (verb === undefined) return { kind: "hub" };
+    if (verb === "list" && name === undefined) return { kind: "hub-list" };
+    if (verb === "add" && name !== undefined && (extra.length === 0 || (extra.length === 2 && extra[0] === "--email"))) {
+      return { kind: "hub-add", person: name, ...(extra[1] ? { email: extra[1] } : {}) };
+    }
+    if (verb === "remove" && name !== undefined && extra.length === 0) return { kind: "hub-remove", person: name };
+    if (verb === "email" && name !== undefined && extra.length === 1) return { kind: "hub-email", person: name, email: extra[0]! };
+    return { kind: "error", message: "hub takes nothing, list, add <name> [--email <address>], email <name> <address>, or remove <name>" };
+  }
+  if (first === "join") {
+    return rest.length === 1 ? { kind: "join", invite: rest[0]! } : { kind: "error", message: "join takes one invite, in quotes: join 'wss://…#…'" };
+  }
+  if (first === "leave") return rest.length === 0 ? { kind: "leave" } : { kind: "error", message: "leave takes nothing" };
   return { kind: "error", message: `unknown argument "${first === "--print-token" ? rest[0] : first}"` };
 }
 
@@ -74,7 +105,19 @@ export function helpText(): string {
     "                              --dry-run prints the change and writes nothing",
     `  ${bin} setup --unregister [--dry-run]`,
     "                              remove that registration again (only the plugin's own entries)",
+    `  ${bin} install          for Figxel Cloud: copy the Figma plugin and list it under Plugins →`,
+    "                              Development (quit Figma first); no server and no token on this computer",
     `  ${bin} --print-token    print the plugin token (created if absent)`,
+    `  ${bin} hub              run a team's hub on a server: the bridge alone, for the people in`,
+    "                              <home>/hub-people.json, on 127.0.0.1 behind a TLS proxy",
+    `  ${bin} hub add <name>   add a person and print their invite (with BRIDGE_HUB_PUBLIC_URL) or token,`,
+    "                              once; the server keeps only the token's hash",
+    `  ${bin} hub remove <name>  remove a person; a running hub closes their connections`,
+    `  ${bin} hub email <name> <address>  a sign-in with Figma or Google of that verified email is them`,
+    `  ${bin} hub list         the people in the table`,
+    `  ${bin} join '<invite>'   use a team's hub from every AI app on this computer; the invite is checked,`,
+    "                              then saved in <home>/hub.json",
+    `  ${bin} leave            forget that hub: the apps use this computer's own server again`,
     `  ${bin} --version        print the version`,
     `  ${bin} --help           print this help`,
     "",

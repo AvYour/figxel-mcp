@@ -4,7 +4,7 @@ The wire-level specification for communication between Figxel's bridge (MCP serv
 
 | | |
 |---|---|
-| Transport | WebSocket text frames, `ws://127.0.0.1:38452` (fixed port; `BRIDGE_PORT` is for tests only) |
+| Transport | WebSocket text frames, `ws://127.0.0.1:38452` (fixed port; `BRIDGE_PORT` is for tests only), or a team's hub at a `wss://` address (§11) |
 | Encoding | UTF-8, one JSON object per frame |
 | Protocol version | `1` (sent in both `hello` and `welcome`) |
 | Source of truth for types | `src/shared/protocol.ts` — this document explains, the code binds |
@@ -142,6 +142,7 @@ Every `chunk` resets its request's idle timer. The bridge reassembles after the 
   "sessionId": "s-3",
   "serverVersion": "0.1.0",
   "protocolVersion": 1,
+  "person": "alice",          // only from a team's hub (§11): whose token this is
   "limits": {
     "maxQueueDepth": 32,
     "idleTimeoutMs": 30000,
@@ -285,6 +286,7 @@ connect → hello → welcome → (normal) → disconnect
 - **The bridge does not resend lost requests.** The agent decides to retry, and idempotency (§3) makes that retry safe.
 - Close codes that **stop** the loop and show a reason in the plugin UI: `4001` (show the token form), `4003`, `4005` (show "plugin/bridge version mismatch"), `4004` (another plugin window took over).
 - Close `4010` (bridge shut down cleanly) and network errors → keep retrying. The next bridge appears when the agent starts a session again.
+- To a team's hub (§11) the backoff is 1 s, 2 s, 5 s, 10 s, 30 s (cap 30 s): a hub is reached over the internet and is not started by the agent, so there is nothing to race.
 
 ---
 
@@ -309,7 +311,7 @@ connect → hello → welcome → (normal) → disconnect
 
 - **The token is the only real gate.** Every sandbox iframe has origin `null`, so the Origin filter (§1) only screens out ordinary web pages — it does not prove that the connection is our plugin.
 - Constant-time token comparison: SHA-256 both sides, then `crypto.timingSafeEqual` (that function throws when lengths differ; hashing equalises length and does not leak the token's length).
-- Bind **only** to `127.0.0.1`. There is no `0.0.0.0` option.
+- On a laptop, bind **only** to `127.0.0.1`; there is no option to change that. `figxel-mcp hub` alone takes `BRIDGE_HUB_BIND`, for a container that only its TLS proxy reaches (§11, spec ADR #44).
 - The WebSocket server's `maxPayload` is 32 MB. Larger binary payloads use `chunk` (§2).
 - The bridge never sends token contents to the MCP client — only `tokenPresent` + `tokenPath`.
 - By default the bridge does not log write-op `params` (they may contain client content); only `op`, `id`, duration, and size.
@@ -391,3 +393,37 @@ Progress only extends a tool call's life in clients that **use** it (§4). In cl
 - `set_motion_plan` (2026-10-14) is a new op: for a plugin built before it, the bridge answers `UNSUPPORTED` as "older than this server" (the op is missing from its `ops`), and that plugin's `get_motion_context` answers without `scope.topLevelFrameIds`, which the motion gate reports the same way; its `check_motion` answers without `plan`, which the check reads as no plan. Both are additions, so `protocolVersion` stayed 1; `PROCESS_REQUIRED` never travels on the wire.
 - `check_motion`'s `resolveIds`, `aliases`, `unmapped`, `outside`, `gone` and `root.handles` (2026-10-21) are additions too: a plugin built before them ignores `resolveIds` and answers without any of them, and the server then says a plugin re-run may be due when a plan's layer is missing; its `set_motion_plan` answers without `warnings`.
 - `UNSUPPORTED` also covers the editor: an op that does not run, or is not yet verified, in the session's `editorType` is refused before the ops check, with `partial: { created: [] }` on a write (spec §4.7). Widening the plugin to FigJam and Figma Slides changed no message, so `protocolVersion` stayed 1; `editorType` was in `hello` from the start.
+
+---
+
+## 11. A Team's Hub
+
+`figxel-mcp hub` runs the bridge on a server as a pure relay, behind a TLS proxy ([docs/hub.md](../hub.md), spec ADR #44). The frames are the ones above; what changes is who may connect and what each one sees.
+
+- **A token names a person.** The hub reads a table of people, each with the SHA-256 of their own token, instead of one token file. A plugin's `hello` and a server process's `peer-hello` carry that person's token, and the connection belongs to that person. The comparison is the constant-time one of §7, against every entry.
+- **Refused tokens are limited per address.** After 20 refused tokens from one address within 10 minutes, connections from it are closed with `4001` before their `hello` is read, for 15 minutes. The address is the last `X-Forwarded-For` entry when the socket comes from a private address (the TLS proxy beside the hub), else the socket's own `[C-408]`.
+- **An unknown token learns nothing.** A plugin is closed with `4001`, as on a laptop. A server process is closed with `4001` too, without the `peer-refused` frame a laptop's hub sends (which names the hub's process id and token file). The hub's own token is random and in no table.
+- **`welcome` names the person** (`person`), so the plugin window shows "as <name>". A laptop's bridge sends no `person`.
+- **Each person sees their own.** A process's calls, session lookups, session waits and status requests are answered from its person's sessions only: another person's session, by id or by file name, gets the same `NO_SESSION` text as one that never existed. Idempotency keys are kept per person, so two people's identical keys run twice. A status shows the person's own sessions and server processes, and no refused-token history. `peer-welcome` carries `hubPid: 0` and `person`, the name the token stands for, which `figma_status` and `figxel-mcp join` show.
+- **Revocation.** The hub reads the table again when it changes; a removed person's plugin sessions and server processes are closed with `4001` at once.
+- **A server process joins by address.** With `BRIDGE_HUB_URL` set it dials that address (`wss://`, or `ws://` to loopback only), never binds the port and never becomes a hub. The handshake may take 10 s; a failed join is retried after 1 s, 2 s, 5 s, 10 s, then every 30 s.
+- **One release apart.** The peer protocol stays at version 1; abilities are added as `features` and optional fields. A hub forwards an op its catalog does not know to the plugin, which decides, and treats it as a write when the proxy sent an idempotency key or a guard, so a newer write op keeps both.
+- **A ping on every socket.** The hub pings each plugin with the `ping` frame of §3 and each server process with a WebSocket ping, every heartbeat. A server process also pings the hub every 30 s and lets go of a hub that has not answered for 75 s (2.5 intervals), then joins again. Proxies on the way therefore never see an idle socket `[C-405]`.
+- **Origin.** The rule of §1 is unchanged: no Origin, or `null`. A proxy in front of the hub must not add one `[C-408]`.
+
+---
+
+## 12. The Web Endpoint
+
+With `BRIDGE_HUB_WEB=1`, `figxel-mcp hub` also answers plain HTTP on its port ([docs/hub.md § Web clients](../hub.md#web-clients)). Everything else on that port still gets `426`.
+
+- **`/mcp`** is MCP over Streamable HTTP. Every request carries `Authorization: Bearer <token>`; without it, or with a token not in the table, the answer is `401` with `WWW-Authenticate: Bearer`, and from an address turned away (§11) `429`. A request without `mcp-session-id` must be `initialize`; it opens a session whose tools join this hub over loopback as the token's person, so §11's isolation applies. A session id with another token, or one that ended, gets `404`.
+- **Results** whose text or structured content names a file in the person's folder (`<home>/web/<name>`) get `downloads: [{ path, url, expiresAt }]`, added to the JSON (or as lines below plain text).
+- **`GET /files/<id>/<name>`** serves such a file until `expiresAt` (an hour), and only while its real path, `..` and links resolved, is inside the person's folder; the 128-bit id is the only key, so the link works in a browser. After that, `404`.
+- **`POST /files?name=<file>`**, signed in, saves the body (at most 25 MB) as `uploads/<random>-<file>` in the person's folder and answers `{ path, bytes, expiresAt }`; `path` is relative to the folder, as an import's `path` is.
+- **OAuth** `[C-414]`: `GET /.well-known/oauth-protected-resource` (also with `/mcp` appended) names this server's `resource`, `<public address>/mcp`, and itself as the authorization server; `GET /.well-known/oauth-authorization-server` advertises `/authorize`, `/token`, `/register`, PKCE `S256` only, public clients (`none`) and Client ID Metadata Documents. `POST /register` takes `redirect_uris` (https, or http on localhost, on a host `BRIDGE_HUB_REDIRECT_HOSTS` allows) and answers a `client_id`, at most 20 per address an hour. A metadata document is fetched at most 30 times per address in 10 minutes, and only from public addresses. `GET /authorize` shows the sign-in page; its `POST` with the person's invite or token redirects to the registered `redirect_uri` with `code`, `state` and `iss`. `POST /token` takes `authorization_code` (with `code_verifier`) or `refresh_token`, and answers an `fxa_` access token for an hour and an `fxr_` refresh token for 30 days, rotated on each use. A `401` on `/mcp` names the metadata in `WWW-Authenticate`. An access token is good while its person's table entry is the one it was issued for.
+- **Sign-in with an account** `[C-415]` `[C-418]`: the sign-in page holds the request under an id (`p`); `GET /login/figma?p=` or `/login/google?p=` goes to the provider with its own state and PKCE, and `GET /login/<provider>/callback` learns who signed in and completes the app's request (or approves a plugin's code). An invite posts `p` and `credential` to `/authorize`.
+- **A remembered browser:** a sign-in sets `__Host-figxel` (HttpOnly, Secure, SameSite=Lax, 30 days); with it, the sign-in page offers **Continue as <person>**, a POST of `p` and `continue=1` to `/authorize`, and `GET /login/switch?p=` forgets it. A POST to `/authorize` whose Origin is another site is refused.
+- **The plugin's browser sign-in** (a device flow): `POST /device/code` answers `device_code`, `user_code` (`XXXX-XXXX`), `verification_uri_complete` and `interval`; the plugin opens that page (`figma.openExternal` `[C-417]`) and polls `POST /device/token` with `device_code`, answered `authorization_pending` until the person signed in on `GET /device?code=`, then once `{ token, person }`: the plugin's own credential, presented in `hello` like a token, good while the person's table entry is. Both are open to the plugin's origin (CORS).
+- **Limits:** an MCP message of at most 4 MB; 8 open sessions per person, the oldest closed first; a session idle for 30 minutes closes; files older than an hour are deleted.
+

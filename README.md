@@ -19,7 +19,7 @@
   <sub>One prompt in, real editable layers out: an agent builds a landing hero in Figma desktop.</sub>
 </p>
 
-**Figxel** is a local MCP server with a small Figma desktop plugin. With it, an AI app such as Claude, Cursor or VS Code can read, build and animate real designs in the file you have open, guided by skills that teach it to work like a designer.
+**Figxel** is an MCP server with a small Figma desktop plugin. With it, an AI app such as Claude, ChatGPT, Cursor or VS Code can read, build and animate real designs in the file you have open, guided by skills that teach it to work like a designer. It runs on your computer, or through a hub on a server that your team runs or that you are invited to ([Figxel Cloud and hubs](#figxel-cloud-and-team-hubs)).
 
 > Figxel is not affiliated with, endorsed or sponsored by Figma, Inc. Figma is a trademark of Figma, Inc.
 
@@ -31,7 +31,7 @@ Tested live on Windows; macOS has not been run live yet.
 - **It reads and writes your real Figma file.** A plugin runs in Figma desktop, so the agent makes editable layers, components and variables in the file you have open.
 - **It never silently overwrites your edits.** When you change something the agent read earlier, its next write to it is refused until it reads again `[C-397]`; each instruction can be taken back in one step, and only when that takes back nothing of yours.
 - **The agent works like a designer, in the role the work needs.** UI/UX, graphic, illustration, brand, presentation, design system, board or motion: each role has its own workflow, with planning before the work and testing after it. The tools enforce it: new work starts with a brief, ends with a sign-off that runs the role's checks, and a final export waits for that sign-off. For motion, a plan comes before the first keyframe.
-- **It is local and open source.** The server runs on your machine and listens only on `127.0.0.1`. MIT licensed.
+- **It is local by default and open source.** The server runs on your machine and listens only on `127.0.0.1`; a team can run its own hub instead. MIT licensed.
 
 ## What you can do
 
@@ -99,6 +99,13 @@ That is 140 tools by default: see the [tool catalog](docs/reference/tools.md).
 
 Setup's backup of Figma's settings, `--dry-run`, `--force`, `--unregister`, the manual import and the macOS status: [Install details](docs/clients.md#install-details).
 
+## Figxel Cloud and team hubs
+
+A hub runs the bridge on a server, so the plugin and your AI apps meet there instead of on your computer, and apps that cannot start a local server, such as claude.ai and ChatGPT, connect with a URL. Each person signs in with Figma or Google and reaches only their own Figma.
+
+- **Figxel Cloud** is the hub at `mcp.figxel.moirelabs.dev`, by invitation for now. Install the plugin with `npx -y figxel-mcp@latest install` (quit Figma first), press **Sign in** in it, and add `https://mcp.figxel.moirelabs.dev/mcp` to your AI app ([connecting](docs/clients.md#connecting-to-a-teams-hub)).
+- **Your team's own hub**: [docs/hub.md](docs/hub.md) runs one, with the people, sign-in and security it needs.
+
 ## See it in action
 
 > Design a landing hero for Slow Wheel, a fictional pottery studio.
@@ -144,6 +151,7 @@ Port conflicts, timeouts, video exports, macOS and logs: [docs/troubleshooting.m
 - **Figxel runs on your machine.** The server listens only on `127.0.0.1`, the plugin connects only to it, and Figxel sends nothing to any other service.
 - **Your AI app sends what the agent reads to its model provider**: file, page and layer names, text, the images it exports to look at, and your Figma user name and id.
 - **Your token stays local.** It lives in `~/.figxel/token`; the server never sends it to your AI app and never logs it.
+- **On a hub**, the plugin's requests and answers pass through that server over TLS, and files written for a web client stay there for an hour; the hub keeps no design data beyond that, and its people table keeps hashes, not tokens ([docs/hub.md](docs/hub.md)).
 
 More, including the tools that take a URL: [Privacy details](docs/troubleshooting.md#privacy-details).
 
@@ -171,7 +179,7 @@ Figma has no command or link that runs a plugin from outside `[C-016]`. Run it o
 
 ### Does my design data leave my machine?
 
-Figxel itself sends nothing off your machine. Your AI app sends what the agent reads to its model provider, as it does with anything else you share with it ([Privacy](#privacy)).
+On your computer, Figxel itself sends nothing off your machine. Through a hub, the plugin's requests and answers pass through that server. Either way, your AI app sends what the agent reads to its model provider, as it does with anything else you share with it ([Privacy](#privacy)).
 
 ### Does it run on Linux?
 
@@ -184,6 +192,7 @@ No. Figma desktop has no Linux build, and development plugins run only in the de
 | [Using Figxel](docs/usage.md) | How to work with the agent: the first session, writing a brief, example requests, reviewing and undoing its work, tips |
 | [Using it from any AI app](docs/clients.md) | Setup per app, install details, updating and uninstalling, installing the skills, tool-call timeouts, sharing one Figma connection |
 | [Configuration](docs/configuration.md) | Every setting, its default and where to set it |
+| [Running a team's hub](docs/hub.md) | A hub on a server: the container, the TLS route, people, sign-in with Figma or Google, security |
 | [Troubleshooting](docs/troubleshooting.md) | Known problems with their fixes, and the privacy details |
 | [Using Figxel as an agent](docs/agents/using-the-mcp.md) | How an agent should work: the loop, the skills, prompts and resources, choosing a tool, the safety rules |
 | [Tool catalog](docs/reference/tools.md) | Every tool and its parameters, toolsets, resources, and which editor runs each tool |

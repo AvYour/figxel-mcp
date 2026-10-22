@@ -725,8 +725,9 @@ function headline(r: RegistrationReport): string {
 }
 
 /** The registration as a person reads it. */
-export function formatRegistrationReport(r: RegistrationReport): string {
-  const out = [`Figma desktop registration (setup --${r.action}${r.force ? " --force" : ""}${r.dryRun ? " --dry-run" : ""}):`];
+/** `command`: what the person ran, as the heading names it (setup --register, or install). */
+export function formatRegistrationReport(r: RegistrationReport, command = `setup --${r.action}`): string {
+  const out = [`Figma desktop registration (${command}${r.force ? " --force" : ""}${r.dryRun ? " --dry-run" : ""}):`];
   if (r.dryRun) out.push("  Dry run: nothing was written.");
   if (r.experimental) out.push("  macOS is experimental: the location of Figma's settings file there has not been measured.");
   out.push(`  ${headline(r)}`);

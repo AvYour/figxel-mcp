@@ -1,0 +1,52 @@
+{
+  "ranAt": "2026-10-22T06:10:21.168Z",
+  "issuer": "mcp.figxel.moirelabs.dev",
+  "checks": [
+    {
+      "name": "a request without a token gets 401 naming the metadata",
+      "ok": true,
+      "detail": "Bearer realm=\"figxel\", resource_metadata=\"https://mcp.figxel.moirelabs.dev/.well-known/oauth-protected-resource\""
+    },
+    {
+      "name": "protected resource metadata",
+      "ok": true,
+      "detail": "{\"resource\":\"https://mcp.figxel.moirelabs.dev/mcp\",\"authorization_servers\":[\"https://mcp.figxel.moirelabs.dev\"],\"bearer_methods_supported\":[\"header\"],\"resource_name\":\"Figxel\"}"
+    },
+    {
+      "name": "authorization server metadata advertises PKCE S256",
+      "ok": true,
+      "detail": "https://mcp.figxel.moirelabs.dev"
+    },
+    {
+      "name": "dynamic client registration",
+      "ok": true,
+      "detail": "HTTP 201"
+    },
+    {
+      "name": "the sign-in page names the app and where it returns",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "signing in with the invite redirects back with a code",
+      "ok": true,
+      "detail": "HTTP 302"
+    },
+    {
+      "name": "the code is exchanged with PKCE",
+      "ok": true,
+      "detail": "HTTP 200, expires_in 3600"
+    },
+    {
+      "name": "an MCP call with the access token reaches the person's Figma",
+      "ok": true,
+      "detail": "[\"Figxel Showcase\"]"
+    },
+    {
+      "name": "a refresh rotates the token, and the spent one is refused",
+      "ok": true,
+      "detail": "HTTP 200, then 400"
+    }
+  ],
+  "ok": true
+}

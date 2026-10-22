@@ -575,7 +575,7 @@ describe("a final export waits for a passing, fresh sign-off on every node of a 
 
 describe("figma_status shows the process: the mode per file, the skills read, the briefs (§3.8)", () => {
   const row = (editorType: string) => ({
-    sessionId: "s-1", instanceId: "s-1", pluginVersion: "0", apiVersion: "1.0.0", editorType, ops: [], file: { name: "Co-op", key: null },
+    sessionId: "s-1", person: "local", instanceId: "s-1", pluginVersion: "0", apiVersion: "1.0.0", editorType, ops: [], file: { name: "Co-op", key: null },
     page: { id: "0:1", name: "Page 1" }, user: null, connectedAt: 0, lastSeenAt: 0, lastActiveAt: 0, selection: null, lastNodesChanged: null, active: true,
   });
   const st = (editorType: string) =>

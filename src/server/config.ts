@@ -73,6 +73,46 @@ export interface Config {
    * call at 60 s [C-030]; raise it only for a client with a longer timeout.
    */
   videoMaxWaitS: number;
+  /**
+   * A team's hub this process joins as a proxy (cloud bridge), never binding
+   * the port: BRIDGE_HUB_URL, else the hub `figxel-mcp join` saved. wss://;
+   * ws:// only to this computer, for tests.
+   */
+  hubUrl: string | null;
+  /** Where hubUrl came from: the environment, `figxel-mcp join` (<home>/hub.json), or nowhere. */
+  hubFrom: "env" | "joined" | null;
+  /**
+   * The person's token, in place of the token file: what a team's hub knows
+   * them by. BRIDGE_TOKEN, else the token `join` saved with the hub.
+   */
+  hubToken: string | null;
+  hubTokenFrom: "BRIDGE_TOKEN" | "join" | null;
+  /** <home>/hub.json: the hub `figxel-mcp join` saved for every AI app on this computer. */
+  joinedPath: string;
+  /** BRIDGE_HUB_PUBLIC_URL: for `figxel-mcp hub`, its own wss:// address, so `hub add` prints an invite. */
+  hubPublicUrl: string | null;
+  /** BRIDGE_HUB_WEB: `figxel-mcp hub` also serves MCP over HTTP at /mcp for web clients (web.ts). Needs hubPublicUrl. */
+  hubWeb: boolean;
+  /** BRIDGE_HUB_REDIRECT_HOSTS: the only hosts an app signing in with OAuth may return to; empty is any https host or localhost. */
+  hubRedirectHosts: string[];
+  /** BRIDGE_HUB_FIGMA_CLIENT_ID and _SECRET: a Figma OAuth app, for "Continue with Figma" (login.ts) [C-415]. */
+  hubFigma: { clientId: string; clientSecret: string } | null;
+  /** BRIDGE_HUB_GOOGLE_CLIENT_ID and _SECRET: a Google OAuth client, for "Continue with Google" [C-418]. */
+  hubGoogle: { clientId: string; clientSecret: string } | null;
+  /** BRIDGE_HUB_GOOGLE_ALLOW: emails and @domains a Google sign-in comes in with, besides the table's own emails. */
+  hubGoogleAllow: string[];
+  /** BRIDGE_HUB_SIGNUP: "team" (default), or "open": any Google account comes in, a new person on its first sign-in. */
+  hubSignup: "team" | "open";
+  /**
+   * Set by the hub's web endpoint, never by the environment: this process
+   * serves one web client, its files live on the server and leave as links.
+   */
+  webMode: boolean;
+  /**
+   * BRIDGE_HUB_BIND: where `figxel-mcp hub` listens. Loopback by default; in a
+   * container, the container's own network (0.0.0.0) with the port unpublished.
+   */
+  hubBind: string;
 }
 
 type Env = Record<string, string | undefined>;
@@ -94,6 +134,17 @@ function int(env: Env, name: string, fallback: number, min: number, max: number)
   return n;
 }
 
+/** In the home folder: the team's hub `figxel-mcp join` saved (config.joinedPath). */
+export const JOINED_FILE = "hub.json";
+
+/** The home folder alone, for `leave`, which must run even when the rest of the configuration does not load. */
+export function homeOf(env: Env = process.env, userHome: string = homedir()): string {
+  return resolve(env.BRIDGE_HOME?.trim() || join(userHome, HOME_DIRNAME));
+}
+
+/** <home>/hub.json for this environment, without loading the rest of the configuration. */
+export const joinedPathOf = (env: Env = process.env): string => join(homeOf(env), JOINED_FILE);
+
 /** `userHome` is the OS home directory; a test passes its own. */
 export function loadConfig(env: Env = process.env, userHome: string = homedir()): Config {
   let toolset: Toolset;
@@ -104,7 +155,8 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
   }
 
   const homeFromEnv = env.BRIDGE_HOME?.trim();
-  const home = resolve(homeFromEnv || join(userHome, HOME_DIRNAME));
+  const home = homeOf(env, userHome);
+  const joinedPath = join(home, JOINED_FILE);
   const exportDir = resolve(env.BRIDGE_EXPORT_DIR?.trim() || join(home, "exports"));
   const exportRoots = (env.BRIDGE_EXPORT_ROOTS ?? "")
     .split(delimiter)
@@ -160,7 +212,112 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
     ffmpeg,
     ffprobe,
     videoMaxWaitS: int(env, "BRIDGE_VIDEO_MAX_WAIT_S", 45, 0, 600),
+    ...hubOf(env, joinedPath),
+    joinedPath,
+    hubPublicUrl: hubAddressOf(env.BRIDGE_HUB_PUBLIC_URL, "BRIDGE_HUB_PUBLIC_URL"),
+    hubWeb: flag(env, "BRIDGE_HUB_WEB"),
+    hubRedirectHosts: listOf(env.BRIDGE_HUB_REDIRECT_HOSTS),
+    hubFigma: oauthAppOf(env, "FIGMA"),
+    hubGoogle: oauthAppOf(env, "GOOGLE"),
+    hubGoogleAllow: listOf(env.BRIDGE_HUB_GOOGLE_ALLOW),
+    hubSignup: signupOf(env.BRIDGE_HUB_SIGNUP),
+    webMode: false,
+    hubBind: hubBindOf(env.BRIDGE_HUB_BIND),
   };
+}
+
+/** A comma list, trimmed and lowercased; empty entries dropped. */
+const listOf = (raw: string | undefined): string[] =>
+  (raw ?? "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+
+/** BRIDGE_HUB_<NAME>_CLIENT_ID and _SECRET, both or neither. */
+function oauthAppOf(env: Env, name: "FIGMA" | "GOOGLE"): { clientId: string; clientSecret: string } | null {
+  const clientId = env[`BRIDGE_HUB_${name}_CLIENT_ID`]?.trim();
+  const clientSecret = env[`BRIDGE_HUB_${name}_CLIENT_SECRET`]?.trim();
+  if (!clientId && !clientSecret) return null;
+  if (!clientId || !clientSecret) throw new ConfigError(`BRIDGE_HUB_${name}_CLIENT_ID and BRIDGE_HUB_${name}_CLIENT_SECRET go together: set both, or neither`);
+  return { clientId, clientSecret };
+}
+
+function signupOf(raw: string | undefined): "team" | "open" {
+  const v = raw?.trim().toLowerCase();
+  if (!v || v === "team") return "team";
+  if (v === "open") return "open";
+  throw new ConfigError(`BRIDGE_HUB_SIGNUP="${raw}" must be team or open`);
+}
+
+/** The hub to join and the token for it: the environment first, else what `join` saved. */
+function hubOf(env: Env, joinedPath: string): Pick<Config, "hubUrl" | "hubFrom" | "hubToken" | "hubTokenFrom"> {
+  const envUrl = hubAddressOf(env.BRIDGE_HUB_URL, "BRIDGE_HUB_URL");
+  const envToken = envTokenOf(env.BRIDGE_TOKEN);
+  const joined = envUrl ? null : readJoined(joinedPath);
+  return {
+    hubUrl: envUrl ?? joined?.url ?? null,
+    hubFrom: envUrl ? "env" : joined ? "joined" : null,
+    hubToken: envToken ?? joined?.token ?? null,
+    hubTokenFrom: envToken ? "BRIDGE_TOKEN" : joined ? "join" : null,
+  };
+}
+
+/** <home>/hub.json, checked as an address and a token are; null when this computer has joined no hub. */
+export function readJoined(path: string): { url: string; token: string } | null {
+  if (!existsSync(path)) return null;
+  const broken = () => new ConfigError(`${path} is not a hub this version reads: run \`figxel-mcp leave\`, then \`figxel-mcp join\` again`);
+  let parsed: { v?: unknown; url?: unknown; token?: unknown };
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf8")) as typeof parsed;
+  } catch {
+    throw broken();
+  }
+  if (parsed.v !== 1 || typeof parsed.url !== "string" || typeof parsed.token !== "string" || !TOKEN_RE.test(parsed.token)) throw broken();
+  return { url: hubAddressOf(parsed.url, path) ?? "", token: parsed.token };
+}
+
+/** Saves the hub for every AI app on this computer, readable by its owner only. */
+export function writeJoined(path: string, url: string, token: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify({ v: 1, url, token }, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  if (process.platform !== "win32") chmodSync(path, 0o600);
+}
+
+/** BRIDGE_HUB_BIND: an IP address to listen on, loopback unless said. */
+function hubBindOf(raw: string | undefined): string {
+  const v = raw?.trim();
+  if (!v) return "127.0.0.1";
+  if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(v) && v !== "::" && v !== "::1") throw new ConfigError(`BRIDGE_HUB_BIND="${v}" must be an IP address such as 127.0.0.1 or 0.0.0.0`);
+  return v;
+}
+
+/**
+ * A hub's address, checked (BRIDGE_HUB_URL, BRIDGE_HUB_PUBLIC_URL, an invite's
+ * or hub.json's): over ws:// a token would cross the network in the clear, so
+ * only wss:// reaches another machine. `name` is what an error names.
+ */
+export function hubAddressOf(raw: string | undefined, name: string): string | null {
+  const v = raw?.trim();
+  if (!v) return null;
+  let url: URL;
+  try {
+    url = new URL(v);
+  } catch {
+    throw new ConfigError(`${name}="${v}" is not an address; a hub's looks like wss://mcp.example.com`);
+  }
+  const local = url.hostname === "127.0.0.1" || url.hostname === "localhost";
+  if (!(url.protocol === "wss:" || (url.protocol === "ws:" && local)) || url.username || url.password || url.search || url.hash) {
+    throw new ConfigError(`${name}="${v}" must be a wss:// address without user, query or fragment (ws:// only to this computer)`);
+  }
+  return url.toString().replace(/\/$/, "");
+}
+
+/** BRIDGE_TOKEN, checked: 64 hex characters, as a token file holds. */
+function envTokenOf(raw: string | undefined): string | null {
+  const v = raw?.trim();
+  if (!v) return null;
+  if (!TOKEN_RE.test(v)) throw new ConfigError("BRIDGE_TOKEN must be 64 hexadecimal characters (the token, not a file path)");
+  return v;
 }
 
 /** `…/ffmpeg(.exe)` → `…/ffprobe(.exe)`; undefined for a bare name, which PATH resolves. */

@@ -2,6 +2,26 @@
 
 Notable changes to `figxel-mcp`, newest first. A version marked **Unreleased** has not been published yet; its heading gets the release date when it is tagged ([CONTRIBUTING.md § Releasing](CONTRIBUTING.md#releasing)).
 
+## 0.3.0 — 2026-10-22
+
+### Added
+
+- **Figxel without a server on your computer: team hubs and Figxel Cloud.** `figxel-mcp hub` runs the bridge on a server behind TLS as a pure relay, with one account per person; the plugin and every AI app connect out to it, and each person reaches only their own Figma, their own files and their own sessions. Exports and imports still happen on the computer of the app that asked. Figxel Cloud, the Moire Labs hub at `mcp.figxel.moirelabs.dev`, is by invitation for now; anyone can run their own hub ([docs/hub.md](docs/hub.md)).
+- **Apps by URL and web clients.** With `BRIDGE_HUB_WEB=1` a hub serves MCP over Streamable HTTP at `/mcp`, so claude.ai, ChatGPT, Claude Code, Cursor and VS Code connect with a URL. Files a tool writes come back as download links that last an hour, and a file can be uploaded first to import it. A person's agent (the guides read, the briefs, renders in progress) is kept across sessions, for clients that open a new session for nearly every call.
+- **Sign-in like any remote MCP server.** The hub is its own OAuth authorization server `[C-414]`: **Continue with Figma** (a private Figma app admits the members of its team) or **Continue with Google** (the emails the operator lists), or an invite. A browser that signed in is remembered, so the next sign-in, such as the plugin's after Claude's, is one click.
+- **The plugin signs in through the browser.** A new plugin window opens on **Welcome to Figxel** with one **Sign in** button: a code, the browser, done. The window was redesigned: a **Figxel Cloud | This computer** switch, **Signed in as**, the token's fingerprint, activity with ✓ and ✗, and **Reset Figxel in this Figma**.
+- **`figxel-mcp install`**: the plugin alone, listed in Figma desktop, for Figxel Cloud users. **`join`** and **`leave`**: a team's hub for every AI app on a computer, from an invite. `hub add`, `hub email`, `hub list` and `hub remove` manage the people of a hub.
+- **`figma_status`** names the hub and the person a process works as.
+
+### Security
+
+- Isolation between people on a hub: sessions, status, refusals, idempotency keys, editor refusals and plugin windows are each person's own, and removing a person ends everything of theirs at once.
+- A limit on refused tokens per address; web sessions read and write only their person's folder, and download links are checked against the real path when made and when served; OAuth with PKCE S256 only, exact redirects, rotated refresh tokens, limited registration, and client documents fetched over https from public addresses only. An independent review of the cloud code found a cross-person download link and four lesser issues, all fixed before release.
+
+### Upgrading
+
+- **Local use is unchanged.** If your plugin already has a token, it connects as before. A new plugin opens on the welcome screen: choose **Use Figxel on this computer instead** and paste the token `setup` prints.
+
 ## 0.2.1 — 2026-10-22
 
 ### Fixed

@@ -18,6 +18,6 @@
     "allowedDomains": [
       "*"
     ],
-    "reasoning": "Connects to the local Figxel server at ws://127.0.0.1:38452 (loopback only). Figma rejects IP-literal entries in allowedDomains, so \"*\" is required; the bridge accepts only connections presenting its 32-byte token."
+    "reasoning": "Connects by default to the local Figxel server at ws://127.0.0.1:38452, or a team's hub at a wss:// address the person enters in the plugin window. Figma rejects IP-literal entries in allowedDomains and the hub's address is the person's choice, so \"*\" is required; a server accepts only connections presenting a 32-byte token."
   }
 }

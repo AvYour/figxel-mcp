@@ -12,6 +12,8 @@ export interface Selection {
 
 export interface SessionState {
   sessionId: string;
+  /** Whose it is: the person whose token the plugin presented. Only that person's calls reach it. */
+  person: string;
   instanceId: string;
   pluginVersion: string;
   /** What the plugin said it is running. Compared against ours in figma_status. */
@@ -35,11 +37,15 @@ export class SessionRegistry<S extends { state: SessionState }> {
   private readonly sessions = new Map<string, S>();
   private readonly waiters = new Set<(s: S) => void>();
 
-  /** Adds a session; returns the live session it replaces (same instanceId), if any. */
+  /**
+   * Adds a session; returns the live session it replaces (same window: same
+   * instanceId, same person), if any. Another person's window never replaces
+   * a person's session, whatever id it presents.
+   */
   add(session: S): S | undefined {
     let replaced: S | undefined;
     for (const s of this.sessions.values()) {
-      if (s.state.instanceId === session.state.instanceId) replaced = s;
+      if (s.state.instanceId === session.state.instanceId && s.state.person === session.state.person) replaced = s;
     }
     if (replaced) this.sessions.delete(replaced.state.sessionId);
     this.sessions.set(session.state.sessionId, session);
@@ -55,8 +61,10 @@ export class SessionRegistry<S extends { state: SessionState }> {
     return this.sessions.has(sessionId);
   }
 
-  list(): S[] {
-    return [...this.sessions.values()];
+  /** Every session, or only `person`'s: another person's sessions are not there for them. */
+  list(person?: string): S[] {
+    const all = [...this.sessions.values()];
+    return person === undefined ? all : all.filter((s) => s.state.person === person);
   }
 
   get size(): number {
@@ -69,22 +77,25 @@ export class SessionRegistry<S extends { state: SessionState }> {
    * name matches the ones `prefer` accepts (the bridge passes "this op runs in
    * its editor") win. Never with no `arg`: the active file is the one the user
    * is looking at, and the call is not silently rerouted to another file.
+   * With `person`, only that person's sessions are candidates: another
+   * person's id or file name matches nothing, as if it did not exist.
    */
-  select(arg?: string, prefer?: (s: S) => boolean): S | undefined {
+  select(arg?: string, prefer?: (s: S) => boolean, person?: string): S | undefined {
+    const mine = this.list(person);
     if (arg) {
       const byId = this.sessions.get(arg);
-      if (byId) return byId;
+      if (byId && (person === undefined || byId.state.person === person)) return byId;
       const wanted = arg.toLowerCase();
-      const byName = this.list().filter((s) => s.state.file.name?.toLowerCase() === wanted);
+      const byName = mine.filter((s) => s.state.file.name?.toLowerCase() === wanted);
       const preferred = prefer ? byName.filter(prefer) : [];
       return mostRecent(preferred.length ? preferred : byName);
     }
-    return mostRecent(this.list());
+    return mostRecent(mine);
   }
 
-  /** Resolves with the first session `select(arg, prefer)` returns within `ms`, else undefined. */
-  waitFor(arg: string | undefined, ms: number, prefer?: (s: S) => boolean): Promise<S | undefined> {
-    const now = this.select(arg, prefer);
+  /** Resolves with the first session `select(arg, prefer, person)` returns within `ms`, else undefined. */
+  waitFor(arg: string | undefined, ms: number, prefer?: (s: S) => boolean, person?: string): Promise<S | undefined> {
+    const now = this.select(arg, prefer, person);
     if (now || ms <= 0) return Promise.resolve(now);
     return new Promise((resolve) => {
       const done = (s: S | undefined) => {
@@ -93,7 +104,7 @@ export class SessionRegistry<S extends { state: SessionState }> {
         resolve(s);
       };
       const onAdd = () => {
-        const s = this.select(arg, prefer);
+        const s = this.select(arg, prefer, person);
         if (s) done(s);
       };
       const timer = setTimeout(() => done(undefined), ms);

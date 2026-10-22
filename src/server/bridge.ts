@@ -13,7 +13,7 @@
 // winner. Spec §4.2 anticipated this split; the plugin protocol is unchanged.
 
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import { createServer, type IncomingMessage, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
 import { callRefusal } from "../shared/editors.js";
@@ -231,7 +231,102 @@ export interface BridgeOptions {
   tokenPath?: string;
   /** BRIDGE_CONFLICTS of this process: the guard every write it sends carries. Default "refuse". */
   conflicts?: ConflictsMode;
+  /**
+   * A team's hub: one token per person. A plugin session belongs to the person
+   * whose token opened it, and a proxy reaches only its own person's sessions.
+   * Without it, `token` is the only person (LOCAL_PERSON), as on one computer.
+   */
+  people?: ReadonlyArray<PersonEntry>;
+  /**
+   * BRIDGE_HUB_URL: a team's hub this process joins as a proxy (cloud bridge).
+   * It never binds the port, so it can never become a second hub the plugin
+   * does not reach; when the hub is gone it keeps trying on a widening backoff.
+   */
+  hubUrl?: string;
+  /** How often a proxy pings its hub (default PEER_PING_MS); tests shorten it. */
+  peerPingMs?: number;
+  /**
+   * The address a hub listens on (default loopback). `figxel-mcp hub` in a
+   * container listens on the container's own network, which only the TLS proxy
+   * beside it reaches; the port is never published.
+   */
+  bindHost?: string;
+  /** A team's hub: how many refused tokens one address may send before it is turned away (default FAILURE_LIMIT); tests shorten it. */
+  failureLimit?: FailureLimit;
+  /**
+   * A team's hub: plain HTTP requests on the hub's port (its web endpoint, web.ts).
+   * True when it answered; otherwise the hub answers 426, as a WebSocket-only server.
+   */
+  httpHandler?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
+  /**
+   * A team's hub: the table entry (hash, hex) a credential stands for that is
+   * not in the table itself: a plugin that signed in through the browser
+   * (oauth.ts device flow), by the credential's hash. Null for any other.
+   */
+  credentialSource?: (hashHex: string) => string | null;
 }
+
+/** Refused tokens from one address within windowMs, at most max; past that the address is turned away for blockMs. */
+export interface FailureLimit {
+  max: number;
+  windowMs: number;
+  blockMs: number;
+}
+/**
+ * A team's hub turns an address away after 20 refused tokens in 10 minutes,
+ * for 15 minutes. A 256-bit token cannot be guessed either way: this keeps a
+ * scanner from filling the log and the CPU. A correct token from that address
+ * is turned away too until the time is up, so a person behind the same address
+ * waits; the hub's log names the address once.
+ */
+const FAILURE_LIMIT: FailureLimit = { max: 20, windowMs: 10 * 60_000, blockMs: 15 * 60_000 };
+
+/** Loopback or a private network: a proxy beside the hub, whose X-Forwarded-For is believed. */
+function isPrivateAddress(address: string): boolean {
+  const a = address.replace(/^::ffff:/, "");
+  return a === "::1" || /^127\./.test(a) || /^10\./.test(a) || /^192\.168\./.test(a) || /^172\.(1[6-9]|2\d|3[01])\./.test(a) || /^f[cd][0-9a-f]{2}:/i.test(a);
+}
+
+/**
+ * Who is connecting: the last X-Forwarded-For entry, which the proxy beside the
+ * hub sets, when the socket comes from a private address (that proxy) [C-408];
+ * else the socket's own address, since anyone else could write the header.
+ */
+export function clientAddress(req: Pick<IncomingMessage, "headers"> & { socket: { remoteAddress?: string | undefined } }): string {
+  const peer = req.socket.remoteAddress ?? "unknown";
+  const header = req.headers["x-forwarded-for"];
+  const forwarded = (Array.isArray(header) ? header.join(",") : (header ?? ""))
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  return isPrivateAddress(peer) && forwarded.length > 0 ? forwarded[forwarded.length - 1]! : peer;
+}
+
+/** A remote hub is reached over the internet: a longer handshake than a hub on this computer. */
+const REMOTE_HANDSHAKE_MS = 10_000;
+/** Retries to a remote hub, widening: refusing a connection costs it more than a local port does. */
+const REMOTE_RETRY_MS: readonly number[] = [1000, 2000, 5000, 10_000, 30_000];
+/**
+ * A proxy pings its hub this often: well inside the idle window of the proxies
+ * and NATs on the way [C-405]. A hub silent for 2.5 of these is let go.
+ */
+const PEER_PING_MS = 30_000;
+
+/** A person of a team's table: by token (tests), or by the token's SHA-256 in hex, as the hub's file keeps it. */
+export type PersonEntry = { person: string; token: string } | { person: string; hash: string };
+
+/** The SHA-256 of a token in hex: what a team's table stores in place of the token. */
+export function tokenHashHex(token: string): string {
+  return hashToken(token).toString("hex");
+}
+
+const toTable = (people: ReadonlyArray<PersonEntry>) =>
+  people.map((p) => ({ person: p.person, hash: "hash" in p ? Buffer.from(p.hash, "hex") : hashToken(p.token) }));
+
+/** The one person of a bridge without a team table: everything on this computer. */
+export const LOCAL_PERSON = "local";
+/** No person: a process whose own token is not in the hub's table reaches no session. */
+const NOBODY = "\u0000nobody";
 
 /** The stale-write guard a write request carries (trust spec §2.3; protocol.ts RequestMsg.guard). */
 export type Guard = NonNullable<RequestMsg["guard"]>;
@@ -256,6 +351,8 @@ export interface RequestOptions {
   force?: boolean;
   /** Set by the hub for a write a proxy forwarded: that proxy's guard, sent on as it is. */
   guard?: Guard;
+  /** Set by the hub for a call a proxy forwarded: the person that proxy's token names. Only their sessions are reached. */
+  person?: string;
 }
 
 /** JSON-safe session view — it travels between hub and proxies. */
@@ -300,6 +397,10 @@ export interface BridgeStatus {
   peerRefusal?: PeerRefusal | null;
   /** A hub: the last server process with another token that tried to share it. */
   lastPeerAuthFailure?: { at: number; pid: number } | null;
+  /** BRIDGE_HUB_URL: the team's hub this process joins, as host and port; host and port above are then the hub's. */
+  hub?: string | null;
+  /** On a team's hub: whose token this process presented, as the hub names it. */
+  person?: string | null;
 }
 
 interface Job {
@@ -349,6 +450,10 @@ interface PeerConn {
   calls: Map<string, AbortController>;
   /** It said "result-chunks" in its hello: a large result may go in pieces. */
   chunks: boolean;
+  /** Whose calls it forwards: the person its token names. */
+  person: string;
+  /** The hash its token matched: it stops opening anything once that hash leaves the table. */
+  hash: string;
 }
 
 /** A call this proxy forwarded to the hub. */
@@ -376,6 +481,18 @@ function sendDrained(socket: WebSocket, text: string): Promise<boolean> {
 
 const MIB = (n: number) => `${Math.round((n / 1024 / 1024) * 10) / 10} MiB`;
 
+/** A plugin window, as a person's: two people's windows never share a count, whatever ids they present. */
+const windowKey = (s: { state: { person: string; instanceId: string } }) => `${s.state.person}\u0000${s.state.instanceId}`;
+
+/** A hub address as it is named in messages: host and port, never a path or a query. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
 function hashToken(token: string): Buffer {
   return createHash("sha256").update(token, "utf8").digest();
 }
@@ -402,7 +519,12 @@ function toPeerError(err: unknown): PeerError {
 export class Bridge {
   readonly limits: Limits;
   private readonly opts: BridgeOptions;
-  private readonly tokenHash: Buffer;
+  /** Every person a token can name, by the token's hash: the team's table, or this computer's one token. */
+  private people: ReadonlyArray<{ person: string; hash: Buffer }>;
+  /** The hash each plugin session's token matched, by session id. */
+  private readonly sessionHashes = new Map<string, string>();
+  /** The person this process's own token names: whose sessions its own MCP client reaches. */
+  private readonly ownPerson: string;
   private readonly registry = new SessionRegistry<Session>();
   private readonly inflight = new Map<string, { op: string; promise: Promise<unknown> }>();
   private readonly sockets = new Set<WebSocket>();
@@ -415,6 +537,12 @@ export class Bridge {
   private reason: string | null = null;
   private boundPort: number;
   private lastAuthFailureAt: number | null = null;
+  /** A team's hub: its web sessions' credentials, by hash (hex), each with the table entry it stands for. */
+  private readonly sessionTokens = new Map<string, { person: string; source: string }>();
+  /** A team's hub: refused tokens by address, and until when an address is turned away. */
+  private readonly failures = new Map<string, { count: number; since: number; blockedUntil: number }>();
+  /** A team's hub: the address each socket came from (clientAddress). */
+  private readonly addressOf = new WeakMap<WebSocket, string>();
   /** Hub: the last server process with another token that tried to share this hub. */
   private lastPeerAuthFailure: { at: number; pid: number } | null = null;
   /**
@@ -435,7 +563,10 @@ export class Bridge {
   private readonly sentRenders = new Map<string, string | undefined>();
   // proxy state
   private hub: WebSocket | null = null;
+  private hubPing: NodeJS.Timeout | null = null;
   private hubPid: number | null = null;
+  /** A proxy of a team's hub: whose token this process presented, as the hub named it. */
+  private hubPerson: string | null = null;
   /** The hub holding the port refused this process's token: what it said about itself. Cleared on a welcome. */
   private peerRefusal: PeerRefusal | null = null;
   private readonly pendingCalls = new Map<string, PendingCall>();
@@ -444,13 +575,19 @@ export class Bridge {
   constructor(opts: BridgeOptions) {
     this.opts = opts;
     this.limits = { ...DEFAULT_LIMITS, ...opts.limits };
-    this.tokenHash = hashToken(opts.token);
+    this.people = toTable(opts.people ?? [{ person: LOCAL_PERSON, token: opts.token }]);
+    this.ownPerson = this.personOf(opts.token) ?? NOBODY;
     this.boundPort = opts.port;
   }
 
   /** This process's token file and fingerprint, for hints and figma_status. */
   get tokenWhere(): TokenWhere {
     return { tokenPath: this.opts.tokenPath ?? null, fingerprint: tokenFingerprint(this.opts.token) };
+  }
+
+  /** A proxy of a team's hub: whose token the hub took this process's to be; null until it is joined. */
+  get joinedAs(): string | null {
+    return this.hubPerson;
   }
 
   get port(): number {
@@ -480,12 +617,13 @@ export class Bridge {
     if (this.closed) return;
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = null;
+    if (this.opts.hubUrl) return this.electRemote(this.opts.hubUrl);
 
     const listened = await this.listenOnce();
     if (this.closed) return;
     if (listened === "ok") {
       this.becomes("hub");
-      this.opts.logger.info(`hub: listening on ws://${HOST}:${this.boundPort}`);
+      this.opts.logger.info(`hub: listening on ws://${this.opts.bindHost ?? HOST}:${this.boundPort}`);
       return;
     }
     if (listened === "EADDRINUSE" && (await this.joinHub())) {
@@ -505,6 +643,35 @@ export class Bridge {
     this.retryTimer.unref();
   }
 
+  /** BRIDGE_HUB_URL: join the team's hub, never the port; on failure try again on a widening backoff. */
+  private async electRemote(url: string): Promise<void> {
+    if (await this.joinHub(url, REMOTE_HANDSHAKE_MS)) {
+      this.becomes("proxy");
+      this.opts.logger.info(`proxy: connected to the team's hub at ${hostOf(url)}`);
+      return;
+    }
+    if (this.closed) return;
+    this.currentRole = "none";
+    this.reason = this.peerRefusal ? "HUB_REFUSED" : "HUB_UNREACHABLE";
+    const delay = REMOTE_RETRY_MS[Math.min(this.electionAttempts++, REMOTE_RETRY_MS.length - 1)]!;
+    this.retryTimer = setTimeout(() => void this.elect(), delay);
+    this.retryTimer.unref();
+  }
+
+  /** Why a call cannot reach the team's hub: its address, and whether it refused the token or cannot be reached. */
+  private hubUnavailable(key: string | undefined): BridgeError {
+    const at = hostOf(this.opts.hubUrl!);
+    return this.reason === "HUB_REFUSED"
+      ? new BridgeError(ErrorCode.NO_SESSION, `The team's hub at ${at} refused this process's token.`, {
+          hint: "Set BRIDGE_TOKEN to your own token for that hub (whoever runs the hub issues it); a token can also have been revoked. Nothing was sent.",
+          ...(key ? { idempotencyKey: key } : {}),
+        })
+      : new BridgeError(ErrorCode.NO_SESSION, `Cannot reach the team's hub at ${at}.`, {
+          hint: "Check the network and BRIDGE_HUB_URL; this process keeps trying every few seconds. Nothing was sent.",
+          ...(key ? { idempotencyKey: key } : {}),
+        });
+  }
+
   private becomes(role: Role): void {
     this.currentRole = role;
     this.reason = null;
@@ -514,14 +681,25 @@ export class Bridge {
 
   private listenOnce(): Promise<"ok" | string> {
     return new Promise((resolve) => {
-      const http = createServer((_req, res) => {
-        res.writeHead(426, { "content-type": "text/plain" }).end(`${PRODUCT_NAME} bridge: WebSocket only\n`);
+      const http = createServer((req, res) => {
+        const refuse = () => res.writeHead(426, { "content-type": "text/plain" }).end(`${PRODUCT_NAME} bridge: WebSocket only\n`);
+        const handler = this.opts.httpHandler;
+        if (!handler) return refuse();
+        handler(req, res).then(
+          (handled) => {
+            if (!handled) refuse();
+          },
+          (err: unknown) => {
+            this.opts.logger.warn(`web: ${err instanceof Error ? err.message : String(err)}`);
+            if (!res.headersSent) res.writeHead(500, { "content-type": "text/plain" }).end("Internal error\n");
+          },
+        );
       });
       http.on("upgrade", (req, socket, head) => {
         this.wss!.handleUpgrade(req, socket, head, (ws) => this.wss!.emit("connection", ws, req));
       });
       http.once("error", (err: NodeJS.ErrnoException) => resolve(err.code ?? err.message));
-      http.listen(this.opts.port, HOST, () => {
+      http.listen(this.opts.port, this.opts.bindHost ?? HOST, () => {
         this.http = http;
         this.boundPort = (http.address() as AddressInfo).port;
         resolve("ok");
@@ -533,23 +711,23 @@ export class Bridge {
     return this.opts.listenRetryMs ?? LISTEN_RETRY_MS;
   }
 
-  /** Try to join the hub holding the port; true on `peer-welcome`. */
-  private joinHub(): Promise<boolean> {
+  /** Try to join the hub holding the port, or the team's hub at `url`; true on `peer-welcome`. */
+  private joinHub(url = `ws://${HOST}:${this.opts.port}`, handshakeMs = PEER_HANDSHAKE_MS): Promise<boolean> {
     return new Promise((resolve) => {
       let settled = false;
       let refused: Extract<HubToPeer, { t: "peer-refused" }> | null = null;
       let tooBig = false;
-      const ws = new WebSocket(`ws://${HOST}:${this.opts.port}`, { maxPayload: this.limits.maxFrameBytes });
+      const ws = new WebSocket(url, { maxPayload: this.limits.maxFrameBytes });
       const done = (ok: boolean, why: string) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        this.opts.logger.debug(`peer: join ${HOST}:${this.opts.port} → ${ok ? "welcomed" : why}`);
+        this.opts.logger.debug(`peer: join ${hostOf(url)} → ${ok ? "welcomed" : why}`);
         if (!ok) ws.terminate();
         resolve(ok);
       };
       // A foreign process, an older version, or another installation never welcomes us.
-      const timer = setTimeout(() => done(false, `no welcome (not a compatible ${PRODUCT_NAME} hub)`), PEER_HANDSHAKE_MS);
+      const timer = setTimeout(() => done(false, `no welcome (not a compatible ${PRODUCT_NAME} hub)`), handshakeMs);
       ws.on("open", () => {
         const hello: PeerToHub = {
           t: "peer-hello",
@@ -567,7 +745,9 @@ export class Bridge {
         if (msg.t === "peer-welcome") {
           this.hub = ws;
           this.hubPid = msg.hubPid;
+          this.hubPerson = msg.person ?? null;
           this.peerRefusal = null;
+          this.startHubPing(ws);
           done(true, "welcomed");
           return;
         }
@@ -604,10 +784,33 @@ export class Bridge {
     });
   }
 
+  /**
+   * A ping on the hub socket keeps the proxies and NATs on the way from closing
+   * it as idle [C-405]; a hub that stops answering is let go, and joined again.
+   */
+  private startHubPing(ws: WebSocket): void {
+    this.stopHubPing();
+    const every = this.opts.peerPingMs ?? PEER_PING_MS;
+    let lastPong = Date.now();
+    ws.on("pong", () => (lastPong = Date.now()));
+    this.hubPing = setInterval(() => {
+      if (Date.now() - lastPong > every * 2.5) return ws.terminate();
+      if (ws.readyState === WebSocket.OPEN) ws.ping();
+    }, every);
+    this.hubPing.unref();
+  }
+
+  private stopHubPing(): void {
+    if (this.hubPing) clearInterval(this.hubPing);
+    this.hubPing = null;
+  }
+
   private onHubLost(code?: number): void {
+    this.stopHubPing();
     this.hub = null;
     const hubPid = this.hubPid;
     this.hubPid = null;
+    this.hubPerson = null;
     this.currentRole = "none";
     // A result too large for one frame closes the socket with 1009 (an older hub
     // sends a result in one piece). The hub is still there; say what happened.
@@ -638,7 +841,13 @@ export class Bridge {
     for (const w of this.statusWaiters.values()) w(null);
     this.statusWaiters.clear();
     if (this.closed) return;
-    this.opts.logger.info(tooBig ? "proxy: a result too large for one frame closed the hub connection — joining again" : "proxy: the hub exited — racing for the port");
+    this.opts.logger.info(
+      tooBig
+        ? "proxy: a result too large for one frame closed the hub connection — joining again"
+        : this.opts.hubUrl
+          ? "proxy: lost the team's hub — reconnecting"
+          : "proxy: the hub exited — racing for the port",
+    );
     void this.elect();
   }
 
@@ -709,6 +918,14 @@ export class Bridge {
       socket.close(CLOSE.FORBIDDEN_ORIGIN, "FORBIDDEN_ORIGIN");
       return;
     }
+    if (this.team) {
+      const address = clientAddress(req);
+      this.addressOf.set(socket, address);
+      if (this.turnedAway(address)) {
+        socket.close(CLOSE.AUTH_FAILED, "AUTH_FAILED"); // turned away: no hello is read
+        return;
+      }
+    }
 
     let session: Session | null = null;
     let peer: PeerConn | null = null;
@@ -760,8 +977,88 @@ export class Bridge {
     });
   }
 
-  private tokenMatches(token: string): boolean {
-    return timingSafeEqual(hashToken(token), this.tokenHash);
+  /** The person a token names, or null. Every entry is compared, in constant time, so the answer's timing says nothing. */
+  /** The person a token names in this hub's table, or null. */
+  personOf(token: string): string | null {
+    return this.entryOf(token)?.person ?? null;
+  }
+
+  private entryOf(token: string): { person: string; hash: string } | null {
+    const hash = hashToken(token);
+    let found: { person: string; hash: string } | null = null;
+    for (const p of this.people) if (timingSafeEqual(hash, p.hash) && found === null) found = { person: p.person, hash: p.hash.toString("hex") };
+    if (found) return found;
+    // A web session's own credential (web.ts), while the table entry it stands for is there.
+    const hex = hash.toString("hex");
+    const own = this.sessionTokens.get(hex);
+    if (own) return this.personOfSource(own.source) !== null ? { person: own.person, hash: hex } : null;
+    // A plugin that signed in through the browser, likewise.
+    const source = this.opts.credentialSource?.(hex) ?? null;
+    const person = source ? this.personOfSource(source) : null;
+    return person ? { person, hash: hex } : null;
+  }
+
+  /** A team's hub: the table entry (its hash, hex) a person's token stands for; null for any other token. */
+  sourceOf(token: string): string | null {
+    const hash = hashToken(token);
+    let found: string | null = null;
+    for (const p of this.people) if (timingSafeEqual(hash, p.hash) && found === null) found = p.hash.toString("hex");
+    return found;
+  }
+
+  /** A team's hub: the person a table entry (hash, hex) names, or null once it left the table. */
+  personOfSource(source: string): string | null {
+    return this.people.find((p) => p.hash.toString("hex") === source)?.person ?? null;
+  }
+
+  /**
+   * A team's hub: a credential for one web session (web.ts), standing for the
+   * table entry `source` until it is released or the entry leaves the table.
+   * A session signed in with OAuth never holds the person's own token, which
+   * the hub does not keep, so its tools join the hub with this instead.
+   */
+  sessionToken(source: string): string | null {
+    const person = this.personOfSource(source);
+    if (person === null) return null;
+    const token = randomBytes(32).toString("hex");
+    this.sessionTokens.set(hashToken(token).toString("hex"), { person, source });
+    return token;
+  }
+
+  releaseSessionToken(token: string): void {
+    this.sessionTokens.delete(hashToken(token).toString("hex"));
+  }
+
+  /**
+   * A team's hub: the table changed while it runs (a person added or removed,
+   * a token replaced). A plugin session or a proxy whose token left the table
+   * is closed at once, whatever the person's name: their token opens nothing now.
+   */
+  setPeople(people: ReadonlyArray<PersonEntry>): void {
+    this.people = toTable(people);
+    const kept = new Set(this.people.map((p) => p.hash.toString("hex")));
+    // A web session's credential lasts as long as the table entry it stands for.
+    for (const [hash, own] of this.sessionTokens) {
+      if (kept.has(own.source)) kept.add(hash);
+      else this.sessionTokens.delete(hash);
+    }
+    // So does a plugin's from the browser sign-in: its sessions are kept while their entry is.
+    const table = new Set(this.people.map((p) => p.hash.toString("hex")));
+    for (const hash of this.sessionHashes.values()) {
+      const source = this.opts.credentialSource?.(hash);
+      if (source && table.has(source)) kept.add(hash);
+    }
+    for (const s of this.registry.list()) {
+      if (kept.has(this.sessionHashes.get(s.state.sessionId) ?? "")) continue;
+      this.dropSession(s, "its token was revoked");
+      s.socket.close(CLOSE.AUTH_FAILED, "AUTH_FAILED");
+    }
+    for (const p of [...this.peers]) if (!kept.has(p.hash)) p.socket.close(CLOSE.AUTH_FAILED, "AUTH_FAILED");
+  }
+
+  /** A team's hub: refusals say nothing about the hub, its files or other people. */
+  private get team(): boolean {
+    return this.opts.people !== undefined;
   }
 
   private onHello(socket: WebSocket, hello: HelloMsg): Session | null {
@@ -769,8 +1066,11 @@ export class Bridge {
       socket.close(CLOSE.PROTOCOL_MISMATCH, `PROTOCOL_MISMATCH: bridge speaks ${PROTOCOL_VERSION}`);
       return null;
     }
-    if (!this.tokenMatches(hello.token)) {
+    const entry = this.entryOf(hello.token);
+    const person = entry?.person ?? null;
+    if (entry === null || person === null) {
       this.lastAuthFailureAt = Date.now();
+      this.noteRefusal(socket);
       this.opts.logger.warn("rejected a plugin connection: wrong token");
       socket.close(CLOSE.AUTH_FAILED, "AUTH_FAILED");
       return null;
@@ -778,6 +1078,7 @@ export class Bridge {
     const now = Date.now();
     const session = new Session(socket, {
       sessionId: `s-${this.nextSession++}`,
+      person,
       instanceId: hello.instanceId,
       pluginVersion: hello.pluginVersion,
       buildId: hello.buildId,
@@ -793,8 +1094,10 @@ export class Bridge {
       selection: null,
       lastNodesChanged: null,
     });
+    this.sessionHashes.set(session.state.sessionId, entry.hash);
     const replaced = this.registry.add(session);
     if (replaced) {
+      this.sessionHashes.delete(replaced.state.sessionId);
       // The same window: a render this bridge sent it is still running there.
       if (replaced.holding) session.holding = replaced.current?.id === replaced.holding.id ? { ...replaced.holding, state: "abandoned" } : replaced.holding;
       this.failAll(replaced, "replaced by a new connection from the same plugin window");
@@ -815,6 +1118,7 @@ export class Bridge {
       serverVersion: VERSION,
       protocolVersion: PROTOCOL_VERSION,
       limits: this.limits,
+      ...(this.team ? { person } : {}),
     });
     this.opts.logger.info(
       `session ${session.state.sessionId} connected: "${hello.file.name ?? "untitled"}" (plugin ${hello.pluginVersion})`,
@@ -822,12 +1126,50 @@ export class Bridge {
     return session;
   }
 
+  /** A team's hub: counts a refused token against its socket's address. */
+  private noteRefusal(socket: WebSocket): void {
+    const address = this.addressOf.get(socket);
+    if (address !== undefined) this.noteRefusalFrom(address);
+  }
+
+  /** A team's hub: whether an address is turned away for now, after too many refused tokens. */
+  turnedAway(address: string): boolean {
+    return (this.failures.get(address)?.blockedUntil ?? 0) > Date.now();
+  }
+
+  /** A team's hub: counts a refused token from an address (a socket's, or a web request's), and turns it away past the limit. */
+  noteRefusalFrom(address: string): void {
+    const limit = this.opts.failureLimit ?? FAILURE_LIMIT;
+    const now = Date.now();
+    let f = this.failures.get(address);
+    if (!f || now - f.since > limit.windowMs) {
+      f = { count: 0, since: now, blockedUntil: 0 };
+      this.failures.set(address, f);
+    }
+    f.count++;
+    if (f.count >= limit.max && f.blockedUntil <= now) {
+      f.blockedUntil = now + limit.blockMs;
+      this.opts.logger.warn(
+        `hub: ${f.count} refused tokens from ${address} within ${Math.round(limit.windowMs / 60_000)} min: turning it away for ${Math.round(limit.blockMs / 60_000)} min`,
+      );
+    }
+  }
+
   private onPeerHello(socket: WebSocket, hello: Extract<PeerToHub, { t: "peer-hello" }>): PeerConn | null {
     if (hello.protocolVersion !== PEER_PROTOCOL_VERSION) {
       socket.close(CLOSE.PROTOCOL_MISMATCH, `PROTOCOL_MISMATCH: hub speaks peer protocol ${PEER_PROTOCOL_VERSION}`);
       return null;
     }
-    if (!this.tokenMatches(hello.token)) {
+    const entry = this.entryOf(hello.token);
+    const person = entry?.person ?? null;
+    if (person === null && this.team) {
+      // A team's hub tells a stranger nothing: no pid, no token file, no fingerprint.
+      this.opts.logger.warn(`rejected a ${PRODUCT_NAME} process: its token is not in the team's table`);
+      this.noteRefusal(socket);
+      socket.close(CLOSE.AUTH_FAILED, "AUTH_FAILED");
+      return null;
+    }
+    if (entry === null || person === null) {
       // Another installation (different BRIDGE_HOME). Not a plugin token problem, so no plugin hint.
       // It is told who holds the port and which token file this hub uses, so it can say so.
       this.lastPeerAuthFailure = { at: Date.now(), pid: hello.pid };
@@ -838,9 +1180,16 @@ export class Bridge {
       socket.close(CLOSE.AUTH_FAILED, "AUTH_FAILED");
       return null;
     }
-    const peer: PeerConn = { socket, pid: hello.pid, calls: new Map(), chunks: hello.features?.includes("result-chunks") === true };
+    const peer: PeerConn = { socket, pid: hello.pid, calls: new Map(), chunks: hello.features?.includes("result-chunks") === true, person, hash: entry.hash };
     this.peers.add(peer);
-    this.sendPeer(peer, { t: "peer-welcome", hubPid: process.pid, serverVersion: VERSION, features: [...PEER_FEATURES] });
+    // A team's hub names no pid: a member needs none, and it is one fact less about the server.
+    this.sendPeer(peer, {
+      t: "peer-welcome",
+      hubPid: this.team ? 0 : process.pid,
+      serverVersion: VERSION,
+      features: [...PEER_FEATURES],
+      ...(this.team ? { person } : {}),
+    });
     this.opts.logger.info(`hub: ${PRODUCT_NAME} process ${hello.pid} (${hello.serverVersion}) is sharing this Figma connection`);
     return peer;
   }
@@ -901,6 +1250,7 @@ export class Bridge {
         peer.calls.set(msg.id, ac);
         this.request(msg.op, msg.params, {
           ...msg.opts,
+          person: peer.person, // after the spread: a proxy cannot name another person
           signal: ac.signal,
           onProgress: (p) => this.sendPeer(peer, { t: "call-progress", id: msg.id, ...p }),
         })
@@ -916,7 +1266,7 @@ export class Bridge {
         peer.calls.get(msg.id)?.abort();
         return;
       case "status-request":
-        this.sendPeer(peer, { t: "status-result", id: msg.id, status: this.status() });
+        this.sendPeer(peer, { t: "status-result", id: msg.id, status: this.status(peer.person) });
         return;
       case "peer-hello":
         peer.socket.close(CLOSE.DUPLICATE_HELLO, "DUPLICATE_HELLO");
@@ -1019,7 +1369,7 @@ export class Bridge {
 
   /** The plugin answered a render, waited for or not: a success resets the count, a timeout adds one. */
   private countRender(session: Session, msg: Extract<PluginToServer, { t: "result" }>): void {
-    const key = session.state.instanceId;
+    const key = windowKey(session);
     if (msg.ok) this.renderTimeouts.set(key, 0);
     else if (Bridge.isTimeout(msg.error.code, msg.error.message)) this.renderTimeouts.set(key, (this.renderTimeouts.get(key) ?? 0) + 1);
   }
@@ -1031,7 +1381,7 @@ export class Bridge {
    */
   private renderFailure(session: Session, err: BridgeError): BridgeError {
     if (!Bridge.isTimeout(err.code, err.message)) return err;
-    const inARow = Math.max(1, this.renderTimeouts.get(session.state.instanceId) ?? 1);
+    const inARow = Math.max(1, this.renderTimeouts.get(windowKey(session)) ?? 1);
     const render = (err.partial as { render?: RenderSize } | null | undefined)?.render;
     const message = err.code === ErrorCode.TIMEOUT ? err.message : err.message.replace(/^Figma could not export /, "Figma gave up rendering ");
     return new BridgeError(ErrorCode.TIMEOUT, message, {
@@ -1053,15 +1403,20 @@ export class Bridge {
    */
   async request(op: string, params: Record<string, unknown>, opts: RequestOptions = {}): Promise<unknown> {
     const info = OPS.get(op);
-    const write = info?.write ?? false;
+    // An op this hub's catalog does not know, from a proxy a release ahead: its key and guard say it writes,
+    // so the plugin still gets both (and runs it once, without overwriting anyone's edit).
+    const write = info?.write ?? (opts.idempotencyKey !== undefined || opts.guard !== undefined);
     const key = write ? (opts.idempotencyKey ?? `k-${randomUUID()}`) : undefined;
     // `agent` names this process, so the plugin can tell one agent's undo steps from another's.
     const guard: Guard | undefined = write ? (opts.guard ?? { conflicts: this.opts.conflicts ?? "refuse", force: opts.force === true, agent: this.requestPrefix }) : undefined;
 
     if (this.currentRole === "proxy") return this.forwardToHub(op, params, opts, key, guard);
 
-    if (key) {
-      const existing = this.inflight.get(key);
+    // Whose call it is: a proxy's person, else this process's own. Keys are kept per person too.
+    const person = opts.person ?? this.ownPerson;
+    const slot = key === undefined ? undefined : `${person}\u0000${key}`;
+    if (slot) {
+      const existing = this.inflight.get(slot);
       if (existing) {
         if (existing.op !== op) {
           throw new BridgeError(ErrorCode.INVALID_PARAM, `idempotencyKey already used for op \`${existing.op}\``, {
@@ -1072,12 +1427,12 @@ export class Bridge {
       }
     }
 
-    const promise = this.dispatch(op, params, opts, key, info?.exportOp ?? false, guard);
-    if (key) {
-      this.inflight.set(key, { op, promise });
+    const promise = this.dispatch(op, params, { ...opts, person }, key, info?.exportOp ?? false, guard);
+    if (slot) {
+      this.inflight.set(slot, { op, promise });
       promise.then(
-        () => this.inflight.delete(key),
-        () => this.inflight.delete(key),
+        () => this.inflight.delete(slot),
+        () => this.inflight.delete(slot),
       );
     }
     return promise;
@@ -1145,6 +1500,8 @@ export class Bridge {
     exportOp: boolean,
     guard: Guard | undefined,
   ): Promise<unknown> {
+    // A process of a team's hub never serves calls itself: the hub is unreachable or refused it.
+    if (this.opts.hubUrl) throw this.hubUnavailable(key);
     if (this.currentRole === "none" && this.reason === ErrorCode.PORT_IN_USE) {
       if (this.peerRefusal) {
         // The port's holder is a server of another installation: say so, and which token files.
@@ -1160,8 +1517,9 @@ export class Bridge {
     // The hub's flag OR the forwarding proxy's, for this call only.
     const allowUnverified = this.opts.allowUnverified === true || opts.allowUnverified === true;
     const runsThere = (s: Session) => this.editorRefusal(op, params, s, allowUnverified) === null;
-    const session = await this.registry.waitFor(opts.session, this.opts.sessionWaitMs, runsThere);
-    if (!session) throw this.noSession(opts.session, key);
+    const person = opts.person ?? this.ownPerson;
+    const session = await this.registry.waitFor(opts.session, this.opts.sessionWaitMs, runsThere, person);
+    if (!session) throw this.noSession(opts.session, key, person);
 
     // The editor first, then "too old" [C-129]: a board asked for a Design-only
     // op gets the true reason, not "the plugin is older". Nothing is
@@ -1239,8 +1597,9 @@ export class Bridge {
       ...(named
         ? {
             session: { sessionId: st.sessionId, file: st.file.name },
+            // The caller's own files only: on a team's hub another person's file is never a suggestion.
             others: this.registry
-              .list()
+              .list(st.person)
               .filter((s) => s !== session)
               .map((s) => ({ sessionId: s.state.sessionId, file: s.state.file.name, editorType: s.state.editorType })),
           }
@@ -1354,16 +1713,20 @@ export class Bridge {
   private dropSession(session: Session, why: string): void {
     if (!this.registry.has(session.state.sessionId)) return;
     this.registry.remove(session.state.sessionId);
+    this.sessionHashes.delete(session.state.sessionId);
     this.failAll(session, why);
     this.opts.logger.info(`session ${session.state.sessionId} ended: ${why}`);
   }
 
-  private noSession(arg: string | undefined, key: string | undefined): BridgeError {
+  private noSession(arg: string | undefined, key: string | undefined, person: string): BridgeError {
+    // Only the caller's own sessions count: another person's file is not a near miss to report.
+    const mine = this.registry.list(person);
     const message =
-      arg && this.registry.size > 0
+      arg && mine.length > 0
         ? `No connected Figma session matches "${arg}".`
         : "No Figma plugin is connected.";
-    const current = authFailureIsCurrent(this.lastAuthFailureAt, this.registry.list().map((s) => s.state.connectedAt));
+    // A team's hub cannot tell whose plugin a refused token was meant to be: it is no one's hint.
+    const current = !this.team && authFailureIsCurrent(this.lastAuthFailureAt, mine.map((s) => s.state.connectedAt));
     return new BridgeError(ErrorCode.NO_SESSION, message, {
       hint: current ? tokenHint(this.tokenWhere) : NO_SESSION_HINT,
       ...(key ? { idempotencyKey: key } : {}),
@@ -1374,6 +1737,8 @@ export class Bridge {
 
   private beat(): void {
     const now = Date.now();
+    const window = (this.opts.failureLimit ?? FAILURE_LIMIT).windowMs;
+    for (const [address, f] of this.failures) if (f.blockedUntil <= now && now - f.since > window) this.failures.delete(address);
     for (const s of this.registry.list()) {
       if (now - s.state.lastSeenAt > this.limits.heartbeatMs * HEARTBEAT_MISSES) {
         this.dropSession(s, `no message for ${(this.limits.heartbeatMs * HEARTBEAT_MISSES) / 1000} s`);
@@ -1382,29 +1747,34 @@ export class Bridge {
       }
       s.send({ t: "ping", at: now });
     }
+    // Its proxies too: the socket to a proxy on another machine stays busy both ways [C-405].
+    for (const p of this.peers) if (p.socket.readyState === WebSocket.OPEN) p.socket.ping();
   }
 
   /** This process's own view. A proxy has no sessions of its own — use statusAsync(). */
-  status(): BridgeStatus {
-    const active = this.registry.select();
+  /** The view `person` may have (default this process's own): only their sessions. */
+  status(person: string = this.ownPerson): BridgeStatus {
+    const active = this.registry.select(undefined, undefined, person);
     const { tokenPath, fingerprint } = this.tokenWhere;
+    const remote = this.opts.hubUrl ? new URL(this.opts.hubUrl) : null;
     return {
       role: this.currentRole,
       listening: this.currentRole === "hub",
       reason: this.reason,
-      port: this.boundPort,
-      host: HOST,
+      port: remote ? Number(remote.port) || (remote.protocol === "wss:" ? 443 : 80) : this.boundPort,
+      host: remote ? remote.hostname : HOST,
       hubPid: this.currentRole === "proxy" ? this.hubPid : this.currentRole === "hub" ? process.pid : null,
-      peers: this.peers.size,
-      lastAuthFailureAt: this.lastAuthFailureAt,
-      sessions: this.registry.list().map((s) => {
+      // On a team's hub a person sees their own processes, and no one's refused tokens.
+      peers: this.team ? [...this.peers].filter((p) => p.person === person).length : this.peers.size,
+      lastAuthFailureAt: this.team ? null : this.lastAuthFailureAt,
+      sessions: this.registry.list(person).map((s) => {
         const render = this.renderAhead(s);
         return {
           ...s.state,
           ops: [...s.state.ops],
           active: s === active,
           videoExport: {
-            timeoutsInARow: this.renderTimeouts.get(s.state.instanceId) ?? 0,
+            timeoutsInARow: this.renderTimeouts.get(windowKey(s)) ?? 0,
             rendering:
               render && render.elapsedMs !== null
                 ? { jobId: render.jobId ?? null, elapsedS: Math.round(render.elapsedMs / 1000), state: render.state }
@@ -1417,7 +1787,9 @@ export class Bridge {
       tokenPath,
       tokenFingerprint: fingerprint,
       peerRefusal: this.peerRefusal,
-      lastPeerAuthFailure: this.lastPeerAuthFailure,
+      lastPeerAuthFailure: this.team ? null : this.lastPeerAuthFailure,
+      hub: remote ? remote.host : null,
+      person: remote ? this.hubPerson : null,
     };
   }
 
@@ -1446,6 +1818,9 @@ export class Bridge {
       listening: false,
       hubPid: this.hubPid,
       port: own.port,
+      host: own.host,
+      hub: own.hub ?? null,
+      person: own.person ?? null,
       // An older hub sends neither field: its build is unknown, and its gate (if any) knows no flag.
       serverBuild: typeof remote.serverBuild === "string" ? remote.serverBuild : null,
       allowUnverified: remote.allowUnverified === true,
@@ -1463,6 +1838,7 @@ export class Bridge {
     this.closed = true;
     if (this.heartbeat) clearInterval(this.heartbeat);
     if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.stopHubPing();
     for (const s of this.registry.list()) {
       if (s.current) s.send({ t: "cancel", id: s.current.id, reason: "SHUTDOWN" });
       this.registry.remove(s.state.sessionId);

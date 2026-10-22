@@ -1,0 +1,59 @@
+{
+  "ranAt": "2026-10-22T05:07:29.443Z",
+  "hub": "mcp.figxel.moirelabs.dev",
+  "idleS": 0,
+  "twoPeople": true,
+  "checks": [
+    {
+      "name": "plugin welcomed",
+      "ok": true,
+      "detail": "session s-4"
+    },
+    {
+      "name": "welcome names the person",
+      "ok": true,
+      "detail": "as darrel"
+    },
+    {
+      "name": "figma_status shows the person's own file",
+      "ok": true,
+      "detail": "[\"live-hub 1cf025\",\"live-hub 170180\"]"
+    },
+    {
+      "name": "a call goes through the hub and back",
+      "ok": true,
+      "detail": "194 ms"
+    },
+    {
+      "name": "each person's status lists only their own file",
+      "ok": true,
+      "detail": "first [\"live-hub 1cf025\",\"live-hub 170180\"], second [\"live-hub other 8b5188\"]"
+    },
+    {
+      "name": "the other person's file, by name, reads as one that does not exist",
+      "ok": true,
+      "detail": "NO_SESSION: No connected Figma session matches \"live-hub other 8b5188\"."
+    },
+    {
+      "name": "and the other way round",
+      "ok": true,
+      "detail": "NO_SESSION: No connected Figma session matches \"live-hub 170180\"."
+    },
+    {
+      "name": "neither plugin received the other person's calls",
+      "ok": true,
+      "detail": "other plugin got 0 request(s)"
+    },
+    {
+      "name": "a stranger's plugin is refused",
+      "ok": true,
+      "detail": "close 4001"
+    },
+    {
+      "name": "a stranger's process learns no file or person",
+      "ok": true,
+      "detail": "{ \"bridge\": { \"version\": \"0.2.1\", \"role\": \"none\", \"listening\": false, \"reason\": \"HUB_REFUSED\", \"host\": \"mcp.figxel.moirelabs.dev\", \"po"
+    }
+  ],
+  "ok": true
+}

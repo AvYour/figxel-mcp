@@ -22,6 +22,7 @@ import { registerEval } from "./eval.js";
 import { registerExport } from "./export.js";
 import { registerFigjam } from "./figjam.js";
 import { registerModify } from "./modify.js";
+import type { VideoJobs } from "../video-jobs.js";
 import { registerMotion } from "./motion.js";
 import { registerMotionPlan } from "./motion-plan.js";
 import { registerNavigate } from "./navigate.js";
@@ -123,6 +124,8 @@ export function registerTools(
   logger?: Logger,
   motionProcess?: MotionProcess,
   roleProcess?: RoleProcess,
+  /** The renders figma_export_video started, when they outlive this server (a person's web sessions, web.ts). */
+  videoJobs?: VideoJobs<unknown>,
 ): Registration {
   const selected = selectOps(config.toolset, config.allowEval, config.enableAudio).map(toolName);
   const registered = selected.filter((t) => IMPLEMENTED.has(t.slice("figma_".length)));
@@ -166,7 +169,7 @@ export function registerTools(
   registerExport(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, roles);
   registerTokens(server, bridge, wanted);
   registerComponents(server, bridge, wanted);
-  registerMotion(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media, maxWaitS: config.videoMaxWaitS, process: motion, roles });
+  registerMotion(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media, maxWaitS: config.videoMaxWaitS, process: motion, roles, ...(videoJobs ? { jobs: videoJobs } : {}) });
   registerMotionPlan(server, bridge, wanted, motion, roles);
   registerCheckMotion(server, bridge, wanted, motion);
   registerReview(server, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });

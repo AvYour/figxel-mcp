@@ -8,7 +8,7 @@ import { EDITOR_LABEL, isEditor, refusedTools, unverifiedTools } from "../../sha
 import { ErrorCode } from "../../shared/errors.js";
 import { OPS, opName, toolsetLabel } from "../../shared/ops.js";
 import { tokenFingerprint } from "../../shared/token.js";
-import { PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, VERSION } from "../../shared/version.js";
+import { PACKAGE_NAME, PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, VERSION } from "../../shared/version.js";
 import { RENDER_STUCK_HINT } from "../../shared/video.js";
 import { authFailureIsCurrent, NO_SESSION_HINT, peerRefusedMessage, tokenHint, type Bridge } from "../bridge.js";
 import type { Config } from "../config.js";
@@ -47,9 +47,16 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
   // A plugin refused for its token is the problem only until a session connects after it.
   const pluginAuthCurrent = authFailureIsCurrent(st.lastAuthFailureAt, st.sessions.map((s) => s.connectedAt));
   const peerRefusal = st.peerRefusal ?? null;
+  const web = ctx.config.webMode && ctx.config.hubPublicUrl ? new URL(ctx.config.hubPublicUrl) : null;
 
   let hint: string;
-  if (st.role === "none" && st.reason === ErrorCode.PORT_IN_USE && peerRefusal) {
+  if (st.role === "none" && st.hub) {
+    // BRIDGE_HUB_URL: this process never takes the port, so the only problem is the hub.
+    hint =
+      st.reason === "HUB_REFUSED"
+        ? `The team's hub at ${st.hub} refused this process's token. Set BRIDGE_TOKEN to your own token for that hub (whoever runs it issues one); it may also have been revoked.`
+        : `Cannot reach the team's hub at ${st.hub} (BRIDGE_HUB_URL). This process keeps trying every few seconds: check the network and the address.`;
+  } else if (st.role === "none" && st.reason === ErrorCode.PORT_IN_USE && peerRefusal) {
     // Not the plugin's token: the port is held by another server, with another token file.
     const { message, hint: fix } = peerRefusedMessage(peerRefusal, own, ctx.config.port);
     hint = `${message} ${fix}`;
@@ -62,7 +69,13 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
   } else {
     hint = `Connected to "${active.file.name ?? "untitled"}"${active.page ? ` (page "${active.page.name}")` : ""}.`;
   }
-  if (st.role === "proxy") {
+  if (st.role === "proxy" && st.hub) {
+    const as = st.person ? ` as ${st.person}` : "";
+    const leave = ctx.config.hubFrom === "joined" ? ` \`npx -y ${PACKAGE_NAME}@latest leave\` goes back to this computer's own ${PRODUCT_NAME}.` : "";
+    hint += ctx.config.webMode
+      ? ` This is the team's web endpoint${as}. Files the tools write stay on the server for an hour; each result lists them under \`downloads\`, with a link. To import a file, give a URL, or upload it first (POST /files).`
+      : ` This process works through the team's hub at ${st.hub}${as}: the plugin connects there too (its window: Team hub), and files are read and written on this computer.${leave}`;
+  } else if (st.role === "proxy") {
     hint += ` This process shares the Figma connection held by ${PRODUCT_NAME} process ${st.hubPid}, so several AI apps can use Figma at once.`;
   }
   // Figma's exporter looks stuck in a window: say so before the agent renders again [C-318].
@@ -83,6 +96,8 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
   const build = active ? checkBuild(active.buildId, serverBuild) : null;
   if (build?.restart === "plugin") {
     hint += ` The plugin is running a different build than this server: ask the user to close the ${PLUGIN_NAME} plugin window and run it again (${PLUGIN_MENU_PATH}).`;
+  } else if (build?.restart === "client" && st.hub) {
+    hint += ` The team's hub at ${st.hub} runs an older build than this server: whoever runs the hub updates it. Re-running the plugin would change nothing.`;
   } else if (build?.restart === "client" && st.role === "proxy") {
     hint += ` The ${PRODUCT_NAME} process holding the Figma connection (pid ${st.hubPid}) is older than the installed version: ask the user to restart the MCP client that started it. Re-running the plugin would change nothing.`;
   } else if (build?.restart === "client") {
@@ -140,8 +155,10 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
       role: st.role,
       listening: st.listening,
       reason: st.reason,
-      host: st.host,
-      port: st.port,
+      // A web session joins over loopback: it names the hub's public address, not the internal one.
+      host: web ? web.hostname : st.host,
+      port: web ? Number(web.port) || 443 : st.port,
+      ...(st.hub ? { hub: web ? web.host : st.hub, ...(st.person ? { person: st.person } : {}) } : {}),
       hubPid: st.hubPid,
       sharedWith: st.role === "hub" ? st.peers : undefined,
       uptimeSec: Math.round((Date.now() - ctx.startedAt) / 1000),
@@ -161,7 +178,13 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
     skills: { version: skills.version, count: served.count, dist: skills.dist, ...(skills.restart ? { restart: skills.restart } : {}) },
     // The fingerprint is the token's first and last four characters: the plugin window shows its own,
     // so a person can tell whether the plugin and this server use the same token. Never the token.
-    token: { tokenPresent: true, tokenPath: own.tokenPath, fingerprint: own.fingerprint },
+    // A person's token for a team's hub comes from BRIDGE_TOKEN or from `join`, not from the token file.
+    // A web session's credential is the hub's own, for that session: nothing of it is shown.
+    token: web
+      ? { tokenPresent: true, tokenPath: null, from: "web sign-in" }
+      : ctx.config.hubTokenFrom
+        ? { tokenPresent: true, tokenPath: null, from: ctx.config.hubTokenFrom, fingerprint: own.fingerprint }
+        : { tokenPresent: true, tokenPath: own.tokenPath, fingerprint: own.fingerprint },
     // Refused tokens, kept apart: a plugin's (its token differs from this server's), and a server's
     // (two servers with different token files: the one holding the port refused this one, or refused another).
     auth: {

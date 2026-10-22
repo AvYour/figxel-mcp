@@ -1,0 +1,43 @@
+{
+  "ranAt": "2026-10-22T06:00:57.220Z",
+  "endpoint": "mcp.figxel.moirelabs.dev",
+  "nodeId": "14:4818",
+  "checks": [
+    {
+      "name": "a wrong token gets 401",
+      "ok": true,
+      "detail": "HTTP 401"
+    },
+    {
+      "name": "initialize over HTTPS with the bearer token",
+      "ok": true,
+      "detail": "576 ms"
+    },
+    {
+      "name": "the tools are listed",
+      "ok": true,
+      "detail": "140 tools"
+    },
+    {
+      "name": "figma_status shows the person's own Figma",
+      "ok": true,
+      "detail": "[\"Figxel Showcase\"]"
+    },
+    {
+      "name": "and says it is the web endpoint",
+      "ok": true,
+      "detail": "Connected to \"Figxel Showcase\" (page \"Page 1\"). This is the team's web endpoint as darrel. Files the tools write stay on"
+    },
+    {
+      "name": "an export comes back with a download link",
+      "ok": true,
+      "detail": "2558 ms"
+    },
+    {
+      "name": "the link serves the PNG",
+      "ok": true,
+      "detail": "HTTP 200, 54852 bytes, image/png"
+    }
+  ],
+  "ok": true
+}

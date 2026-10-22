@@ -870,6 +870,8 @@ export interface MotionOptions {
   process?: MotionProcess;
   /** The role process (role-process.ts): a final render of a frame that belongs to a brief also needs its sign-off (spec §3.7). */
   roles?: RoleProcess;
+  /** Where renders live, when they outlive this server: a person's web sessions share one (web.ts). */
+  jobs?: VideoJobs<unknown>;
 }
 
 /**
@@ -1014,14 +1016,15 @@ export function registerMotion(server: McpServer, bridge: Bridge, roots: ExportR
     },
   );
 
-  // One store per server: a process serves one MCP connection, and the store is where its renders live.
+  // One store per agent: a process serves one MCP connection; a person's web sessions share theirs, so a
+  // render started in one session is collected in the next.
   registerExportVideo(
     server,
     bridge,
     roots,
     wanted,
     { run: opts.execFile ?? nodeExecFile, tools: opts.media ?? DEFAULT_MEDIA_TOOLS, maxWaitS: opts.maxWaitS ?? DEFAULT_MAX_WAIT_S },
-    new VideoJobs<Rendered>(),
+    (opts.jobs as VideoJobs<Rendered> | undefined) ?? new VideoJobs<Rendered>(),
     proc,
     opts.roles,
   );
