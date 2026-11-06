@@ -9,7 +9,9 @@ import { join } from "node:path";
 import { createContext, runInContext } from "node:vm";
 import { afterEach, describe, expect, it } from "vitest";
 import { OPS } from "../src/shared/ops.js";
-import { CLOSE } from "../src/shared/protocol.js";
+import type { AddressInfo } from "node:net";
+import { WebSocketServer } from "ws";
+import { CLOSE, DEFAULT_LIMITS, PROTOCOL_VERSION } from "../src/shared/protocol.js";
 import { tokenFingerprint } from "../src/shared/token.js";
 import { VERSION as BRIDGE_VERSION } from "../src/shared/version.js";
 import type { Bridge } from "../src/server/bridge.js";
@@ -186,6 +188,26 @@ async function bridgeAndPlugin(storedToken: "right" | "wrong" | "none") {
 
 const sessions = (b: Bridge) => b.status().sessions;
 
+/** A server that welcomes any hello as `serverVersion`: the bridge in these tests runs from source, a dev version. */
+async function welcomingServer(serverVersion: string, person?: string): Promise<number> {
+  const wss = new WebSocketServer({ host: "127.0.0.1", port: 0 });
+  await new Promise<void>((r) => wss.once("listening", () => r()));
+  wss.on("connection", (socket) =>
+    socket.on("message", (data) => {
+      if ((JSON.parse(String(data)) as { t: string }).t !== "hello") return;
+      socket.send(JSON.stringify({ t: "welcome", sessionId: "s-1", serverVersion, protocolVersion: PROTOCOL_VERSION, limits: DEFAULT_LIMITS, ...(person ? { person } : {}) }));
+    }),
+  );
+  cleanup.push(
+    () =>
+      new Promise<void>((r) => {
+        for (const c of wss.clients) c.terminate();
+        wss.close(() => r());
+      }),
+  );
+  return (wss.address() as AddressInfo).port;
+}
+
 describe("built plugin bundles against a real bridge", () => {
   it("connects with a stored token and reports file, page, user, version", async () => {
     const { bridge, plugin } = await bridgeAndPlugin("right");
@@ -220,6 +242,41 @@ describe("built plugin bundles against a real bridge", () => {
     for (const id of ["detail", "meta", "token-fp"]) expect(plugin.el(id).textContent).not.toContain(stored); // never the token itself
   });
 
+  it("on a team's hub newer than the window, says so with the install command, and Reset clears it", async () => {
+    const port = await welcomingServer("99.0.0", "alice");
+    const plugin = loadPlugin({ port, storedToken: null, stored: { "figxel.server": "ws://localhost:38452", "figxel.token ws://localhost:38452": newToken() } });
+    cleanup.push(() => plugin.dispose());
+    await until(() => plugin.el("status").textContent === "Connected");
+    expect(plugin.el("update").hidden).toBe(false);
+    expect(plugin.el("update-text").textContent).toBe(
+      `Figxel 99.0.0 is out; this window runs ${PACKAGE_VERSION}. To update, run this in a terminal, then close this window and run Figxel again:`,
+    );
+    expect(plugin.el("update-cmd").hidden).toBe(false);
+    expect(plugin.el("update-cmd").textContent).toBe("npx -y figxel-mcp@latest install");
+    plugin.el("reset").onclick!();
+    plugin.el("reset").onclick!(); // the second click confirms
+    expect(plugin.el("update").hidden).toBe(true);
+  });
+
+  it("on this computer's newer server, says to run the window again, with no command: that server copied the plugin already", async () => {
+    const port = await welcomingServer("99.0.0");
+    const plugin = loadPlugin({ port, storedToken: newToken() });
+    cleanup.push(() => plugin.dispose());
+    await until(() => plugin.el("status").textContent === "Connected");
+    expect(plugin.el("update").hidden).toBe(false);
+    expect(plugin.el("update-text").textContent).toBe(`Figxel on this computer is 99.0.0; this window still runs ${PACKAGE_VERSION}. Close this window and run Figxel again to load it.`);
+    expect(plugin.el("update-cmd").hidden).toBe(true);
+  });
+
+  it("shows no update when the other end runs this window's version", async () => {
+    const port = await welcomingServer(PACKAGE_VERSION, "alice");
+    const plugin = loadPlugin({ port, storedToken: null, stored: { "figxel.server": "ws://localhost:38452", "figxel.token ws://localhost:38452": newToken() } });
+    cleanup.push(() => plugin.dispose());
+    await until(() => plugin.el("status").textContent === "Connected");
+    expect(plugin.el("update").hidden).toBe(true);
+    expect(plugin.el("update-cmd").hidden).toBe(true);
+  });
+
   it("forwards a selection change through the iframe-hosted debounce (no sandbox timers)", async () => {
     const { bridge, plugin } = await bridgeAndPlugin("right");
     await until(() => sessions(bridge).length === 1);
@@ -244,6 +301,26 @@ describe("built plugin bundles against a real bridge", () => {
     plugin.el("token-form").onsubmit!({ preventDefault() {} });
     await until(() => sessions(bridge).length === 1);
     await until(() => plugin.storage.get("figma-mcp.token") === token); // saved to clientStorage
+  });
+
+  it("takes an invite for another team's hub on the welcome: no detour through This computer, and no token form", async () => {
+    const { token, bridge, plugin } = await bridgeAndPlugin("none");
+    await until(() => plugin.el("status").textContent === "Welcome to Figxel");
+    expect(plugin.el("card").hidden).toBe(true); // Change sits in the card, which the welcome hides
+    expect(plugin.el("other-hub").hidden).toBe(false);
+    plugin.el("other-hub").onclick!();
+    expect(plugin.el("server-form").hidden).toBe(false);
+    expect(plugin.el("server-input").value).toBe("");
+    plugin.el("server-input").value = `ws://localhost:38452#${token}`;
+    plugin.el("server-form").onsubmit!({ preventDefault() {} });
+    await until(() => plugin.el("status").textContent === "Connected" && plugin.el("use-hub").className === "on");
+    expect(sessions(bridge)).toHaveLength(1);
+    expect(plugin.el("card").hidden).toBe(false);
+    expect(plugin.el("hub-name").textContent).toBe("localhost:38452");
+    for (const id of ["server-form", "token-form", "sign-in-box"]) expect(plugin.el(id).hidden).toBe(true);
+    expect(plugin.storage.get("figxel.server")).toBe("ws://localhost:38452");
+    expect(plugin.storage.get("figxel.token ws://localhost:38452")).toBe(token);
+    expect(plugin.storage.has("figma-mcp.token")).toBe(false); // the invite's token belongs to the hub, not this computer
   });
 
   it("switches to a team hub with that hub's own token, back to this computer with the old one, and to the hub again in one click", async () => {
@@ -279,7 +356,7 @@ describe("built plugin bundles against a real bridge", () => {
     expect(plugin.el("token-form").hidden).toBe(true);
   });
 
-  it("takes an invite under Team hub: the hub and its token saved at once, and no token form", async () => {
+  it("takes an invite under Change: the hub and its token saved at once, and no token form", async () => {
     const { token, bridge, plugin } = await bridgeAndPlugin("right");
     await until(() => sessions(bridge).length === 1);
     plugin.el("change-hub").onclick!();

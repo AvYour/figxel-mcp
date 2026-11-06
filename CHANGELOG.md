@@ -2,6 +2,18 @@
 
 Notable changes to `figxel-mcp`, newest first. A version marked **Unreleased** has not been published yet; its heading gets the release date when it is tagged ([CONTRIBUTING.md § Releasing](CONTRIBUTING.md#releasing)).
 
+## 0.3.1 — 2026-11-06
+
+### Added
+
+- **A way to update for Figxel Cloud users.** With no Figxel in an AI app's configuration nothing on the computer refreshed the plugin, and re-running it loaded the same files. Running `npx -y figxel-mcp@latest install` again is the update: it replaces the plugin files that changed and says so ("Updated the Figxel plugin … to <version>", or that it is already current), then names the one step left, running the plugin again. It no longer prints `setup`'s steps about pasting a token.
+- **The plugin window says when an update is out.** When the hub or this computer's server runs a newer release than the window, the window says which, and how to get it: through a hub, the `install` command to copy; on this computer, close the window and run it again.
+
+### Fixed
+
+- **`figma_status` through a team's hub** gives the `install` command before the re-run when the plugin is a different build than the hub, since nothing there refreshed the plugin's files.
+- **The plugin window's welcome takes an invite for another team's hub** (**Have an invite for another hub?**), instead of a detour through **This computer**; `join`, `hub add` and `figma_status` name the window's real buttons, not the **Team hub** label it lost.
+
 ## 0.3.0 — 2026-10-22
 
 ### Added

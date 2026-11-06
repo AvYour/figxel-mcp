@@ -208,6 +208,56 @@ export function refreshInstalledPlugin(home: string, logger: Logger, from: strin
   }
 }
 
+/** Where `install` puts its plugin copy, and whether it was there before: a first install or an update. */
+export interface InstallResult {
+  pluginDir: string;
+  version: string;
+  /** A copy was there before this run, so this run is an update. */
+  hadPlugin: boolean;
+  /** The files this run replaced; empty when the copy was current, or on a dry run. */
+  written: string[];
+  dryRun: boolean;
+}
+
+/**
+ * `install`'s copy of the plugin. A Figxel Cloud user has no server on their
+ * computer to refresh <home>/plugin when a version comes out, so running
+ * install again is how they update: it replaces only the files that changed.
+ */
+export function installPlugin(from: string, home: string, dryRun: boolean): InstallResult {
+  const pluginDir = installedPluginDir(home);
+  const hadPlugin = existsSync(join(pluginDir, "manifest.json"));
+  const written = dryRun ? [] : copyPlugin(from, pluginDir);
+  return { pluginDir, version: VERSION, hadPlugin, written, dryRun };
+}
+
+/** The connector a Figxel Cloud user adds in their AI app. */
+const CLOUD_CONNECTOR = "https://mcp.figxel.moirelabs.dev/mcp";
+
+/**
+ * What `install` says about the plugin copy, and what to do next. The steps of
+ * a first install sign in to Figxel Cloud; an update needs only a re-run, since
+ * Figma reads the plugin files on each run.
+ */
+export function installSummary(r: InstallResult, manifestPath: string): { plugin: string; next: string[] } {
+  if (r.dryRun) return { plugin: `Would copy the ${PLUGIN_NAME} plugin ${r.version} to ${r.pluginDir}.`, next: [] };
+  if (!r.hadPlugin) {
+    return {
+      plugin: `Copied the ${PLUGIN_NAME} plugin ${r.version} to ${r.pluginDir}.`,
+      next: [
+        `1. Open Figma desktop and a file, then ${PLUGIN_MENU_PATH}, and press Sign in.`,
+        `2. In your AI app, add the connector ${CLOUD_CONNECTOR} and sign in the same way.`,
+        `If ${PLUGIN_NAME} is not in that menu, import ${manifestPath} by hand (Plugins → Development → Import plugin from manifest…).`,
+      ],
+    };
+  }
+  if (r.written.length === 0) return { plugin: `The ${PLUGIN_NAME} plugin in ${r.pluginDir} is already ${r.version}. Nothing to update.`, next: [] };
+  return {
+    plugin: `Updated the ${PLUGIN_NAME} plugin in ${r.pluginDir} to ${r.version} (${r.written.join(", ")}).`,
+    next: [`Close the ${PLUGIN_NAME} window in Figma and run it again (${PLUGIN_MENU_PATH}): Figma reads the new files on that run.`],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // What a client runs
 

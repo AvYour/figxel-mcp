@@ -19,6 +19,8 @@ import {
   copyPlugin,
   formatSetupReport,
   helpText,
+  installPlugin,
+  installSummary,
   launchJson,
   parseCommand,
   PLUGIN_FILES,
@@ -193,7 +195,58 @@ describe("the server keeps <home>/plugin current", () => {
   });
 });
 
+describe("install, which is also the update for Figxel Cloud users", () => {
+  it("copies the plugin on the first run, replaces only what changed on the next, and says which it was", () => {
+    const home = temp();
+    const dir = join(home, "plugin");
+    const manifest = join(dir, "manifest.json");
+    const first = installPlugin(DIST_PLUGIN, home, false);
+    expect(first).toMatchObject({ pluginDir: dir, hadPlugin: false, dryRun: false });
+    expect([...first.written].sort()).toEqual([...PLUGIN_FILES].sort());
+    const firstSay = installSummary(first, manifest);
+    expect(firstSay.plugin).toBe(`Copied the Figxel plugin ${first.version} to ${dir}.`);
+    expect(firstSay.next.join("\n")).toMatch(/press Sign in\./);
+    expect(firstSay.next.join("\n")).toContain("https://mcp.figxel.moirelabs.dev/mcp");
+    expect(firstSay.next.join("\n")).toContain(manifest);
+
+    writeFileSync(join(dir, "code.js"), "// an older build\n");
+    const update = installPlugin(DIST_PLUGIN, home, false);
+    expect(update).toMatchObject({ hadPlugin: true, written: ["code.js"] });
+    expect(same(join(dir, "code.js"), join(DIST_PLUGIN, "code.js"))).toBe(true);
+    expect(installSummary(update, manifest)).toEqual({
+      plugin: `Updated the Figxel plugin in ${dir} to ${update.version} (code.js).`,
+      next: [`Close the Figxel window in Figma and run it again (${PLUGIN_MENU_PATH}): Figma reads the new files on that run.`],
+    });
+
+    const again = installPlugin(DIST_PLUGIN, home, false);
+    expect(again.written).toEqual([]);
+    expect(installSummary(again, manifest)).toEqual({ plugin: `The Figxel plugin in ${dir} is already ${again.version}. Nothing to update.`, next: [] });
+  });
+
+  it("a dry run copies nothing and says what it would do", () => {
+    const home = temp();
+    const r = installPlugin(DIST_PLUGIN, home, true);
+    expect(r).toMatchObject({ hadPlugin: false, written: [], dryRun: true });
+    expect(existsSync(join(home, "plugin"))).toBe(false);
+    expect(installSummary(r, join(home, "plugin", "manifest.json"))).toEqual({ plugin: `Would copy the Figxel plugin ${r.version} to ${join(home, "plugin")}.`, next: [] });
+  });
+});
+
 describe("the built bin", () => {
+  it("install run again after an update says it updated the plugin, and never names a token", () => {
+    const home = temp();
+    // No Figma settings file under these, so the registration is refused: this computer's real Figma is out of reach.
+    const away = temp();
+    const install = () => spawnSync(process.execPath, [SERVER, "install"], { env: env(home, { APPDATA: away, HOME: away, USERPROFILE: away }), encoding: "utf8" });
+    expect(install().stdout).toContain(`Copied the Figxel plugin ${PKG.version} to ${join(home, "plugin")}.`);
+    writeFileSync(join(home, "plugin", "ui.html"), "<!-- an older build -->\n");
+    const second = install();
+    expect(second.stdout).toContain(`Updated the Figxel plugin in ${join(home, "plugin")} to ${PKG.version} (ui.html).`);
+    expect(second.stdout).not.toMatch(/token/i);
+    for (const f of PLUGIN_FILES) expect(same(join(home, "plugin", f), join(DIST_PLUGIN, f)), f).toBe(true);
+    expect(existsSync(join(home, "token"))).toBe(false); // install makes no token
+  });
+
   it("--help prints the commands on stdout and exits 0", () => {
     const r = run(["--help"], temp());
     expect(r.status).toBe(0);

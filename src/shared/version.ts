@@ -33,5 +33,21 @@ export const LEGACY_HOME_DIRNAME = ".figma-mcp";
 
 /** What a user runs to install or update: it copies the current plugin and prints the token. */
 export const SETUP_COMMAND = `npx -y ${PACKAGE_NAME}@latest setup`;
+/** What a Figxel Cloud user runs to install or update the plugin: no server, no token on their computer. */
+export const INSTALL_COMMAND = `npx -y ${PACKAGE_NAME}@latest install`;
+
+/**
+ * True when `a` is a later release than `b`, comparing major.minor.patch. A
+ * pre-release or a dev build such as DEV_VERSION is never newer or older than
+ * anything: a window run from a checkout is not told to update.
+ */
+export function isNewerVersion(a: string, b: string): boolean {
+  const parse = (v: string) => /^(\d+)\.(\d+)\.(\d+)$/.exec(v)?.slice(1).map(Number) ?? null;
+  const x = parse(a);
+  const y = parse(b);
+  if (!x || !y) return false;
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i]! > y[i]!;
+  return false;
+}
 /** Where the imported plugin is in Figma's menus. */
 export const PLUGIN_MENU_PATH = `Plugins → Development → ${PLUGIN_NAME}`;

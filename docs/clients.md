@@ -245,7 +245,7 @@ Contributors run the server from a clone instead of the npm package: command `no
 When your team runs a hub ([docs/hub.md](hub.md)), the plugin and your AI apps connect to it instead of to this computer. Whoever runs it sends you an **invite**: one line with the hub's address and your own token, `wss://…#…`. Keep it private, as you would a password. Everything else in this page stays the same.
 
 0. **Install the plugin**, once: quit Figma desktop, then run `npx -y figxel-mcp@latest install`. It copies the plugin into `~/.figxel/plugin` and lists it under **Plugins → Development** in Figma, as `setup --register` does, with no server and no token on your computer.
-1. **The plugin.** A new Figxel window opens on **Welcome to Figxel** with one **Sign in** button, which signs in to Figxel Cloud (`mcp.figxel.moirelabs.dev`): the page that opens shows the same code as the window; sign in there with Figma or Google, and the window connects. For your team's own hub, press **Change** under Figxel Cloud and paste its address (or your invite), then **Sign in with the browser**. **Reset Figxel in this Figma**, at the bottom, forgets all of it and starts over. Each server keeps its own token, so this computer's token stays saved for later. Once connected, the window shows the hub and **Signed in as** your name: if the name is not yours, the invite is not either.
+1. **The plugin.** A new Figxel window opens on **Welcome to Figxel** with one **Sign in** button, which signs in to Figxel Cloud (`mcp.figxel.moirelabs.dev`): the page that opens shows the same code as the window; sign in there with Figma or Google, and the window connects. For your team's own hub, press **Have an invite for another hub?** under it instead, paste your invite and press **Connect**: the window saves the hub with your token and connects, with nothing more to type. (**Sign in** goes to Figxel Cloud alone: an account invited only to another hub gets **Not invited yet** there.) With only the hub's address, **Connect** asks next for **Sign in with the browser** or the invite. **Reset Figxel in this Figma**, at the bottom, forgets all of it and starts over. Each server keeps its own token, so this computer's token stays saved for later. Once connected, the window shows the hub and **Signed in as** your name: if the name is not yours, the invite is not either. **Change**, next to the hub's name, then takes another hub's address or invite the same way.
 2. **Your AI apps, all at once.** In a terminal, run once:
 
    ```bash
@@ -262,7 +262,7 @@ claude mcp add -s user figxel --env BRIDGE_HUB_URL=wss://mcp.figxel.example --en
 
 With `BRIDGE_HUB_URL` set, the server never takes this computer's port, so it cannot become a hub by accident; when the hub is away it keeps trying, and a call says it cannot reach the hub. Exports, imports, `saveTo` paths and ffmpeg run on this computer as before: only the plugin's requests and answers cross the hub. `figma_status` names the hub (`bridge.hub`) and says the process works through it.
 
-You see only your own Figma files, and nobody else on the hub sees yours: another person's file is as if it did not exist. To go back to this computer, press **This computer** in the plugin window and run `npx -y figxel-mcp@latest leave`, then restart your AI apps; **Team hub** takes the plugin back to the same hub in one click.
+You see only your own Figma files, and nobody else on the hub sees yours: another person's file is as if it did not exist. To go back to this computer, press **This computer** in the plugin window and run `npx -y figxel-mcp@latest leave`, then restart your AI apps; **Figxel Cloud**, the other side of that switch, takes the plugin back to the last hub it used, your team's included, in one click.
 
 ### Apps by URL
 
@@ -354,8 +354,9 @@ Claude Code follows a symlinked skill folder `[C-175]`; whether it treats a Wind
 ### Updating
 
 - **With `@latest` in the entry** (as in [The server entry](#the-server-entry)), npx asks the registry for the newest version each time your app starts the server `[C-283]`. To update, restart the app.
-- **The plugin follows the server.** When a new version starts, the server copies its plugin into `~/.figxel/plugin`. Close the Figxel plugin window in Figma and run it again; Figma reads the plugin files on each run, so there is nothing to re-import `[C-275]`.
-- **`figma_status` tells you what is stale.** Its hint says whether to re-run the plugin or restart the app.
+- **The plugin follows the server.** When a new version starts on your computer, the server copies its plugin into `~/.figxel/plugin`. Close the Figxel plugin window in Figma and run it again; Figma reads the plugin files on each run, so there is nothing to re-import `[C-275]`.
+- **Figxel Cloud, with no Figxel in your AI app's configuration:** nothing on your computer updates the plugin by itself. Run `npx -y figxel-mcp@latest install` again: it replaces the plugin files that changed and says so ("Updated the Figxel plugin … to <version>"), or that the plugin is already current. Then close the Figxel plugin window and run it again. The plugin window says when the hub runs a newer version than the window, with that command.
+- **`figma_status` tells you what is stale.** Its hint says whether to re-run the plugin or restart the app; through a team's hub, it gives the `install` command first.
 - **Keep every app on the same entry.** Two apps running different versions copy their own plugin into `~/.figxel/plugin` in turn, each time one of them starts the server.
 
 ### Uninstalling

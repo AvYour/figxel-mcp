@@ -11,10 +11,10 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { inviteOf } from "../shared/invite.js";
 import { tokenFingerprint } from "../shared/token.js";
-import { PACKAGE_NAME, PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, SERVER_NAME, VERSION } from "../shared/version.js";
+import { PACKAGE_NAME, PLUGIN_NAME, PRODUCT_NAME, SERVER_NAME, VERSION } from "../shared/version.js";
 import { Bridge, type BridgeOptions } from "./bridge.js";
 import { ConfigError, createLogger, joinedPathOf, loadConfig, migrateLegacyToken, readOrCreateToken, type Config, type Logger } from "./config.js";
-import { joinHub, leaveHub } from "./join.js";
+import { joinHub, leaveHub, pluginStepFor } from "./join.js";
 import { MotionProcess, SkillLedger } from "./motion-process.js";
 import { RoleProcess } from "./role-process.js";
 import { VideoJobs } from "./video-jobs.js";
@@ -22,7 +22,7 @@ import { stripSchemaDialect } from "./schema-dialect.js";
 import { registerResources, registerSkillResources } from "./resources.js";
 import { registerTools, type Registration } from "./tools/index.js";
 import { SERVER_INSTRUCTIONS } from "./guides.js";
-import { bundledPluginDir, copyPlugin, formatSetupReport, helpText, installedPluginDir, parseCommand, refreshInstalledPlugin, runSetup } from "./setup.js";
+import { bundledPluginDir, formatSetupReport, helpText, installedPluginDir, installPlugin, installSummary, parseCommand, refreshInstalledPlugin, runSetup } from "./setup.js";
 import { addPerson, peoplePath, readPeople, removePerson, runHub, setEmail } from "./hub.js";
 import { formatRegistrationReport, pluginToRegister, runFigmaRegistration, withRegistration } from "./figma-register.js";
 
@@ -204,7 +204,7 @@ function runPeopleCommand(
         process.stdout.write(`${inviteOf(publicUrl, token)}\n`);
         process.stderr.write(
           `Added "${command.person}" to ${path}. The invite above holds their token: it is shown once and kept nowhere on this server, ` +
-            `so send it to them privately. They paste it in the ${PLUGIN_NAME} plugin window (Team hub) and run: ` +
+            `so send it to them privately. In Figma they ${pluginStepFor(publicUrl, "it")}. For their AI apps they run: ` +
             `npx -y ${PACKAGE_NAME}@latest join '<the invite>'. A running hub takes it within seconds.\n`,
         );
       } else {
@@ -283,20 +283,16 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       // The plugin, and nothing that a server on this computer would need: Figxel Cloud signs in through the browser.
       const from = bundledPluginDir();
       if (!from) throw new ConfigError(`The Figma plugin files are not next to this command, so there is nothing to copy. Reinstall ${PACKAGE_NAME}.`);
-      const pluginDir = installedPluginDir(config.home);
-      if (!command.dryRun) copyPlugin(from, pluginDir);
-      const r = runFigmaRegistration(pluginToRegister(pluginDir, from), { action: "register", force: command.force, dryRun: command.dryRun });
-      const next =
-        r.outcome === "refused"
-          ? ""
-          : [
-              "",
-              "Next:",
-              `  1. Open Figma desktop and a file, then ${PLUGIN_MENU_PATH}, and press Sign in.`,
-              "  2. In your AI app, add the connector https://mcp.figxel.moirelabs.dev/mcp and sign in the same way.",
-              "",
-            ].join("\n");
-      process.stdout.write(command.json ? `${JSON.stringify({ pluginDir, registration: r }, null, 2)}\n` : `${formatRegistrationReport(r, "install")}${next}`);
+      // Run again, it is the update: it replaces the files that changed and says so.
+      const plugin = installPlugin(from, config.home, command.dryRun);
+      const r = runFigmaRegistration(pluginToRegister(plugin.pluginDir, from), { action: "register", force: command.force, dryRun: command.dryRun });
+      const summary = installSummary(plugin, r.manifestPath);
+      // install's own steps replace setup's, which speak of a token install never makes.
+      if (r.outcome !== "refused") r.next = [];
+      const next = r.outcome === "refused" || summary.next.length === 0 ? "" : ["", "Next:", ...summary.next.map((n) => `  ${n}`), ""].join("\n");
+      process.stdout.write(
+        command.json ? `${JSON.stringify({ pluginDir: plugin.pluginDir, plugin, registration: r }, null, 2)}\n` : `${summary.plugin}\n${formatRegistrationReport(r, "install")}${next}`,
+      );
       if (r.outcome === "refused") process.exitCode = 1;
       return;
     }

@@ -8,10 +8,11 @@ import { EDITOR_LABEL, isEditor, refusedTools, unverifiedTools } from "../../sha
 import { ErrorCode } from "../../shared/errors.js";
 import { OPS, opName, toolsetLabel } from "../../shared/ops.js";
 import { tokenFingerprint } from "../../shared/token.js";
-import { PACKAGE_NAME, PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, VERSION } from "../../shared/version.js";
+import { INSTALL_COMMAND, PACKAGE_NAME, PLUGIN_MENU_PATH, PLUGIN_NAME, PRODUCT_NAME, VERSION } from "../../shared/version.js";
 import { RENDER_STUCK_HINT } from "../../shared/video.js";
 import { authFailureIsCurrent, NO_SESSION_HINT, peerRefusedMessage, tokenHint, type Bridge } from "../bridge.js";
 import type { Config } from "../config.js";
+import { pluginStepFor } from "../join.js";
 import type { checkMediaTools } from "../ffmpeg.js";
 import type { MotionProcess } from "../motion-process.js";
 import { okResult } from "../results.js";
@@ -74,7 +75,7 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
     const leave = ctx.config.hubFrom === "joined" ? ` \`npx -y ${PACKAGE_NAME}@latest leave\` goes back to this computer's own ${PRODUCT_NAME}.` : "";
     hint += ctx.config.webMode
       ? ` This is the team's web endpoint${as}. Files the tools write stay on the server for an hour; each result lists them under \`downloads\`, with a link. To import a file, give a URL, or upload it first (POST /files).`
-      : ` This process works through the team's hub at ${st.hub}${as}: the plugin connects there too (its window: Team hub), and files are read and written on this computer.${leave}`;
+      : ` This process works through the team's hub at ${st.hub}${as}: the plugin connects there too, and files are read and written on this computer. To connect the plugin, ${pluginStepFor(ctx.config.hubUrl ?? "")}.${leave}`;
   } else if (st.role === "proxy") {
     hint += ` This process shares the Figma connection held by ${PRODUCT_NAME} process ${st.hubPid}, so several AI apps can use Figma at once.`;
   }
@@ -91,10 +92,14 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
   // The hints speak to someone who installed the package, not to a developer
   // with a checkout: the server refreshes the plugin copy in its home folder
   // when it starts, so a stale plugin needs only a re-run, and a stale server
-  // a restart of the MCP client that started it.
+  // a restart of the MCP client that started it. Through a team's hub nothing
+  // says a server on the person's own computer refreshed that copy (a Figxel
+  // Cloud user has none), so the update comes first.
   const serverBuild = st.serverBuild === undefined ? PLUGIN_BUILD_ID : (st.serverBuild ?? "unknown");
   const build = active ? checkBuild(active.buildId, serverBuild) : null;
-  if (build?.restart === "plugin") {
+  if (build?.restart === "plugin" && st.hub) {
+    hint += ` The plugin is running a different build than the team's hub: ask the user to update it with \`${INSTALL_COMMAND}\` in a terminal, which replaces the plugin files on their computer, then close the ${PLUGIN_NAME} plugin window and run it again (${PLUGIN_MENU_PATH}).`;
+  } else if (build?.restart === "plugin") {
     hint += ` The plugin is running a different build than this server: ask the user to close the ${PLUGIN_NAME} plugin window and run it again (${PLUGIN_MENU_PATH}).`;
   } else if (build?.restart === "client" && st.hub) {
     hint += ` The team's hub at ${st.hub} runs an older build than this server: whoever runs the hub updates it. Re-running the plugin would change nothing.`;

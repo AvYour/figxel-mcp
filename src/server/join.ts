@@ -17,6 +17,25 @@ export interface JoinOutcome {
 
 const RESTART = `Restart your AI apps so that they pick it up.`;
 
+/** Figxel Cloud, the hub the plugin window connects to by default (CLOUD_URL in src/plugin/server-url.ts). */
+const CLOUD_HUB = "wss://mcp.figxel.moirelabs.dev";
+
+/**
+ * What the person does in the plugin window to connect it to the hub at `url`
+ * (as hubAddressOf writes it), in the window's own labels (src/plugin/ui.html),
+ * first as a new window's first screen shows them: Figxel Cloud, its default,
+ * signs in through the browser, whose page also takes an invite; another team's
+ * hub takes the invite in the server form. Once the window shows a hub, the same
+ * steps are Sign in with the browser and Change; on This computer, Figxel Cloud
+ * comes first.
+ */
+export function pluginStepFor(url: string, invite = "the invite"): string {
+  const later = (label: string) => `("${label}" once it shows a hub; on This computer, press "Figxel Cloud" first)`;
+  return url === CLOUD_HUB
+    ? `press "Sign in" in the ${PLUGIN_NAME} plugin window ${later("Sign in with the browser")}, then sign in on the page that opens or paste ${invite} there`
+    : `press "Have an invite for another hub?" in the ${PLUGIN_NAME} plugin window ${later("Change")}, then paste ${invite} and press "Connect"`;
+}
+
 /** Checks the invite against the hub, and saves it unless the hub refused its token. */
 export async function joinHub(config: Config, invite: string, logger: Logger): Promise<JoinOutcome> {
   const parsed = parseInvite(invite);
@@ -33,7 +52,7 @@ export async function joinHub(config: Config, invite: string, logger: Logger): P
     return { saved: false, message: `The team's hub at ${host} refused this invite's token: it may have been revoked. Ask whoever runs the hub for a new invite. Nothing was saved.` };
   }
   writeJoined(config.joinedPath, url, parsed.token);
-  const plugin = `In Figma, paste the same invite in the ${PLUGIN_NAME} plugin window under Team hub.`;
+  const plugin = `In Figma, ${pluginStepFor(url, "the same invite")}.`;
   if (role !== "proxy") {
     return {
       saved: true,

@@ -16,7 +16,7 @@ import {
   type ServerToPlugin,
 } from "../shared/protocol.js";
 import { tokenFingerprint } from "../shared/token.js";
-import { PLUGIN_NAME, SETUP_COMMAND } from "../shared/version.js";
+import { INSTALL_COMMAND, isNewerVersion, PLUGIN_NAME, SETUP_COMMAND } from "../shared/version.js";
 import type { HelloInfo, SandboxToUi, UiToSandbox } from "./messages.js";
 import { parseInvite } from "../shared/invite.js";
 import { CLOUD_NAME, CLOUD_URL, REMOTE_BACKOFF_MS, parseServer, placeOf, urlOf } from "./server-url.js";
@@ -51,7 +51,11 @@ const signInCode = $<HTMLDivElement>("sign-in-code");
 const signInAgain = $<HTMLButtonElement>("sign-in-again");
 const resetBtn = $<HTMLButtonElement>("reset");
 const useLocalFirst = $<HTMLButtonElement>("use-local-first");
+const otherHubFirst = $<HTMLButtonElement>("other-hub");
 const card = $<HTMLDivElement>("card");
+const updateBox = $<HTMLDivElement>("update");
+const updateText = $<HTMLDivElement>("update-text");
+const updateCmd = $<HTMLElement>("update-cmd");
 
 let token: string | null = null;
 /** null: this computer's server; else a team's hub (server-url.ts). */
@@ -94,6 +98,26 @@ function paint(): void {
   metaEl.textContent = session ? `Session ${session.id} · Figxel ${session.version}` : "";
 }
 
+/**
+ * A newer Figxel at the other end of the connection than this window runs.
+ * This computer's server already copied its plugin when it started, so a
+ * re-run loads it. A team's hub cannot reach this computer's files: the
+ * update is install, run here, which Figxel Cloud users have no server for.
+ */
+function paintUpdate(serverVersion: string | null): void {
+  const mine = hello?.pluginVersion ?? "";
+  const newer = serverVersion !== null && isNewerVersion(serverVersion, mine);
+  updateBox.hidden = !newer;
+  updateCmd.hidden = !(newer && server);
+  if (!newer) return;
+  if (server) {
+    updateText.textContent = `${PLUGIN_NAME} ${serverVersion} is out; this window runs ${mine}. To update, run this in a terminal, then close this window and run ${PLUGIN_NAME} again:`;
+    updateCmd.textContent = INSTALL_COMMAND;
+  } else {
+    updateText.textContent = `${PLUGIN_NAME} on this computer is ${serverVersion}; this window still runs ${mine}. Close this window and run ${PLUGIN_NAME} again to load it.`;
+  }
+}
+
 /** code.ts reports "op ok" or "op CODE"; the list shows a mark instead. */
 function activity(text: string): void {
   const m = /^(\S+) (ok|[A-Z_]+)$/.exec(text);
@@ -113,6 +137,7 @@ function showTokenForm(title: string, reason: string): void {
   signInBox.hidden = !server;
   signInBtn.textContent = "Sign in with the browser";
   useLocalFirst.hidden = true;
+  otherHubFirst.hidden = true;
   signInCode.hidden = true;
   signInAgain.hidden = true;
   tokenLabel.textContent = server ? `Or paste your invite for ${placeOf(server)}` : "Your token for this computer";
@@ -124,12 +149,17 @@ function showTokenForm(title: string, reason: string): void {
 /** Chose this computer's server on the first screen: its token form, not the welcome, until a reset. */
 let localChosen = false;
 
-/** The first screen, with nothing saved: one button signs in to Figxel Cloud, nothing to type. */
+/**
+ * The first screen, with nothing saved: one button signs in to Figxel Cloud,
+ * nothing to type. An invite for another team's hub opens the server form
+ * here, since the card that holds Change is hidden until a way in is chosen.
+ */
 function showWelcome(): void {
   tokenForm.hidden = true;
   signInBox.hidden = false;
   signInBtn.textContent = "Sign in";
   useLocalFirst.hidden = false;
+  otherHubFirst.hidden = false;
   signInCode.hidden = true;
   signInAgain.hidden = true;
   setStatus(
@@ -157,6 +187,7 @@ async function signInWithBrowser(): Promise<void> {
   // With nothing chosen yet, Sign in means Figxel Cloud.
   const hub = server ?? CLOUD_URL;
   const run = ++signInRun;
+  serverForm.hidden = true; // signing in to this hub, not choosing another
   const base = hub.replace(/^ws/, "http");
   setStatus("wait", "Signing in…", `Asking ${placeOf(hub)} for a code.`);
   let start: { device_code: string; user_code: string; verification_uri_complete: string; interval: number; expires_in: number };
@@ -283,6 +314,7 @@ function connect(): void {
         // A team's hub says whose token this is: the card names it, so a wrong token shows at a glance.
         person = msg.person ?? null;
         session = { id: msg.sessionId, version: msg.serverVersion };
+        paintUpdate(msg.serverVersion);
         tokenForm.hidden = true;
         signInBox.hidden = true;
         signInRun++; // a sign-in still asking is done
@@ -431,8 +463,12 @@ useLocalBtn.onclick = () => {
 
 useLocalFirst.onclick = () => {
   localChosen = true;
+  serverForm.hidden = true;
   showTokenForm("Paste your token", tokenSource());
 };
+
+// From the welcome, an invite for another team's hub: its Connect is the one Change opens (serverForm.onsubmit).
+otherHubFirst.onclick = showServerForm;
 
 useHubBtn.onclick = () => {
   if (server) return;
@@ -475,6 +511,7 @@ resetBtn.onclick = () => {
   serverForm.hidden = true;
   signInBox.hidden = true;
   localChosen = false;
+  paintUpdate(null);
   activity("reset: the hub, tokens and sign-ins are forgotten");
   setStatus("wait", "Starting over…");
   paint();

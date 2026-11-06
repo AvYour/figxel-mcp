@@ -123,8 +123,28 @@ describe("figma_status through a team's hub", () => {
     const st = await statusOf(laptop, url, alice);
     expect(st.bridge).toMatchObject({ role: "proxy", host: "127.0.0.1", port: hub.port, hub: `127.0.0.1:${hub.port}`, person: "alice", hubPid: 0 });
     expect(st.hint).toMatch(/^Connected to "Alice's file"[^.]*\. This process works through the team's hub at 127\.0\.0\.1:\d+ as alice:/);
+    // The plugin window's own labels: another hub than Figxel Cloud takes the invite on the first screen, or under Change.
+    expect(st.hint).toMatch(
+      /the plugin connects there too, and files are read and written on this computer\. To connect the plugin, press "Have an invite for another hub\?" in the Figxel plugin window \("Change" once it shows a hub; [^)]*\), then paste the invite and press "Connect"\./,
+    );
     expect(st.hint).not.toMatch(/process \d+/);
     expect(st.token).toMatchObject({ tokenPath: null, from: "BRIDGE_TOKEN" });
+  });
+
+  it("a plugin older than the hub: the hint updates it with install first, since nothing here refreshed its files", async () => {
+    const alice = newToken();
+    const hub = await startBridge({ token: newToken(), people: [{ person: "alice", token: alice }] });
+    cleanup.push(() => hub.close());
+    const figma = await connectedMock(hub, alice, { fileName: "Alice's file", buildId: "000000000000" });
+    cleanup.push(() => figma.close());
+    const url = `ws://127.0.0.1:${hub.port}`;
+    const laptop = await startBridge({ token: alice, hubUrl: url });
+    cleanup.push(() => laptop.close());
+    await until(() => laptop.role === "proxy");
+    const st = await statusOf(laptop, url, alice);
+    expect(st.hint).toMatch(
+      /The plugin is running a different build than the team's hub: ask the user to update it with `npx -y figxel-mcp@latest install` in a terminal, which replaces the plugin files on their computer, then close the Figxel plugin window and run it again \(Plugins → Development → Figxel\)\./,
+    );
   });
 
   it("a refused token: the hint names the hub and BRIDGE_TOKEN, not a port or a token file", async () => {

@@ -35,7 +35,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * @param {{
  *   url?: string, token: string, instanceId?: string, ops?: string[], fileName?: string, editorType?: string,
  *   scenario?: "normal" | "slow" | "stall" | "drop", durationMs?: number, progressMs?: number,
- *   protocolVersion?: number, reconnectDelayMs?: number, log?: (line: string) => void,
+ *   protocolVersion?: number, reconnectDelayMs?: number, buildId?: string, log?: (line: string) => void,
  * }} options
  */
 export function startMockPlugin(options) {
@@ -170,6 +170,8 @@ export function startMockPlugin(options) {
         token: options.token,
         instanceId,
         pluginVersion: "0.0.0-mock",
+        // A build id lets a test show a plugin older than its server (src/server/plugin-build.ts); none by default.
+        ...(options.buildId ? { buildId: options.buildId } : {}),
         apiVersion: "1.0.0",
         // A FigJam board or a Slides deck for the editor gate's tests (src/shared/editors.ts).
         editorType: options.editorType ?? "figma",

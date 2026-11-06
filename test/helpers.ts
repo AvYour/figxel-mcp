@@ -46,6 +46,8 @@ export interface MockOptions {
   progressMs?: number;
   protocolVersion?: number;
   reconnectDelayMs?: number;
+  /** The plugin build the hello reports; none by default. */
+  buildId?: string;
 }
 
 export function startMock(opts: MockOptions): MockPlugin {

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { notBatchable } from "../src/plugin/ops/batch.js";
 import { CORE_OPS, GROUPS, OPS, parseToolset, selectOps, toolName } from "../src/shared/ops.js";
-import { DEV_VERSION, VERSION } from "../src/shared/version.js";
+import { DEV_VERSION, isNewerVersion, VERSION } from "../src/shared/version.js";
 
 // tools.md is the source of truth for the tool list (AGENTS.md § Document
 // roles). These tests make the code fail loudly if it drifts from the catalog.
@@ -128,4 +128,17 @@ it("VERSION is the dev marker when the source runs unbundled", () => {
   expect(VERSION).toBe(DEV_VERSION);
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   expect(DEV_VERSION).not.toBe(pkg.version);
+});
+
+// The plugin window offers an update only for a later release at the other end.
+it("isNewerVersion compares releases part by part, and never a dev or pre-release build", () => {
+  expect(isNewerVersion("0.3.1", "0.3.0")).toBe(true);
+  expect(isNewerVersion("0.10.0", "0.9.9")).toBe(true); // numbers, not strings
+  expect(isNewerVersion("1.0.0", "0.99.99")).toBe(true);
+  expect(isNewerVersion("0.3.0", "0.3.0")).toBe(false);
+  expect(isNewerVersion("0.2.9", "0.3.0")).toBe(false);
+  expect(isNewerVersion(DEV_VERSION, "0.3.0")).toBe(false);
+  expect(isNewerVersion("0.4.0", DEV_VERSION)).toBe(false);
+  expect(isNewerVersion("0.4.0-rc.1", "0.3.0")).toBe(false);
+  expect(isNewerVersion("0.4.0", "")).toBe(false);
 });

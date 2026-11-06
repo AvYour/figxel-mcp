@@ -31,9 +31,13 @@
   .footer { margin-top: 14px; text-align: right; font-size: 11px; }
   .footer button.link { color: var(--figma-color-text-secondary, #666); }
   #sign-in-box { margin: 0 0 12px; }
+  .choices { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
   .code { font-size: 20px; font-weight: 700; letter-spacing: .08em; text-align: center; padding: 8px; margin-bottom: 4px;
           border: 1px dashed var(--figma-color-border, #ccc); border-radius: 6px; }
   .error-text { color: var(--figma-color-text-danger, #f24822); margin-top: 4px; }
+  .update { border: 1px solid var(--figma-color-border-warning, #f5b800); border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; }
+  .update code { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 5px; word-break: break-all; user-select: all;
+                 font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--figma-color-bg-secondary, #f5f5f5); }
   .card { border: 1px solid var(--figma-color-border, #e5e5e5); border-radius: 8px; padding: 10px; }
   .field { display: grid; grid-template-columns: 74px 1fr; align-items: baseline; gap: 6px; margin-bottom: 8px; }
   .field:last-of-type { margin-bottom: 0; }
@@ -53,10 +57,18 @@
 <body>
   <div id="status" class="status wait">Starting…</div>
   <div id="detail"></div>
+  <!-- A newer Figxel at the other end: how this window gets it. -->
+  <div id="update" class="update" hidden>
+    <div id="update-text"></div>
+    <code id="update-cmd" hidden></code>
+  </div>
 
   <div id="sign-in-box" hidden>
     <button id="sign-in" type="button" class="wide">Sign in with the browser</button>
-    <button id="use-local-first" type="button" class="link" hidden>Use Figxel on this computer instead</button>
+    <div class="choices">
+      <button id="use-local-first" type="button" class="link" hidden>Use Figxel on this computer instead</button>
+      <button id="other-hub" type="button" class="link" hidden>Have an invite for another hub?</button>
+    </div>
     <div id="sign-in-code" class="code" hidden></div>
     <button id="sign-in-again" type="button" class="link" hidden>Open the page again</button>
   </div>
@@ -67,20 +79,21 @@
       <button type="submit">Save</button>
     </div>
   </form>
+  <!-- Outside the card: the welcome, which hides the card, opens it too. -->
+  <form id="server-form" hidden>
+    <label for="server-input">Invite or team hub address</label>
+    <div class="row">
+      <input id="server-input" type="text" autocomplete="off" spellcheck="false" placeholder="wss://… (paste your invite)">
+      <button type="submit">Connect</button>
+    </div>
+    <div id="server-error" class="error-text" hidden></div>
+  </form>
 
   <div class="card" id="card">
     <div class="seg" role="group" aria-label="Connect to">
       <button id="use-hub" type="button">Figxel Cloud</button>
       <button id="use-local" type="button">This computer</button>
     </div>
-    <form id="server-form" hidden>
-      <label for="server-input">Invite or team hub address</label>
-      <div class="row">
-        <input id="server-input" type="text" autocomplete="off" spellcheck="false" placeholder="wss://… (paste your invite)">
-        <button type="submit">Connect</button>
-      </div>
-      <div id="server-error" class="error-text" hidden></div>
-    </form>
     <div class="field" id="where-host" hidden>
       <span class="key">Hub</span>
       <span class="value"><span id="hub-name"></span><button id="change-hub" class="link" type="button">Change</button></span>

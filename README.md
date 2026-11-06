@@ -157,7 +157,7 @@ More, including the tools that take a URL: [Privacy details](docs/troubleshootin
 
 ## Updating and uninstalling
 
-With `@latest` in the entry, restarting your AI app picks up a new version `[C-283]`; then close the Figxel plugin window and run it again. To uninstall, remove the `figxel` entry from each app, remove Figxel from Figma's development plugins and delete `~/.figxel`. Details: [Updating and uninstalling](docs/clients.md#updating-and-uninstalling).
+With `@latest` in the entry, restarting your AI app picks up a new version `[C-283]`; then close the Figxel plugin window and run it again. With Figxel Cloud alone, run `npx -y figxel-mcp@latest install` again instead, then run the plugin again; the plugin window says when an update is out. To uninstall, remove the `figxel` entry from each app, remove Figxel from Figma's development plugins and delete `~/.figxel`. Details: [Updating and uninstalling](docs/clients.md#updating-and-uninstalling).
 
 ## FAQ
 
