@@ -2,6 +2,17 @@
 
 Notable changes to `figxel-mcp`, newest first. A version marked **Unreleased** has not been published yet; its heading gets the release date when it is tagged ([CONTRIBUTING.md § Releasing](CONTRIBUTING.md#releasing)).
 
+## 0.4.1 — 2026-11-18
+
+### Changed
+
+- **Figxel Cloud is open to sign-up** with a Google account, free for now. The plugin's welcome no longer says it is by invitation, and an account a hub does not let in is told it may take invited people only or be full, with the ways forward.
+
+### Documentation
+
+- **Keep Figxel working while Figma is minimized.** Started with Chromium's background switches, Figma kept Figxel at its normal speed after 7 minutes minimized, heavy work and a video export included `[C-423]`. The README has a PowerShell command that makes a **Figma (Figxel)** shortcut with them, and the troubleshooting and usage guides point to it.
+- **The README's Figxel Cloud steps**: install the plugin, sign in with Google, add the connector, and where the privacy notice and terms are.
+
 ## 0.4.0 — 2026-11-18
 
 ### Changed

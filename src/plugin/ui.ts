@@ -168,7 +168,7 @@ function showWelcome(): void {
   setStatus(
     "wait",
     `Welcome to ${PLUGIN_NAME}`,
-    `Sign in to ${CLOUD_NAME} (by invitation for now) to connect this Figma file to your AI apps; already signed in from Claude or ChatGPT here, you only confirm. Or use ${PLUGIN_NAME} on this computer, free.`,
+    `Sign in to ${CLOUD_NAME}, free for now, to connect this Figma file to your AI apps; already signed in from Claude or ChatGPT here, you only confirm. Or use ${PLUGIN_NAME} on this computer.`,
   );
   paint();
 }
@@ -244,8 +244,8 @@ async function signInWithBrowser(): Promise<void> {
         showWelcome();
         return setStatus(
           "error",
-          "Not invited yet",
-          `That account is not on ${placeOf(hub)}'s list: it is by invitation for now. Use ${PLUGIN_NAME} on this computer instead, free, or ask for an invitation.`,
+          "Not let in",
+          `${placeOf(hub)} did not let that account in: it may take invited people only, or be full for now. Sign in with another account, use ${PLUGIN_NAME} on this computer instead, or ask whoever runs it.`,
         );
       }
       return showTokenForm("Not on this hub's list", `That account is not on ${placeOf(hub)}'s list. Ask whoever runs it to add you, or paste the invite you were given.`);

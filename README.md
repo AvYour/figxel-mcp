@@ -99,11 +99,26 @@ That is 140 tools by default: see the [tool catalog](docs/reference/tools.md).
 
 Setup's backup of Figma's settings, `--dry-run`, `--force`, `--unregister`, the manual import and the macOS status: [Install details](docs/clients.md#install-details).
 
+### Keep Figxel working while Figma is minimized
+
+A Figma window in the background runs the plugin's timers slower `[C-124]`, and a minimized one once stalled a video export for 40 minutes `[C-198]`. Started with Chromium's background switches, Figma keeps Figxel at its normal speed while it is minimized, heavy work and video exports included `[C-423]`. On Windows, this PowerShell command puts a **Figma (Figxel)** shortcut on your desktop:
+
+```powershell
+$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$([Environment]::GetFolderPath('Desktop'))\Figma (Figxel).lnk"); $s.TargetPath = "$env:LOCALAPPDATA\Figma\Figma.exe"; $s.Arguments = "--disable-renderer-backgrounding --disable-background-timer-throttling --disable-backgrounding-occluded-windows"; $s.Save()
+```
+
+Quit Figma completely, then open it from that shortcut: the switches apply only to a Figma started that way, not to one already running or one that starts when you sign in to Windows. A minimized Figma then keeps working as if it were in view, so it uses a little more power. The switches are not measured on macOS yet.
+
 ## Figxel Cloud and team hubs
 
 A hub runs the bridge on a server, so the plugin and your AI apps meet there instead of on your computer, and apps that cannot start a local server, such as claude.ai and ChatGPT, connect with a URL. Each person signs in with Figma or Google and reaches only their own Figma.
 
-- **Figxel Cloud** is the hub at `mcp.figxel.moirelabs.dev`, by invitation for now. Install the plugin with `npx -y figxel-mcp@latest install` (quit Figma first), press **Sign in** in it, and add `https://mcp.figxel.moirelabs.dev/mcp` to your AI app ([connecting](docs/clients.md#connecting-to-a-teams-hub)).
+- **Figxel Cloud** is the hub at `mcp.figxel.moirelabs.dev`, free for now and open to sign-up with a Google account. To use it:
+  1. Quit Figma desktop completely, then install the plugin: `npx -y figxel-mcp@latest install`. Run the same command again to update it.
+  2. Open Figma and a file, run **Plugins → Development → Figxel**, press **Sign in**, and continue with Google in the browser that opens.
+  3. Add `https://mcp.figxel.moirelabs.dev/mcp` to your AI app, as a custom connector in claude.ai or ChatGPT, and sign in the same way ([apps by URL](docs/clients.md#apps-by-url)).
+
+  Its privacy notice and terms are at [/privacy](https://mcp.figxel.moirelabs.dev/privacy) and [/terms](https://mcp.figxel.moirelabs.dev/terms).
 - **Your team's own hub**: [docs/hub.md](docs/hub.md) runs one, with the people, sign-in and security it needs.
 
 ## See it in action
@@ -143,6 +158,7 @@ Every setting, its default and where to set it: [docs/configuration.md](docs/con
 - **The server does not start on Windows** (`spawn npx ENOENT` in the app's log): use the `cmd /c npx …` form `[C-281]`.
 - **Too many tools** in VS Code or Windsurf: set `BRIDGE_TOOLSET` ([Configuration](#configuration)).
 - **`figma_status` asks for a restart**: run the plugin again, or restart your AI app, as its hint says.
+- **Figxel slows down or stalls while Figma is minimized**: start Figma with the background switches ([Keep Figxel working while Figma is minimized](#keep-figxel-working-while-figma-is-minimized)).
 
 Port conflicts, timeouts, video exports, macOS and logs: [docs/troubleshooting.md](docs/troubleshooting.md).
 
