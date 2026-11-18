@@ -95,7 +95,10 @@ function paint(): void {
   tokenFp.textContent = token ? tokenFingerprint(token) : "not set";
   changeTokenBtn.hidden = !token;
   metaEl.hidden = !session;
-  metaEl.textContent = session ? `Session ${session.id} · Figxel ${session.version}` : "";
+  // The server's version, and this window's own when they differ, so an older hub is not read as an older plugin.
+  const own = hello?.pluginVersion;
+  const where = server ? "on the hub" : "on this computer";
+  metaEl.textContent = !session ? "" : own && own !== session.version ? `Session ${session.id} · Figxel ${session.version} ${where} · plugin ${own}` : `Session ${session.id} · Figxel ${session.version}`;
 }
 
 /**

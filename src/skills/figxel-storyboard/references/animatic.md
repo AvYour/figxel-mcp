@@ -26,7 +26,7 @@ List every mechanism the boards rely on that nobody has measured in this file: s
 
 Exit: each mechanism works, or the bible names its fallback.
 
-**Checkpoint.** When the brief asked to see the plan first, stop here: show the board, the styleframes and the probe's results, with the fallback of anything left unprobed (figma_select, figma_zoom_to), and wait for approval.
+**Checkpoint.** Unless the brief's `checkpoint` is "none" (the person's word to just build, or the install's setting), stop here [C-422]: show the board, the styleframes and the probe's results, with the fallback of anything left unprobed (figma_select, figma_zoom_to), and wait for the person's choice. Record it, figma_set_brief { briefId, chosen, approvedBy: "owner" }, before the animatic.
 
 ## The animatic (stage 7)
 The animatic plays the panels at their planned times, so the pace is judged at speed while changing it still costs nothing [C-228].

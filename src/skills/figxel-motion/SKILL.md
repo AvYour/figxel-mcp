@@ -31,7 +31,7 @@ A gear scales every stage and skips none [C-239]; what the user gave is already 
 | sting | one beat under about 2 s: a logo sting, a loop, an icon | a three-line brief, two directions in words, one key pose, one round |
 | piece | an ad, reel, title or end card: over about 2 s, or several beats | every stage in full |
 
-**Checkpoint.** You own the brief and run to the end [C-085]. With `checkpoint: "storyboard"`, or a brief that asks to see the plan first, stop once the storyboard, styleframes and probe exist (unprobed mechanisms with fallbacks), show them (figma_select, figma_zoom_to), and wait; report any later retime.
+**Checkpoint.** A piece stops by default once the storyboard, styleframes and probe exist (the brief's `checkpoint`) [C-422]: show them (figma_select, figma_zoom_to), unprobed mechanisms with fallbacks, and wait for the person's choice; record it, figma_set_brief { briefId, chosen, approvedBy: "owner" }. Edit, micro and sting run to the end [C-085], and a piece on their word to just build (`checkpoint: "none"`); report any later retime.
 
 ## Hard rules, each a measured failure [C-206]
 1. Frame 0 does the job the brief gives it; the last frame is settled, or for a loop one step before frame 0.

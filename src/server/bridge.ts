@@ -41,6 +41,7 @@ import { figmaWords, isRenderTimeout, isSmallRender, renderTimeoutHint, type Ren
 import { Base64Sink, withBase64 } from "./binary.js";
 import type { ConflictsMode, Logger } from "./config.js";
 import { parseFrame } from "./frames.js";
+import { Budget, overLimit } from "./limits.js";
 import { PLUGIN_BUILD_ID } from "./plugin-build.js";
 import {
   PEER_FEATURES,
@@ -253,6 +254,12 @@ export interface BridgeOptions {
   bindHost?: string;
   /** A team's hub: how many refused tokens one address may send before it is turned away (default FAILURE_LIMIT); tests shorten it. */
   failureLimit?: FailureLimit;
+  /**
+   * A team's hub: at most `max` calls a person's server processes may send to
+   * their Figma within `windowMs` (BRIDGE_HUB_REQUESTS_PER_MIN, a minute);
+   * past it a call answers BUSY with when to try again (limits.ts). None: no limit.
+   */
+  requestLimit?: { max: number; windowMs: number };
   /**
    * A team's hub: plain HTTP requests on the hub's port (its web endpoint, web.ts).
    * True when it answered; otherwise the hub answers 426, as a WebSocket-only server.
@@ -571,6 +578,8 @@ export class Bridge {
   private peerRefusal: PeerRefusal | null = null;
   private readonly pendingCalls = new Map<string, PendingCall>();
   private readonly statusWaiters = new Map<string, (status: BridgeStatus | null) => void>();
+  /** A team's hub: each person's calls to their Figma within the window (requestLimit); null for no limit. */
+  private readonly personCalls: Budget | null;
 
   constructor(opts: BridgeOptions) {
     this.opts = opts;
@@ -578,6 +587,8 @@ export class Bridge {
     this.people = toTable(opts.people ?? [{ person: LOCAL_PERSON, token: opts.token }]);
     this.ownPerson = this.personOf(opts.token) ?? NOBODY;
     this.boundPort = opts.port;
+    // Only a team's hub counts: on one computer the processes sharing the port are the person's own apps.
+    this.personCalls = opts.people && opts.requestLimit && opts.requestLimit.max > 0 ? new Budget(opts.requestLimit.max, opts.requestLimit.windowMs) : null;
   }
 
   /** This process's token file and fingerprint, for hints and figma_status. */
@@ -1246,6 +1257,13 @@ export class Bridge {
     if (!msg) return;
     switch (msg.t) {
       case "call": {
+        // A person's calls a minute, from all their processes together: past the limit, nothing is sent.
+        if (this.personCalls && !this.personCalls.take(peer.person)) {
+          const limit = this.opts.requestLimit!;
+          const error = overLimit("calls to Figma through this hub", limit.max, this.personCalls.waitMs(peer.person), "BRIDGE_HUB_REQUESTS_PER_MIN");
+          this.sendPeer(peer, { t: "call-result", id: msg.id, ok: false, error: toPeerError(error) });
+          return;
+        }
         const ac = new AbortController();
         peer.calls.set(msg.id, ac);
         this.request(msg.op, msg.params, {

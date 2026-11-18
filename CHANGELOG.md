@@ -2,6 +2,35 @@
 
 Notable changes to `figxel-mcp`, newest first. A version marked **Unreleased** has not been published yet; its heading gets the release date when it is tagged ([CONTRIBUTING.md § Releasing](CONTRIBUTING.md#releasing)).
 
+## 0.4.0 — 2026-11-18
+
+### Changed
+
+- **Options before the build, by default.** At the page and top gears, and for a motion piece, the agent now stops once before it builds: it shows you the directions on their styleframes (for motion, the storyboard, the styleframes and its technique tests) with the one it recommends, and waits for your choice. Edits, sections, UI micro-motion and stings still run to the end. Say *"just build it"*, or pass `checkpoint: "none"` to `design_in_figma`, `storyboard_motion` or `animate_in_figma`, to skip the stop. Under `BRIDGE_PROCESS=strict`, the default, `figma_sign_off` waits for your recorded choice, and a styleframe is not cloned into the build before it. Briefs already in a file keep running to the end.
+
+### Added
+
+- **`BRIDGE_CHECKPOINT`**: `directions` (the default) or `none`, the stop for a whole installation, shown by `figma_status` ([docs/configuration.md](docs/configuration.md)).
+- **`figma_set_brief` records the stop and your choice**: `checkpoint` (`directions`, its motion word `storyboard`, or `none`) and `approvedBy: "owner"` with `chosen`. The brief block shows a Checkpoint line, `figma_get_brief`'s `next` and `figma_set_brief`'s `missingForSignOff` and `stop` say what the stop waits for, and the sign-off's report says who chose the direction. Only a brief that stops stores a checkpoint, so a plugin from before this release keeps storing every other brief; a brief that stops asks for the plugin to be run again.
+- **A team's hub is ready to open to everyone.** Opening one is now a change of settings ([docs/hub.md § Opening a hub to everyone](docs/hub.md#opening-a-hub-to-everyone)).
+  - **Limits per person, on by default.** Calls to Figma through the hub (`BRIDGE_HUB_REQUESTS_PER_MIN`, 600 a minute), tool calls and new sessions on the web endpoint (`BRIDGE_HUB_WEB_CALLS_PER_MIN`, 120 a minute), open web sessions (`BRIDGE_HUB_WEB_SESSIONS`, 8), a person's folder on the server (`BRIDGE_HUB_WEB_FOLDER_MB`, 500 MB) and one upload (`BRIDGE_HUB_WEB_UPLOAD_MB`, 25 MB). Each refusal changed nothing and says when to try again: `BUSY` with `partial.retryAfterS` for a call, `429`, `507` or `413` with the reason for HTTP. A full folder refuses a video render or a PDF before Figma starts on it. On one computer nothing is limited.
+  - **A cap on the number of people**, `BRIDGE_HUB_MAX_PEOPLE`: a sign-in that would add a person past it gets a page saying the hub is full, and nobody is added.
+  - **Open sign-up, one rule for both providers.** `BRIDGE_HUB_SIGNUP=open` lets in any Google account with a verified email and whoever the Figma app lets sign in; the hub's log says at start who may sign up and every limit in force.
+  - **A privacy page** at `/privacy`, linked from every sign-in page: the operator's Markdown (rendered escaped) or HTML (served under a policy that runs no script) from `BRIDGE_HUB_PRIVACY_FILE`, or a short built-in notice of what the hub keeps. [docs/hub-privacy-template.md](docs/hub-privacy-template.md) is a template to write one from, taken from the code; it is not legal advice.
+  - **A terms page** at `/terms`, served the same way from `BRIDGE_HUB_TERMS_FILE` and linked beside Privacy, or a short notice that the operator has published none.
+
+### Fixed
+
+- **A hub's restart no longer signs plugins out.** The credentials plugins received by signing in through the browser, and the remembered browsers, were not read back from `hub-oauth.json` when the hub started, and the next save removed them from the file.
+- **A body past the web endpoint's size limit is read and dropped after the answer**, instead of the connection being cut, which could reset it before the client read the `413`.
+- **The plugin window names its own version beside the server's** when they differ ("Figxel 0.3.0 on the hub · plugin 0.4.0"), so an older hub is not read as an older plugin.
+
+### Upgrading
+
+- **The agent now stops once for your choice** on a new page, top-gear piece or motion piece. To keep the old run-to-the-end behaviour, say so in the request, pass `checkpoint: "none"` to the prompt, or set `BRIDGE_CHECKPOINT=none` for the installation. Briefs already in a file are unchanged.
+- **Run the Figxel plugin again after updating.** A brief that stops needs the plugin of this release; with an older one the call answers with the step to take.
+- **A team's hub:** the new limits are on by default, with the values above; set them for your server, and read [docs/hub.md § Opening a hub to everyone](docs/hub.md#opening-a-hub-to-everyone) before opening sign-up.
+
 ## 0.3.1 — 2026-11-06
 
 ### Added

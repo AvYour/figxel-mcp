@@ -18,6 +18,9 @@
 //   A final export (figma_export_node, figma_export_frames_to_pdf with
 //     `final: true`) waits for a passing sign-off newer than the node's last
 //     change, on every node that belongs to a brief (§3.7).
+//   At a checkpoint (C-422) the build waits for the person's choice: a clone
+//     of a styleframe of the recorded decision line (C1), and the sign-off
+//     (tools/brief.ts), until figma_set_brief records the choice.
 //
 // "strict" refuses; "guided" runs the call and lists the step as
 // `processWarnings`; "off" tracks nothing. Strict degrades to guided wherever
@@ -36,6 +39,7 @@ import { avoidOf } from "../shared/avoid.js";
 import { EDITOR_LABEL, isEditor, supportOf } from "../shared/editors.js";
 import { BridgeError, ErrorCode } from "../shared/errors.js";
 import {
+  awaitsChoice,
   isFullGear,
   parseBrief,
   parseSignOff,
@@ -63,6 +67,7 @@ const SPEC_CONTAINERS: ReadonlySet<string> = new Set(["frame", "component", "sec
 const EMPTY_TARGETS: ReadonlySet<string> = new Set(["FRAME", "SECTION"]);
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const present = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 
 /** The calls a refusal names. */
 export const guideCall = (skill: string, section?: string) => `figma_get_guide { topic: "${skill}"${section ? `, section: "${section}"` : ""} }`;
@@ -228,6 +233,12 @@ export interface BriefRef {
   signedAt?: string;
   /** The brief's avoid list (shared/avoid.ts), when it has one: whether a create's result measures tells. */
   avoid?: string[];
+  /**
+   * While the work waits at its checkpoint for the person's choice, with the
+   * decision line recorded (C-422): the styleframes, which are not cloned
+   * into the build until the choice is recorded.
+   */
+  awaiting?: string[];
 }
 
 const BUNDLED: ReadonlySet<string> = new Set(SKILLS.map((s) => s.short));
@@ -323,6 +334,11 @@ export class RoleProcess {
     return list?.[list.length - 1];
   }
 
+  /** The open brief of a file whose work waits at its checkpoint with `nodeId` among its styleframes. */
+  awaitingWith(file: string, nodeId: string): BriefRef | undefined {
+    return (this.open.get(file) ?? []).find((r) => (r.awaiting ?? []).indexOf(nodeId) >= 0);
+  }
+
   /** A brief stored or read: in force for its file while it is open, listed either way. Nothing is tracked when off. */
   hold(file: string, brief: BriefRecord, how: BriefRef["how"]): void {
     if (!this.active) return;
@@ -339,6 +355,8 @@ export class RoleProcess {
       how: before?.how ?? how,
       ...(brief.lastSignOff?.ok ? { signedAt: brief.lastSignOff.at } : {}),
       ...(avoid.length ? { avoid } : {}),
+      // The decision line names the chosen direction; before it, styleframes are still being made.
+      ...(awaitsChoice(brief) && present(brief.chosen) && brief.styleframes?.length ? { awaiting: [...brief.styleframes] } : {}),
     };
     this.seen.set(`${file}|${brief.id}`, ref);
     const list = (this.open.get(file) ?? []).filter((r) => r.briefId !== brief.id);
@@ -565,6 +583,50 @@ export function briefSkillGate(proc: RoleProcess, role: RoleId, gear: Gear, mode
     ? `figma_set_brief was refused before any change: ${who} works from the ${own} skill's process, and this session has not read it. Missing: ${names.join("; ")}.`
     : `figma_set_brief was refused before any change: at the ${gear} gear ${who} also works from the design skill's process, and this session has not read it. Missing: ${names.join("; ")}.`;
   return { refusal: refusal(message, `First ${missing.map((m) => m.call).join(", then ")}. Then send this call again.`, names), warnings: [] };
+}
+
+// ── the checkpoint (C-422) ──────────────────────────────────────────────────
+
+/** The call that records the person's choice at a checkpoint. */
+export const approvalCall = (briefId: string) => `figma_set_brief { briefId: "${briefId}", chosen, approvedBy: "owner" }`;
+
+/** What the person is shown at the stop: motion's comes after the board, the styleframes and the probe (storyboard skill). */
+export const checkpointShows = (role: RoleId) =>
+  role === "motion" ? "the board, the styleframes and the probe's results once they exist" : "the styleframes with the decision line";
+
+/** How a stop clears: the person's choice recorded, or their word to build without stopping. */
+export const checkpointWayOut = (briefId: string, role: RoleId) =>
+  `show the person ${checkpointShows(role)} (figma_select, figma_zoom_to), wait for their choice, then ${approvalCall(briefId)}; ` +
+  `only on their word to build without stopping, figma_set_brief { briefId: "${briefId}", checkpoint: "none" }`;
+
+/**
+ * C1: a clone of a styleframe while its brief waits at the checkpoint for
+ * the person's choice. The chosen styleframe becomes the build by a clone
+ * (the design skill's directions section, the motion skill's passes), so the
+ * clone is the build's first step. Only the styleframes of a recorded
+ * decision line are held, so making the styleframes themselves never waits.
+ * Reads nothing from the plugin: the state is the brief this process stored
+ * or read, and figma_get_brief reads it again.
+ */
+export async function checkpointGate(proc: RoleProcess, bridge: Bridge, tool: string, nodeId: unknown, session: string | undefined): Promise<RoleGate> {
+  if (!proc.active || typeof nodeId !== "string") return PASS;
+  const file = await fileOf(bridge, session);
+  const ref = proc.awaitingWith(file.key, nodeId);
+  if (!ref) return PASS;
+  const { mode } = proc.modeFor(file);
+  const named = `"${ref.title}" (${ref.briefId})`;
+  if (mode === "guided") {
+    return { warnings: [`${nodeId} is a styleframe of ${named}, whose work waits for the person's choice of direction: ${checkpointWayOut(ref.briefId, ref.role)}.`] };
+  }
+  const missing = "the person's choice of direction (approvedBy)";
+  return {
+    refusal: refusal(
+      `${tool} was refused before any change: the brief ${named} stops after the directions for the person's choice, and ${nodeId} is one of its styleframes, which becomes the build once they choose. Missing: ${missing}.`,
+      `First ${checkpointWayOut(ref.briefId, ref.role)}. Then send this call again with the same idempotencyKey.`,
+      [missing],
+    ),
+    warnings: [],
+  };
 }
 
 /** S1 (§3.8): a sign-off with no brief to check the work against. */

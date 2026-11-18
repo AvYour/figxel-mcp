@@ -11,7 +11,7 @@ A storyboard plans a piece panel by panel before production [C-227]; an animatic
 
 **Where.** A "Storyboard" page holds the brief, the cards, the board, the styleframes, the animatic and the bible (figma_create_page { name: "Storyboard" }, once). If figma_create_page is refused (a Starter file holds 3 pages [C-048]), put the plan in a section "Storyboard" beside the piece (figma_create_section) and say so in the report. The piece goes on the user's page, at an empty spot.
 
-**Checkpoint.** You own the brief and run to the end [C-085]. With `checkpoint: "storyboard"`, or a brief that asks to see the plan first, stop after stage 6: show the board, the styleframes and the probe's results, naming each unprobed mechanism's fallback (figma_select, figma_zoom_to), and wait for approval before building. List any later retime in the report.
+**Checkpoint.** A piece stops after stage 6 by default (the brief's `checkpoint`: "directions", or "storyboard", the same stop) [C-422]: show the board, the styleframes and the probe's results, naming each unprobed mechanism's fallback (figma_select, figma_zoom_to), and wait for the person's choice; record it, figma_set_brief { briefId, chosen, approvedBy: "owner" }, then build. Their word to just build is `checkpoint: "none"`: run to the end [C-085]. List any later retime in the report.
 
 **When a tool is refused.** figma_create_animatic is not yet verified in Design files and may be refused. Then, without stopping, build the animatic by hand or not at all (section `animatic`), and a refused board with figma_create_from_spec (section `boards`); say which in the report.
 
@@ -37,7 +37,8 @@ Then build with the `motion` skill (section `passes`), review with the `critique
 6. No palette, typeface, transition or move is a default: each is decided from the brief and held against card 0 [C-208].
 
 ## Sections
-- section `beat-sheet` (references/beat-sheet.md, or figma_get_guide { topic: "storyboard", section: "beat-sheet" }) — the motion brief, card 0, directions, judging, tempo, the beat sheet.
-- section `boards` (references/boards.md, or figma_get_guide { topic: "storyboard", section: "boards" }) — panels, thumbnails, motivated transitions, a board by hand.
-- section `animatic` (references/animatic.md, or figma_get_guide { topic: "storyboard", section: "animatic" }) — styleframes, the technical probe, the animatic and retiming.
-- section `bible` (references/bible.md, or figma_get_guide { topic: "storyboard", section: "bible" }) — the build bible, frames to check, the budget per gear.
+Read each by its name, as figma_get_guide { topic: "storyboard", section: "boards" }:
+- `beat-sheet` (references/beat-sheet.md) — the motion brief, card 0, directions, judging, tempo, the beat sheet.
+- `boards` (references/boards.md) — panels, thumbnails, motivated transitions, a board by hand.
+- `animatic` (references/animatic.md) — styleframes, the technical probe, the animatic and retiming.
+- `bible` (references/bible.md) — the build bible, frames to check, the budget per gear.

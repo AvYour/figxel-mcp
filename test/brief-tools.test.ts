@@ -6,7 +6,7 @@
 // `missingForSignOff` from the record the plugin returns, and adoption.
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { gearLinesAnswer, gearLinesMissing, lintBrief, missingForSignOff, sentencesIn } from "../src/server/tools/brief.js";
+import { APPROVAL_FIELD, gearLinesAnswer, gearLinesMissing, lintBrief, missingForSignOff, sentencesIn } from "../src/server/tools/brief.js";
 import { brief, RoleWorld, serve, UX_PAGE, type Served } from "./role-fakes.js";
 
 /** A served strict process that has read every skill a brief can ask for. */
@@ -201,7 +201,8 @@ describe("figma_set_brief: what reaches the plugin, and what comes back", () => 
     const { lines, ...rest } = (s.world.sent[0]!.params.brief ?? {}) as Record<string, unknown>;
     expect(s.world.sent[0]!.op).toBe("set_brief");
     expect(s.world.sent[0]!.params).toMatchObject({ pageId: "0:2", x: 100, y: -40 });
-    expect(rest).toEqual({ role: "ux", gear: "page", title: "Bench booking page", details: UX_PAGE.details });
+    // A page brief stops after the directions by default (C-422).
+    expect(rest).toEqual({ role: "ux", gear: "page", title: "Bench booking page", details: UX_PAGE.details, checkpoint: "directions" });
     expect(lines).toEqual({
       goal: UX_PAGE.goal, message: UX_PAGE.message, success: UX_PAGE.success, audience: UX_PAGE.audience, proof: UX_PAGE.proof,
       constraints: UX_PAGE.constraints, givens: UX_PAGE.givens, tone: UX_PAGE.tone, format: UX_PAGE.format,
@@ -210,9 +211,14 @@ describe("figma_set_brief: what reaches the plugin, and what comes back", () => 
       briefId: "12:40",
       stored: "block",
       status: "open",
-      missingForSignOff: ["direction0", "directions (two or more)", "chosen", "styleframes (one or more)", "system.bodySize", "system.ratio", "system.spacingBase", "system.palette"],
+      missingForSignOff: [
+        "direction0", "directions (two or more)", "chosen", "styleframes (one or more)", "system.bodySize", "system.ratio", "system.spacingBase", "system.palette",
+        APPROVAL_FIELD,
+      ],
       lint: [],
     });
+    // No decision line yet: nothing to stop at.
+    expect(s.data(r).stop).toBeUndefined();
     expect(s.roles.inForce("Co-op (figma)")?.briefId).toBe("12:40");
   });
 
@@ -239,7 +245,16 @@ describe("figma_set_brief: what reaches the plugin, and what comes back", () => 
       },
       briefId: "12:40",
     });
-    expect(s.data(r).missingForSignOff).toEqual([]);
+    // The decision line is recorded: the brief waits for the person's choice, and says so.
+    expect(s.data(r).missingForSignOff).toEqual([APPROVAL_FIELD]);
+    expect(s.data(r).stop).toBe(
+      'The brief stops after the directions for the person\'s choice (checkpoint "directions"): show the person the styleframes with the decision line ' +
+        '(figma_select, figma_zoom_to), wait for their choice, then figma_set_brief { briefId: "12:40", chosen, approvedBy: "owner" }; only on their word ' +
+        'to build without stopping, figma_set_brief { briefId: "12:40", checkpoint: "none" }. Until then, build nothing past what the person is shown.',
+    );
+    const chose = await s.call("figma_set_brief", { briefId: "12:40", approvedBy: "owner" });
+    expect(s.data(chose).missingForSignOff).toEqual([]);
+    expect(s.data(chose).stop).toBeUndefined();
   });
 
   it("an update of a node with no brief is refused, naming it", async () => {

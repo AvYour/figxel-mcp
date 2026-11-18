@@ -14,6 +14,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import type { Checkpoint } from "../shared/roles.js";
 import { CATALOG_TOPIC, sectionBySlug, skillByShort, type Skill, type SkillSection } from "./skills.js";
 
 export interface PromptArg {
@@ -32,10 +33,12 @@ export interface PromptRow {
   /** In order: a client that fills arguments from a typed line fills them in this order. */
   args: readonly PromptArg[];
   /**
-   * Adds the optional `checkpoint` argument after `args`: "storyboard" stops
-   * the work for the user's approval once the plan exists (the decision line
-   * and styleframes; for motion, the storyboard and the probe); "none" (the
-   * default) runs to the end, as an owned brief does.
+   * Adds the optional `checkpoint` argument after `args`: "directions" (or
+   * motion's word, "storyboard") stops the work for the user's choice once
+   * the plan exists (the decision line and styleframes; for motion, the
+   * storyboard and the probe); "none" runs to the end. Without it the brief's
+   * default holds: a stop at the page and top gears and for a motion piece,
+   * none below them, unless the install's BRIDGE_CHECKPOINT says none [C-422].
    */
   checkpoint?: boolean;
   /** The skill whose SKILL.md body the message carries (a short name). */
@@ -50,39 +53,43 @@ export interface PromptRow {
   preamble: (args: PromptArgs) => string;
 }
 
-export const CHECKPOINT_VALUES = ["storyboard", "none"] as const;
-export type Checkpoint = (typeof CHECKPOINT_VALUES)[number];
-
+/** "directions", motion's word for the same stop "storyboard", or "none". */
 const CHECKPOINT_ARG: PromptArg = {
   name: "checkpoint",
-  description: '"storyboard" to stop for approval once the plan exists (decision line and styleframes; for motion, the storyboard too); "none" (default) to run to the end.',
+  description:
+    '"directions" (or "storyboard") to stop for my choice once the directions and styleframes exist (for motion, the storyboard too); "none" to run to the end. Default: a stop at page, top and a motion piece.',
 };
 
 /**
- * Read the checkpoint argument. Not refused when unrecognised: a client that
- * splits the typed line on whitespace can land a word of the brief here
- * [C-176], so the word is handed to the agent instead of failing the prompt or
- * vanishing.
+ * Read the checkpoint argument: the stop as the brief records it, or none
+ * given, when the brief's default holds. Not refused when unrecognised: a
+ * client that splits the typed line on whitespace can land a word of the
+ * brief here [C-176], so the word is handed to the agent instead of failing
+ * the prompt or vanishing.
  */
-export function readCheckpoint(raw: string | undefined): { checkpoint: Checkpoint; stray?: string } {
+export function readCheckpoint(raw: string | undefined): { checkpoint?: Checkpoint; stray?: string } {
   const v = (raw ?? "").trim();
   const lower = v.toLowerCase();
-  if (lower === "" || lower === "none") return { checkpoint: "none" };
-  if (lower === "storyboard") return { checkpoint: "storyboard" };
-  return { checkpoint: "none", stray: v };
+  if (lower === "") return {};
+  if (lower === "none") return { checkpoint: "none" };
+  if (lower === "directions" || lower === "storyboard") return { checkpoint: "directions" };
+  return { stray: v };
 }
 
 function checkpointText(raw: string | undefined): string {
   const { checkpoint, stray } = readCheckpoint(raw);
-  if (checkpoint === "storyboard") {
+  if (checkpoint === "directions") {
     return (
-      "\n\nCheckpoint: stop once the plan can be shown — the decision line with the styleframes the gear builds (at " +
-      "the section gear, the direction cards), and for a motion piece the storyboard and the technical probe too — show " +
-      "them to me with where they are, and wait for my approval before building."
+      '\n\nCheckpoint: stop once the plan can be shown (`checkpoint: "directions"` on the brief) — the decision line with the ' +
+      "styleframes the gear builds (at the section gear, the direction cards), and for a motion piece the storyboard and the " +
+      "technical probe too — show them to me with where they are, and wait for my choice before building."
     );
   }
+  if (checkpoint === "none") {
+    return '\n\nNo checkpoint: build it all without stopping for my choice of direction (`checkpoint: "none"` on the brief), and report at the end.';
+  }
   if (stray !== undefined) {
-    return `\n\nThe checkpoint argument read "${stray}", which is neither "storyboard" nor "none", so there is no checkpoint; if those words belong to the brief, read them as part of it.`;
+    return `\n\nThe checkpoint argument read "${stray}", which is none of "directions", "storyboard" and "none", so the gear's default holds; if those words belong to the brief, read them as part of it.`;
   }
   return "";
 }

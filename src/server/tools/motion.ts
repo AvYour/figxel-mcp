@@ -51,7 +51,7 @@ import {
 } from "../../shared/video.js";
 import { renderLostAdvice, type Bridge, type SessionView } from "../bridge.js";
 import { bytesOf } from "../binary.js";
-import { defaultExportName, resolveSavePath, writeExport, type ExportRoots } from "../exports.js";
+import { checkRoom, defaultExportName, resolveSavePath, writeExport, type ExportRoots } from "../exports.js";
 import { DEFAULT_MEDIA_TOOLS, isMissing, nodeExecFile, noFfmpegHint, type ExecFileLike, type MediaTools } from "../ffmpeg.js";
 import { fileNow, finalCall, finalGate, keyframeGate, sessionIdOf, withProcessWarnings, type AcceptedNote, type MotionProcess } from "../motion-process.js";
 import { finalExportGate, type RoleProcess } from "../role-process.js";
@@ -259,6 +259,8 @@ export async function saveVideo(data: unknown, saveTo: string | undefined, roots
   try {
     path = await writeExport(saveTo ?? fallback, bytes, roots);
   } catch (err) {
+    // A person's folder on a team's hub filled up during the render: another name would not fit either.
+    if (err instanceof BridgeError && err.code === ErrorCode.BUSY) throw err;
     const first = messageOf(err);
     if (saveTo === undefined) {
       throw new BridgeError(ErrorCode.INTERNAL, `Figma rendered the video, but it could not be written to the export directory: ${first}`, {
@@ -702,8 +704,9 @@ function registerExportVideo(
           if (!ext) saveTo = `${saveTo}${VIDEO_EXTENSION[format ?? "MP4"]}`;
         }
         settings = videoSettings({ ...args, format: format ?? "MP4" });
-        // Fail on a bad path before Figma spends minutes rendering.
+        // Fail on a bad path, or a full folder on a team's hub, before Figma spends minutes rendering.
         if (saveTo !== undefined) target = await resolveSavePath(saveTo, roots);
+        await checkRoom(roots);
       } catch (err) {
         return refuse(err);
       }

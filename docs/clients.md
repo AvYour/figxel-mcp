@@ -266,7 +266,7 @@ You see only your own Figma files, and nobody else on the hub sees yours: anothe
 
 ### Apps by URL
 
-When the hub runs its web endpoint ([docs/hub.md § Web clients](hub.md#web-clients)), an app with no Figxel process on your computer reaches it at `https://mcp.figxel.example/mcp`. It signs in with OAuth, where the app opens the hub's sign-in page and you continue with Figma or Google (or paste your invite), or with your token in a header, `Authorization: Bearer <your token>` (the part of your invite after `#`). Your Figma connects to the hub as above. Files come back as download links that last an hour, not as files on your computer.
+When the hub runs its web endpoint ([docs/hub.md § Web clients](hub.md#web-clients)), an app with no Figxel process on your computer reaches it at `https://mcp.figxel.example/mcp`. It signs in with OAuth, where the app opens the hub's sign-in page and you continue with Figma or Google (or paste your invite), or with your token in a header, `Authorization: Bearer <your token>` (the part of your invite after `#`). Your Figma connects to the hub as above. Files come back as download links that last an hour, not as files on your computer. A hub may limit each person's calls a minute, open sessions and files ([docs/hub.md § Limits per person](hub.md#limits-per-person)); a refusal says when to try again.
 
 - **ChatGPT** (developer mode): add the URL as a connector with OAuth `[C-407]`; it opens the hub's sign-in page.
 - **claude.ai** (and Claude Desktop's connectors): add a custom connector with the URL. It signs in with OAuth, or put the header in its request headers instead `[C-406]`.

@@ -88,10 +88,10 @@ A styleframe is one key frame of a direction, built for real: delivery size, the
 
   `Chosen: B, Slot board — the day's slots are the message's proof. Grafted: the bin-label lettering from A for the slot times. Rejected: C, Night ride — a mood, not a reason to book.`
 
-With a checkpoint, stop here and wait (the design index, "Checkpoint").
+With a checkpoint (the default at page and top), stop here and wait: the direction the person chooses is the spine, recorded with `approvedBy` (the design index, "Checkpoint").
 
 **The spine's styleframe becomes the build.** It is already built at delivery size with the real copy, so never rebuild it. Clone it to where the design goes, figma_clone_node { nodeId: <styleframe>, parentId: <target page or wrapper id>, x, y, name }, at an empty spot; then the system, the grafts and the critique rounds reach it as targeted edits, and only a part that a graft replaces whole is rebuilt, with one figma_create_from_spec for that part. When the deliverable is one view (a landing hero, a poster, a single screen), the clone is the deliverable; with more views, it is the first section, and the workflow loop builds the rest beside it.
 
 The explorations are your own frames: keep them, and say in the report where they are. Delete them only when the user asks.
 
-Evidence (claim ids, for maintainers): [C-217] [C-216] [C-206] [C-208] [C-218] [C-219] [C-238] [C-267] [C-268]
+Evidence (claim ids, for maintainers): [C-217] [C-216] [C-206] [C-208] [C-218] [C-219] [C-238] [C-267] [C-268] [C-422]

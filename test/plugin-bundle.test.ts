@@ -233,9 +233,10 @@ describe("built plugin bundles against a real bridge", () => {
     expect(plugin.el("detail").textContent).toBe('Your AI apps can work in "Bundle Test".');
     expect(plugin.el("use-local").className).toBe("on");
     expect(plugin.el("who-row").hidden).toBe(true); // on this computer nobody is named
-    // The bridge here runs from source, so it reports the unbundled version. The token's
-    // fingerprint is the one setup and figma_status print, so a person can compare them.
-    expect(plugin.el("meta").textContent).toMatch(new RegExp(`^Session s-\\d+ · Figxel ${BRIDGE_VERSION.replaceAll(".", "\\.")}$`));
+    // The bridge here runs from source, so it reports the unbundled version, and the window names
+    // its own too, since they differ. The token's fingerprint is the one setup and figma_status
+    // print, so a person can compare them.
+    expect(plugin.el("meta").textContent).toBe(`Session ${sessions(bridge)[0]!.sessionId} · Figxel ${BRIDGE_VERSION} on this computer · plugin ${PACKAGE_VERSION}`);
     const stored = plugin.storage.get("figma-mcp.token") as string;
     expect(plugin.el("token-fp").textContent).toBe(tokenFingerprint(stored));
     expect(tokenFingerprint(stored)).toBe(bridge.status().tokenFingerprint);
@@ -268,13 +269,23 @@ describe("built plugin bundles against a real bridge", () => {
     expect(plugin.el("update-cmd").hidden).toBe(true);
   });
 
-  it("shows no update when the other end runs this window's version", async () => {
+  it("shows no update when the other end runs this window's version, and one version in its footer", async () => {
     const port = await welcomingServer(PACKAGE_VERSION, "alice");
     const plugin = loadPlugin({ port, storedToken: null, stored: { "figxel.server": "ws://localhost:38452", "figxel.token ws://localhost:38452": newToken() } });
     cleanup.push(() => plugin.dispose());
     await until(() => plugin.el("status").textContent === "Connected");
     expect(plugin.el("update").hidden).toBe(true);
     expect(plugin.el("update-cmd").hidden).toBe(true);
+    expect(plugin.el("meta").textContent).toBe(`Session s-1 · Figxel ${PACKAGE_VERSION}`);
+  });
+
+  it("names the hub's version and its own when an older hub serves a newer window", async () => {
+    const port = await welcomingServer("0.1.0", "alice");
+    const plugin = loadPlugin({ port, storedToken: null, stored: { "figxel.server": "ws://localhost:38452", "figxel.token ws://localhost:38452": newToken() } });
+    cleanup.push(() => plugin.dispose());
+    await until(() => plugin.el("status").textContent === "Connected");
+    expect(plugin.el("meta").textContent).toBe(`Session s-1 · Figxel 0.1.0 on the hub · plugin ${PACKAGE_VERSION}`);
+    expect(plugin.el("update").hidden).toBe(true); // an older hub is the operator's to update, not this window's
   });
 
   it("forwards a selection change through the iframe-hosted debounce (no sandbox timers)", async () => {

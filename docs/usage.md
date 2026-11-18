@@ -27,13 +27,13 @@ Give it a job, for example *"Design a landing page hero for a fictional pottery 
 
 1. Reads its skill with `figma_get_guide` and states the gear: how big the job is ([Gears](#gears-how-big-the-job-is)).
 2. Looks at the file: your selection, the pages, and the type, colours, spacing and styles of an existing screen.
-3. Writes a short brief and, for a page or bigger, compares two or three directions on styleframes before it chooses one.
+3. Writes a short brief and, for a page or bigger, compares two or three directions on styleframes, then shows them to you with the one it recommends and waits for your choice ([Seeing the plan before the build](#seeing-the-plan-before-the-build)).
 4. Creates a wrapper frame at an empty spot and builds one section per call with `figma_create_from_spec`.
 5. Checks each section with `figma_check_layout` and one render, and fixes what it finds with targeted edits.
 6. Runs critique rounds, then selects the result and zooms to it (`figma_select`, `figma_zoom_to`).
 7. Reports what it built, the choices it made, the placeholder content to replace, and anything left open.
 
-Facts only you know (your prices, your bio, client names) become realistic placeholders listed at the end, instead of a stop to ask `[C-085]`. The agent asks only when a choice changes the whole result, such as which of two files to use, or when your code and your Figma file disagree on a token.
+Facts only you know (your prices, your bio, client names) become realistic placeholders listed at the end, instead of a stop to ask `[C-085]`. Apart from the stop at the directions (step 3), the agent asks only when a choice changes the whole result, such as which of two files to use, or when your code and your Figma file disagree on a token.
 
 ## How to ask
 
@@ -68,12 +68,14 @@ If the agent picks a gear you did not mean, say so: *"This is a section, keep it
 
 ### Seeing the plan before the build
 
-By default the agent runs to the end. To approve the direction first, say so in the brief:
+For a page, a top-gear piece or a motion piece, the agent stops once by default, before it builds `[C-422]`. It shows you the directions on their styleframes with the one it recommends (for motion: the storyboard, the styleframes and a test of every technique it has not tried before), selects them in Figma and waits for your choice. Reply *"B, go ahead"*, or with changes. It records your choice on the brief (`figma_set_brief` with `approvedBy: "owner"`), and the brief block says so. Edits, sections, UI micro-motion and stings still run to the end.
 
-- *"Show me the directions and styleframes before you build, and wait for my OK."*
-- For motion: *"Stop after the storyboard so I can approve it."*
+To skip the stop, say so in the brief:
 
-The agent then stops once the plan exists (for motion: the storyboard, the styleframes and a test of every technique it has not tried before), selects it in Figma and waits. Reply *"Approved, go ahead"*, or with changes. The prompts below offer the same choice as their `checkpoint` argument, set to `storyboard`.
+- *"Just build it, don't stop for the directions."*
+- For motion: *"No need to show me the storyboard, go straight to the animation."*
+
+The prompts below offer the same choice as their `checkpoint` argument: `directions` (or `storyboard`) to stop, `none` to run to the end; left empty, the default above holds. A smaller job stops too when you ask it to (*"Show me the options first"*). To change the default for everything an installation does, set `BRIDGE_CHECKPOINT=none` ([Configuration](configuration.md#every-setting)). Under `BRIDGE_PROCESS=strict`, the default, `figma_sign_off` waits for your recorded choice, and the agent's styleframes are not cloned into the build before it.
 
 ### Prompts in your app's menu
 
@@ -92,7 +94,7 @@ Each example is a message you can paste, followed by what to expect. Slow Wheel 
 What to expect:
 
 - **Page gear**, two critique rounds.
-- On an Explorations page: the brief, a "Direction 0" (the obvious version, written down so it can be avoided) and two or three real directions, then a styleframe of the hero for the leading one.
+- On an Explorations page: the brief, a "Direction 0" (the obvious version, written down so it can be avoided) and two or three real directions, then a styleframe of the hero for the leading one. The agent stops there for your choice.
 - The page in a new frame at an empty spot, built section by section (header, hero, classes, pricing, footer), each checked before the next.
 - A report with the placeholders to replace: dates, price, address, photos.
 
@@ -134,13 +136,13 @@ What to expect:
 
 ### A motion ad or social reel
 
-> Make a 12-second Instagram Reel ad for Slow Wheel's weekend class, 1080×1920 at 30 fps. Audience: people scrolling on a Sunday evening. Message: book a weekend, leave with your own mug. End on the booking URL and the logo. Stop after the storyboard so I can approve it.
+> Make a 12-second Instagram Reel ad for Slow Wheel's weekend class, 1080×1920 at 30 fps. Audience: people scrolling on a Sunday evening. Message: book a weekend, leave with your own mug. End on the booking URL and the logo.
 
 The agent works like a motion designer, and by default the tools hold it to that order ([The process setting](#the-process-setting)):
 
 1. **Brief and directions**, on a "Storyboard" page.
 2. **Beat sheet and storyboard.** The beats on a tempo grid, then timed panels with `figma_create_storyboard`. Every line of copy stays on screen long enough to read `[C-241]`.
-3. **Styleframes** at delivery size, and a test of every technique it has not tried before. With *"stop after the storyboard"*, the agent stops here and waits for you.
+3. **Styleframes** at delivery size, and a test of every technique it has not tried before. Here the agent stops and waits for your choice, unless you said to build without stopping ([Seeing the plan before the build](#seeing-the-plan-before-the-build)).
 4. **Animatic and build bible.** `figma_create_animatic` waits for its live verification, so the agent may build a rough animatic by hand or skip it, and says which.
 5. **The plan on the frame.** `figma_set_motion_plan` stores the brief and the beats on the ad's frame, after checking them: times on the frame grid, no gaps, every beat long enough for its copy. Keyframes are refused until the frame has a plan.
 6. **Animation in passes**: poses on the beats, then curves, then polish, with `figma_check_motion` after each pass. It judges every frame from the keyframes, without a render.
@@ -218,7 +220,7 @@ Once they run, a new deck of five or more slides is a page-gear job: a brief, tw
 
 ## The process setting
 
-`BRIDGE_PROCESS` decides how strictly the tools hold an agent to a designer's process. With **`strict`**, the default, new work waits for a brief: before a new top-level frame, a spec into an empty frame, a new deck or a new board, the agent reads the skill of the role the work needs (UI/UX, graphic, brand, presentation and the others) and records the brief with `figma_set_brief`. The work ends with `figma_sign_off`, which runs the role's checks on what was built, takes the agent's critique scores and records the result in the file, and a final export (`final: true`) waits for a sign-off newer than the last change. Edits of existing work are never gated. The brief is drawn as a block beside the work, so you can read it and see whether the work was signed off; `figma_get_brief` lets a second agent continue it.
+`BRIDGE_PROCESS` decides how strictly the tools hold an agent to a designer's process. With **`strict`**, the default, new work waits for a brief: before a new top-level frame, a spec into an empty frame, a new deck or a new board, the agent reads the skill of the role the work needs (UI/UX, graphic, brand, presentation and the others) and records the brief with `figma_set_brief`. The work ends with `figma_sign_off`, which runs the role's checks on what was built, takes the agent's critique scores and records the result in the file, and a final export (`final: true`) waits for a sign-off newer than the last change. Where the brief stops for your choice of direction, the sign-off waits for that choice too ([Seeing the plan before the build](#seeing-the-plan-before-the-build)). Edits of existing work are never gated. The brief is drawn as a block beside the work, so you can read it and see whether the work was signed off; `figma_get_brief` lets a second agent continue it.
 
 The motion process works the same way. With **`strict`**, the default, `figma_set_keyframes` and `figma_remove_keyframes` answer `PROCESS_REQUIRED` until the agent has read the motion skill in this session and the frame has a plan (`figma_set_motion_plan`), and a final render (`final: true`) waits for a passing `figma_check_motion` at its frame rate since the frame's last keyframe change; previews always render, and a refusal changes nothing. With **`guided`**, those calls run and their results list the skipped steps as `processWarnings`, which suits a quick retime of an animation planned elsewhere. With **`off`**, nothing is checked. The plan is stored in the file and survives restarts; the rest belongs to the running server, so after your app restarts the agent reads the skill and runs the check again. Keyframes you change by hand are not seen, so ask for a fresh `figma_check_motion` before the final render. Set the variable in the server entry's environment, as [Configuration](configuration.md#where-to-set-them) shows.
 

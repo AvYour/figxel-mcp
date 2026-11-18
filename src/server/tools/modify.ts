@@ -5,11 +5,16 @@
 // three nodes failed and why, where a thrown error would leave it guessing.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { fitDescription, paddingParam, positionParam, sizingParam, variableValueParam } from "./params.js";
+import { BridgeError } from "../../shared/errors.js";
 import type { Logger } from "../config.js";
 import type { Bridge } from "../bridge.js";
-import { forwardTool, type Extra } from "./forward.js";
+import { withProcessWarnings } from "../motion-process.js";
+import { errorResult } from "../results.js";
+import { checkpointGate, type RoleProcess } from "../role-process.js";
+import { addressCall, forwardTool, type Extra } from "./forward.js";
 import { WRITE_PARAMS } from "./create.js";
 import { writeAnnotations } from "./annotations.js";
 
@@ -18,7 +23,27 @@ const hex = z.string().regex(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$
 const PER_ITEM =
   "Returns per-item results: `items: [{ id, ok, error? }]` — one node failing does not fail the call.";
 
-export function registerModify(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, logger?: Logger): void {
+/**
+ * figma_clone_node behind the checkpoint (role-process.ts checkpointGate): a
+ * styleframe is not cloned into the build while its brief waits for the
+ * person's choice (strict refuses, guided warns). Any other clone runs at once.
+ */
+async function forwardClone(bridge: Bridge, roles: RoleProcess, args: Record<string, unknown>, extra: Extra): Promise<CallToolResult> {
+  const session = args.session as string | undefined;
+  const key = args.idempotencyKey as string | undefined;
+  let addressed: Awaited<ReturnType<typeof addressCall>>;
+  try {
+    addressed = await addressCall(bridge, "clone_node", args, session);
+  } catch (err) {
+    return errorResult(err instanceof BridgeError ? err.withKey(key) : err, { unchanged: true });
+  }
+  const gate = await checkpointGate(roles, bridge, "figma_clone_node", addressed.params.nodeId, addressed.session);
+  if (gate.refusal) return errorResult(gate.refusal.withKey(key), { unchanged: true });
+  return withProcessWarnings(await forwardTool(bridge, "clone_node", args, extra, { session, idempotencyKey: key }), gate.warnings);
+}
+
+/** `roles` is the role process a clone of a styleframe stands behind at a checkpoint; without it nothing is gated. */
+export function registerModify(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, logger?: Logger, roles?: RoleProcess): void {
   const tool = (op: string, title: string, description: string, shape: z.ZodRawShape) => {
     if (!wanted(op)) return;
     server.registerTool(
@@ -27,6 +52,7 @@ export function registerModify(server: McpServer, bridge: Bridge, wanted: (op: s
       async (args: Record<string, unknown>, extra: Extra) => {
         // spec §5.6.1: every undo is logged — it can take the user's manual work with it.
         if (op === "undo_step") logger?.warn(`undo_step requested: confirm=${String(args.confirm)} count=${String(args.count ?? 1)}`);
+        if (op === "clone_node" && roles?.active) return forwardClone(bridge, roles, args, extra);
         return forwardTool(bridge, op, args, extra, {
           session: args.session as string | undefined,
           idempotencyKey: args.idempotencyKey as string | undefined,

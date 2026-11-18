@@ -1,9 +1,9 @@
 // Signing a person in to a team's hub with an account they already have
 // (cloud bridge): Figma [C-415] [C-416] or Google [C-418]. The hub only learns
 // who they are, never anything of theirs: an id that never changes, an email
-// and a name. Who may come in is the hub's call (oauth.ts): a private Figma app
-// admits the members of its own team, Google admits the addresses the operator
-// lists, or anyone when sign-up is open.
+// and a name. Who may come in is the hub's call (admitsNew below): a private
+// Figma app admits the members of its own team, Google admits the addresses the
+// operator lists, or anyone when sign-up is open; a full hub admits no one new.
 
 import { createHash, randomBytes } from "node:crypto";
 
@@ -140,4 +140,24 @@ export function googleAdmits(identity: Identity, allow: readonly string[], open:
   if (open) return true;
   const email = identity.email.toLowerCase();
   return allow.some((a) => (a.startsWith("@") ? email.endsWith(a) : email === a));
+}
+
+/**
+ * Whether an account the table does not know yet becomes a new person on its
+ * first sign-in (BRIDGE_HUB_SIGNUP). An account already linked to a person, or
+ * with a person's verified email, is that person whatever this says.
+ *
+ * - Figma, under either setting: whoever the Figma app lets sign in. A private
+ *   app lets in only the members of its own team, a public one any Figma user,
+ *   once Figma has reviewed it [C-415]. The hub cannot see the app's team, so
+ *   under "team" the app must stay private: that is the setting's promise.
+ * - Google: under "team" a verified email the operator listed, under "open"
+ *   any verified email [C-418].
+ *
+ * A cap on the number of people (BRIDGE_HUB_MAX_PEOPLE) applies after this,
+ * to either provider (hub.ts personForLogin).
+ */
+export function admitsNew(identity: Identity, signup: "team" | "open", googleAllow: readonly string[]): boolean {
+  if (identity.provider === "figma") return true;
+  return googleAdmits(identity, googleAllow, signup === "open");
 }

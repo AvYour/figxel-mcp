@@ -82,6 +82,8 @@ export interface RoleDef {
   details: readonly DetailKey[];
   /** Recorded later, required at sign-off at the full gears. */
   later: readonly LaterLine[];
+  /** Gears whose brief stops by default after the directions and their styleframes, for the person's choice (C-422). */
+  checkpointAt: readonly Gear[];
   /** Sign-off by gear. */
   signOff: Partial<Record<Gear, SignOffSet>>;
   /** Words in a request that point at this role, for the skills' routing rule and the classifier's hints. */
@@ -140,6 +142,7 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "source", requiredAt: ["replica"] }, // the code path a replica copies
     ],
     later: ["direction0", "directions", "chosen", "styleframes", "system"],
+    checkpointAt: FULL,
     signOff: {
       section: { audits: ["craft", "a11y", "states", "copy"], lenses: ["message", "accessibility", "type and composition", "finish QA"], answer: ["craft"] },
       page: UX_FULL,
@@ -163,6 +166,7 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "placements", requiredAt: [] },
     ],
     later: ["direction0", "directions", "chosen", "styleframes", "system"],
+    checkpointAt: FULL,
     signOff: { section: { audits: ["craft", "system"], lenses: ["message", "type and composition", "finish QA"], answer: ["craft"] }, page: GRAPHIC_FULL, top: GRAPHIC_FULL },
     triggers: ["poster", "flyer", "ad", "banner", "social post", "carousel", "story", "thumbnail", "cover", "editorial", "spread", "magazine", "menu", "invitation", "certificate", "infographic", "label", "print", "billboard", "OOH", "signage"],
   },
@@ -182,6 +186,7 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "style", requiredAt: ALL_STILL },
     ],
     later: ["direction0", "directions", "chosen"],
+    checkpointAt: FULL,
     signOff: {
       section: ILLUSTRATION,
       page: { ...ILLUSTRATION, lenses: [...ILLUSTRATION.lenses, "originality"] },
@@ -207,6 +212,7 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "clearSpace", requiredAt: [] }, // "1x = cap height"
     ],
     later: ["direction0", "directions", "chosen", "styleframes", "system"],
+    checkpointAt: FULL,
     signOff: { section: BRAND, page: BRAND, top: BRAND },
     triggers: ["logo", "wordmark", "logotype", "monogram", "lettermark", "symbol", "brand mark", "identity", "rebrand", "brand guidelines", "brand colours", "favicon", "app icon", "business card", "letterhead"],
   },
@@ -226,6 +232,7 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "maxWords", requiredAt: [] },
     ],
     later: ["direction0", "directions", "chosen", "styleframes", "system"],
+    checkpointAt: FULL,
     signOff: { section: PRESENTATION, page: PRESENTATION, top: PRESENTATION },
     triggers: ["deck", "slides", "presentation", "pitch deck", "keynote", "investor deck", "sales deck", "webinar"],
   },
@@ -247,6 +254,7 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "viewport", requiredAt: [] },
     ],
     later: [],
+    checkpointAt: [],
     signOff: { section: DESIGN_SYSTEM, page: DESIGN_SYSTEM, top: DESIGN_SYSTEM, replica: DESIGN_SYSTEM },
     triggers: ["design system", "tokens", "variables", "theme", "light/dark mode", "component library", "UI kit", "components with variants"],
   },
@@ -265,6 +273,7 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "minutes", requiredAt: [] },
     ],
     later: [],
+    checkpointAt: [],
     signOff: { section: BOARD, page: BOARD },
     triggers: ["FigJam", "board", "workshop", "retro", "brainstorm", "journey map", "affinity map", "flowchart", "sitemap", "kanban"],
   },
@@ -281,6 +290,8 @@ export const ROLES: Readonly<Record<RoleId, RoleDef>> = {
       { name: "fps", requiredAt: ["micro", "sting", "piece"] },
     ],
     later: [],
+    // The storyboard skill's stop: after the board, the styleframes and the probe.
+    checkpointAt: ["piece"],
     signOff: { micro: MOTION, sting: MOTION, piece: { ...MOTION, lenses: [...MOTION.lenses, "originality"] } },
     triggers: ["animate", "animation", "motion", "reel", "video ad", "title", "end card", "logo sting", "loop", "animated icon", "micro-interaction", "GIF", "MP4"],
   },
@@ -295,6 +306,45 @@ export const isRole = (v: unknown): v is RoleId => typeof v === "string" && (ROL
 export const isGear = (v: unknown): v is Gear => typeof v === "string" && (GEARS as readonly string[]).indexOf(v) >= 0;
 export const gearFits = (role: RoleId, gear: Gear): boolean => ROLES[role].gears.indexOf(gear) >= 0;
 export const isFullGear = (gear: Gear): boolean => FULL_GEARS.indexOf(gear) >= 0;
+
+/**
+ * Where the work stops for the person (C-422): "directions" after the
+ * directions and their styleframes, until the person chooses one; "none" runs
+ * to the end. Only a stop is stored: a record without a checkpoint is "none",
+ * as every record from before checkpoints is, so a plugin that predates them
+ * still stores every brief that does not stop.
+ */
+export const CHECKPOINTS = ["directions", "none"] as const;
+export type Checkpoint = (typeof CHECKPOINTS)[number];
+
+export const isCheckpoint = (v: unknown): v is Checkpoint => typeof v === "string" && (CHECKPOINTS as readonly string[]).indexOf(v) >= 0;
+
+/** Whether a new brief at this gear stops by default: page and top for the roles with directions, motion's piece. */
+export const stopsByDefault = (role: RoleId, gear: Gear): boolean => ROLES[role].checkpointAt.indexOf(gear) >= 0;
+
+/**
+ * The person's choice at a checkpoint, as figma_set_brief records it: who
+ * (the person who asked, "owner"), the direction, and when. Declared, not
+ * proven, as a reviewer is: the agent records it on the person's word.
+ */
+export interface Approval {
+  by: "owner";
+  direction: string;
+  at: string;
+}
+
+/** The checkpoint a brief records, "none" for a record without one. */
+export const checkpointOf = (b: { checkpoint?: unknown }): Checkpoint => (b.checkpoint === "directions" ? "directions" : "none");
+
+/** Whether the person approved the direction the brief builds now: an approval of another one no longer counts. */
+export function approvalHolds(b: { approval?: Approval | undefined; chosen?: string | undefined }): boolean {
+  const a = b.approval;
+  return !!a && typeof b.chosen === "string" && a.direction.trim().toLowerCase() === b.chosen.trim().toLowerCase();
+}
+
+/** Whether the work waits at its checkpoint: the brief stops there, and the person's choice is not recorded. */
+export const awaitsChoice = (b: { checkpoint?: unknown; approval?: Approval | undefined; chosen?: string | undefined }): boolean =>
+  checkpointOf(b) === "directions" && !approvalHolds(b);
 
 /** Words every default claims; a brief's tone takes its three words from the subject and the audience instead. */
 export const TONE_BANNED: readonly string[] = ["modern", "clean", "premium", "elegant"];
@@ -394,6 +444,10 @@ export interface BriefRecord {
   chosen?: string;
   /** Node ids of the styleframes. */
   styleframes?: string[];
+  /** "directions" where the work stops for the person's choice; absent, it runs to the end (CHECKPOINTS). */
+  checkpoint?: Checkpoint;
+  /** The person's choice of a direction at the checkpoint; stored only when figma_set_brief's `approvedBy` gave it. */
+  approval?: Approval;
   system?: SystemNumbers;
   /** Node ids of the work the brief covers: top-level frames, component sets, sections, or the page for a deck. */
   deliverables: string[];

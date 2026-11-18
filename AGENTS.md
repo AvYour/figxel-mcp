@@ -104,6 +104,7 @@ All must exit 0; CI runs them on Node 22 and 24 on Ubuntu, Windows and macOS (ma
 | [`docs/configuration.md`](docs/configuration.md) | Every setting (the `BRIDGE_*` environment variables), its default, and where to set it |
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | The full list of known problems and their fixes, and the privacy details behind the README's short notes |
 | [`docs/hub.md`](docs/hub.md) | **Running a team's hub**, for whoever runs it: what a hub is, the container and the TLS route, people and tokens, security notes, updating. Connecting to one is in `clients.md` |
+| [`docs/hub-privacy-template.md`](docs/hub-privacy-template.md) | A template for a hub operator's privacy page, taken from what the code stores; not legal advice |
 | [`docs/superpowers/specs/`](docs/superpowers/specs/) | The design spec — source of truth for architecture, safety, roadmap |
 | [`docs/reference/tools.md`](docs/reference/tools.md) | **Source of truth for the tool list.** Counts in headings are parsed by a script |
 | [`docs/reference/protocol.md`](docs/reference/protocol.md) | Wire-level protocol between bridge and plugin |

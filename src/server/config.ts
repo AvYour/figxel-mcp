@@ -7,7 +7,9 @@ import { homedir } from "node:os";
 import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { DEFAULT_PORT } from "../shared/protocol.js";
 import { parseToolset, type Toolset } from "../shared/ops.js";
+import { CHECKPOINTS, type Checkpoint } from "../shared/roles.js";
 import { HOME_DIRNAME, LEGACY_HOME_DIRNAME, SERVER_NAME } from "../shared/version.js";
+import type { FolderQuota } from "./limits.js";
 
 export class ConfigError extends Error {
   override name = "ConfigError";
@@ -51,6 +53,14 @@ export interface Config {
   processMode: ProcessMode;
   /** BRIDGE_CONFLICTS: the stale-write guard every write carries, "refuse" by default. */
   conflicts: ConflictsMode;
+  /**
+   * BRIDGE_CHECKPOINT: what a new brief at a stopping gear records when
+   * nobody said (C-422). "directions" (the default) stops after the
+   * directions and their styleframes for the person's choice, at page and
+   * top and for a motion piece; "none" runs to the end, as before 0.4.0,
+   * and the brief stores no checkpoint at all.
+   */
+  checkpoint: Checkpoint;
   autolaunch: boolean;
   sessionWaitMs: number;
   home: string;
@@ -101,13 +111,36 @@ export interface Config {
   hubGoogle: { clientId: string; clientSecret: string } | null;
   /** BRIDGE_HUB_GOOGLE_ALLOW: emails and @domains a Google sign-in comes in with, besides the table's own emails. */
   hubGoogleAllow: string[];
-  /** BRIDGE_HUB_SIGNUP: "team" (default), or "open": any Google account comes in, a new person on its first sign-in. */
+  /**
+   * BRIDGE_HUB_SIGNUP: who becomes a new person on a first sign-in (login.ts
+   * admitsNew). "team" (default): whoever the Figma app lets sign in, which a
+   * private app keeps to its own team, and the Google emails listed. "open":
+   * any Figma or Google account.
+   */
   hubSignup: "team" | "open";
+  /** BRIDGE_HUB_MAX_PEOPLE: a sign-in that would add a person past this many is told the hub is full; 0 is no cap. */
+  hubMaxPeople: number;
+  /** BRIDGE_HUB_WEB_CALLS_PER_MIN: tool calls and new sessions a person may make on the web endpoint in a minute; 0 is no limit. */
+  hubWebCallsPerMin: number;
+  /** BRIDGE_HUB_REQUESTS_PER_MIN: calls a person's processes may send to their Figma through the hub in a minute; 0 is no limit. */
+  hubRequestsPerMin: number;
+  /** BRIDGE_HUB_WEB_SESSIONS: open web sessions per person; a new one closes their least recently used. */
+  hubWebSessions: number;
+  /** BRIDGE_HUB_WEB_FOLDER_MB: the size of a person's folder on the server (<home>/web/<person>), in MB; 0 is no limit. */
+  hubWebFolderMb: number;
+  /** BRIDGE_HUB_WEB_UPLOAD_MB: the largest upload to POST /files, in MB. */
+  hubWebUploadMb: number;
+  /** BRIDGE_HUB_PRIVACY_FILE: the operator's privacy text, Markdown or HTML, served at /privacy; null serves a plain notice. */
+  hubPrivacyFile: string | null;
+  /** BRIDGE_HUB_TERMS_FILE: the operator's terms of service, Markdown or HTML, served at /terms; null serves a plain notice. */
+  hubTermsFile: string | null;
   /**
    * Set by the hub's web endpoint, never by the environment: this process
    * serves one web client, its files live on the server and leave as links.
    */
   webMode: boolean;
+  /** Set by the hub's web endpoint with webMode: the person's folder takes no new file once full (limits.ts). */
+  folderQuota: FolderQuota | null;
   /**
    * BRIDGE_HUB_BIND: where `figxel-mcp hub` listens. Loopback by default; in a
    * container, the container's own network (0.0.0.0) with the port unpublished.
@@ -178,6 +211,11 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
   if (!CONFLICT_MODES.includes(conflicts)) {
     throw new ConfigError(`BRIDGE_CONFLICTS="${env.BRIDGE_CONFLICTS}" must be one of ${CONFLICT_MODES.join(", ")}`);
   }
+  // And here: a misspelt "none" must not stop work the install meant to run through, nor the reverse.
+  const checkpoint = (env.BRIDGE_CHECKPOINT?.trim() || "directions") as Checkpoint;
+  if (!CHECKPOINTS.includes(checkpoint)) {
+    throw new ConfigError(`BRIDGE_CHECKPOINT="${env.BRIDGE_CHECKPOINT}" must be one of ${CHECKPOINTS.join(", ")}`);
+  }
 
   // A program name is looked up on PATH; a path is used as given. BRIDGE_FFMPEG
   // alone, as a path, also looks for ffprobe in the same folder.
@@ -197,6 +235,8 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
     processMode,
     // Per process as well: a proxy sends its own mode with each write it forwards (peer.ts).
     conflicts,
+    // Per process: the brief it stores records it, so every later session reads the same stop.
+    checkpoint,
     // Inert since 2026-10-07: auto-launch was removed (ADR #32) because it had
     // to raise Figma over whatever the operator was doing. The flag is still
     // parsed so an existing .env does not fail validation; nothing reads it.
@@ -221,7 +261,18 @@ export function loadConfig(env: Env = process.env, userHome: string = homedir())
     hubGoogle: oauthAppOf(env, "GOOGLE"),
     hubGoogleAllow: listOf(env.BRIDGE_HUB_GOOGLE_ALLOW),
     hubSignup: signupOf(env.BRIDGE_HUB_SIGNUP),
+    // Limits per person on a hub (docs/hub.md § Limits per person): on by default, 0 turns a rate or the folder size off.
+    hubMaxPeople: int(env, "BRIDGE_HUB_MAX_PEOPLE", 0, 0, 10_000_000),
+    hubWebCallsPerMin: int(env, "BRIDGE_HUB_WEB_CALLS_PER_MIN", 120, 0, 1_000_000),
+    hubRequestsPerMin: int(env, "BRIDGE_HUB_REQUESTS_PER_MIN", 600, 0, 1_000_000),
+    hubWebSessions: int(env, "BRIDGE_HUB_WEB_SESSIONS", 8, 1, 1000),
+    hubWebFolderMb: int(env, "BRIDGE_HUB_WEB_FOLDER_MB", 500, 0, 10_000_000),
+    // An upload is held in memory while it arrives, so its ceiling stays well under the container's memory.
+    hubWebUploadMb: int(env, "BRIDGE_HUB_WEB_UPLOAD_MB", 25, 1, 256),
+    hubPrivacyFile: env.BRIDGE_HUB_PRIVACY_FILE?.trim() ? resolve(env.BRIDGE_HUB_PRIVACY_FILE.trim()) : null,
+    hubTermsFile: env.BRIDGE_HUB_TERMS_FILE?.trim() ? resolve(env.BRIDGE_HUB_TERMS_FILE.trim()) : null,
     webMode: false,
+    folderQuota: null,
     hubBind: hubBindOf(env.BRIDGE_HUB_BIND),
   };
 }

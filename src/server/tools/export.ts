@@ -18,6 +18,7 @@ import { OPS } from "../../shared/ops.js";
 import type { Bridge } from "../bridge.js";
 import {
   assetFileName,
+  checkRoom,
   defaultExportName,
   EXTENSION,
   formatFromPath,
@@ -445,10 +446,11 @@ function registerFramesToPdf(server: McpServer, bridge: Bridge, roots: ExportRoo
         return refuse(new BridgeError(ErrorCode.INVALID_PARAM, "`outputPath` is required."));
       }
       let params: Record<string, unknown>;
-      // Fail on bad targets or a bad path before Figma renders anything.
+      // Fail on bad targets, a bad path or a full folder on a team's hub before Figma renders anything.
       try {
         params = pdfParams(args);
         await resolveSavePath(outputPath, roots);
+        await checkRoom(roots);
       } catch (err) {
         return refuse(err);
       }

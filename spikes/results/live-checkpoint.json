@@ -1,0 +1,102 @@
+{
+  "date": "2026-11-18T02:12:55.399Z",
+  "file": "Figxel Showcase",
+  "checkpointRecorded": "directions",
+  "missingForSignOffNamesChoice": true,
+  "stopReturned": true,
+  "signOffBeforeNamesChoice": true,
+  "cloneBeforeRefused": true,
+  "cloneAfterAllowed": true,
+  "signOffBeforeBlocker": "the brief stops after the directions for the person's choice (checkpoint \"directions\"), and their choice is not recorded",
+  "signOffAfterStillNamesChoice": false,
+  "approvalOnBrief": {
+    "by": "owner",
+    "direction": "T · live run",
+    "at": "2026-11-18T02:12:51.225Z"
+  },
+  "rollback": {
+    "undone": 6,
+    "verified": true,
+    "stillThere": []
+  },
+  "steps": [
+    {
+      "label": "savepoint",
+      "ms": 219,
+      "isError": false,
+      "text": "{\n  \"savepointId\": \"sp-1\",\n  \"label\": \"Live run: checkpoint (C-422)\",\n  \"at\": \"2026-11-18T02:12:48.480Z\",\n  \"pageId\": \"0:1\",\n  \"journalSeq\": 1\n}"
+    },
+    {
+      "label": "read the graphic skill",
+      "ms": 2,
+      "isError": false,
+      "text": "# Graphic — from the medium to a signed-off piece\n\nYou are a senior graphic designer: the format and the moment of viewing set every decision, and the grid and the type scale are written as numbers be"
+    },
+    {
+      "label": "read the design skill",
+      "ms": 1,
+      "isError": false,
+      "text": "# Design — from a brief to a signed-off design\n\nA design made in one pass reads as generated: it lands where every similar request lands. So this process runs in passes, each with an exit gate. No typ"
+    },
+    {
+      "label": "brief at page gear",
+      "ms": 526,
+      "isError": false,
+      "text": "{\n  \"briefId\": \"94:261\",\n  \"blockId\": \"94:261\",\n  \"stored\": \"block\",\n  \"status\": \"open\",\n  \"indexOn\": \"root\",\n  \"record\": {\n    \"v\": 1,\n    \"id\": \"94:261\",\n    \"role\": \"graphic\",\n    \"gear\": \"page\",\n "
+    },
+    {
+      "label": "styleframe",
+      "ms": 334,
+      "isError": false,
+      "text": "{\n  \"id\": \"94:271\",\n  \"name\": \"Direction T · live run\",\n  \"type\": \"FRAME\",\n  \"width\": 400,\n  \"height\": 300,\n  \"idempotencyKey\": \"k-50c9c4a7-5952-478e-8ebb-b9a90cb5edd2\"\n}"
+    },
+    {
+      "label": "decision line",
+      "ms": 687,
+      "isError": false,
+      "text": "{\n  \"briefId\": \"94:261\",\n  \"blockId\": \"94:261\",\n  \"stored\": \"block\",\n  \"status\": \"open\",\n  \"indexOn\": \"root\",\n  \"record\": {\n    \"v\": 1,\n    \"id\": \"94:261\",\n    \"role\": \"graphic\",\n    \"gear\": \"page\",\n "
+    },
+    {
+      "label": "sign-off before the choice",
+      "ms": 681,
+      "isError": false,
+      "text": "{\n  \"ok\": false,\n  \"briefId\": \"94:261\",\n  \"briefStatus\": \"open\",\n  \"blockers\": [\n    {\n      \"what\": \"the brief records no system: the page gear writes it as numbers\",\n      \"call\": \"figma_set_brief {"
+    },
+    {
+      "label": "clone before the choice (expect refused)",
+      "ms": 102,
+      "isError": true,
+      "text": "PROCESS_REQUIRED: figma_clone_node was refused before any change: the brief \"Live run · checkpoint\" (94:261) stops after the directions for the person's choice, and 94:271 is one of its styleframes, w"
+    },
+    {
+      "label": "record the person's choice",
+      "ms": 698,
+      "isError": false,
+      "text": "{\n  \"briefId\": \"94:261\",\n  \"blockId\": \"94:261\",\n  \"stored\": \"block\",\n  \"status\": \"open\",\n  \"indexOn\": \"root\",\n  \"record\": {\n    \"v\": 1,\n    \"id\": \"94:261\",\n    \"role\": \"graphic\",\n    \"gear\": \"page\",\n "
+    },
+    {
+      "label": "clone after the choice (expect allowed)",
+      "ms": 293,
+      "isError": false,
+      "text": "{\n  \"id\": \"94:202\",\n  \"name\": \"Live run / build\",\n  \"type\": \"FRAME\",\n  \"sourceId\": \"94:183\",\n  \"idempotencyKey\": \"live-checkpoint-clone-2\",\n  \"replayed\": true\n}"
+    },
+    {
+      "label": "sign-off after the choice",
+      "ms": 664,
+      "isError": false,
+      "text": "{\n  \"ok\": false,\n  \"briefId\": \"94:261\",\n  \"briefStatus\": \"open\",\n  \"blockers\": [\n    {\n      \"what\": \"the brief records no system: the page gear writes it as numbers\",\n      \"call\": \"figma_set_brief {"
+    },
+    {
+      "label": "read the brief",
+      "ms": 271,
+      "isError": false,
+      "text": "{\n  \"brief\": {\n    \"v\": 1,\n    \"id\": \"94:261\",\n    \"role\": \"graphic\",\n    \"gear\": \"page\",\n    \"title\": \"Live run · checkpoint\",\n    \"status\": \"open\",\n    \"createdAt\": \"2026-11-18T02:12:48.798Z\",\n    \""
+    },
+    {
+      "label": "roll back",
+      "ms": 2549,
+      "isError": false,
+      "text": "{\n  \"savepointId\": \"sp-1\",\n  \"label\": \"Live run: checkpoint (C-422)\",\n  \"undone\": 6,\n  \"verified\": true,\n  \"stillThere\": [],\n  \"calls\": 7\n}"
+    }
+  ]
+}

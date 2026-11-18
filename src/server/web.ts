@@ -11,29 +11,35 @@
 // person's folder on the server (<home>/web/<person>), the only folder its
 // tools may read or write, and come back as short-lived download links under
 // /files. A file can be uploaded there first, to import it.
+//
+// Limits per person (limits.ts, docs/hub.md § Limits per person): tool calls
+// and new sessions a minute, open sessions, the folder's size and an upload's.
 
 import { randomBytes, randomUUID } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { createReadStream, statSync } from "node:fs";
 import { mkdir, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest, type JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { BridgeError } from "../shared/errors.js";
 import { clientAddress, type Bridge } from "./bridge.js";
 import type { Config, Logger } from "./config.js";
 import type { AgentState, App } from "./mcp.js";
 import { ICON_PNG, ICON_SVG } from "./icons.js";
+import { Budget, ensureRoom, overLimit, type FolderQuota } from "./limits.js";
 import { createOAuth, type OAuthOptions } from "./oauth.js";
+import { operatorPage } from "./privacy.js";
+import { errorResult } from "./results.js";
 
 /** How long a download link, and the file behind it, lasts. */
 export const FILE_TTL_MS = 60 * 60_000;
 /** A web session nobody used for this long is closed: its Bridge and tools go with it. */
 export const SESSION_IDLE_MS = 30 * 60_000;
-/** At most this many open web sessions per person; a new one closes the oldest. */
-const SESSIONS_PER_PERSON = 8;
-/** The largest MCP message and the largest upload a web client may send. */
+/** The largest MCP message a web client may send; the largest upload is BRIDGE_HUB_WEB_UPLOAD_MB. */
 const MAX_MESSAGE_BYTES = 4 * 1024 * 1024;
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+/** Why a session closed to make room for a newer one: its client hears it with the 404. */
+const TOO_MANY = "too many open sessions";
 
 const ICONS: Record<string, [string, Buffer]> = {
   "/favicon.ico": ["image/png", ICON_PNG],
@@ -128,6 +134,13 @@ export interface WebEndpoint {
 export function createWebEndpoint(opts: WebOptions): WebEndpoint {
   const { config, logger } = opts;
   if (!config.hubPublicUrl) throw new Error("BRIDGE_HUB_WEB needs BRIDGE_HUB_PUBLIC_URL: download links are made from it.");
+  // The operator's privacy and terms texts are checked when the hub starts, not first when someone opens the page.
+  for (const [setting, file] of [
+    ["BRIDGE_HUB_PRIVACY_FILE", config.hubPrivacyFile],
+    ["BRIDGE_HUB_TERMS_FILE", config.hubTermsFile],
+  ] as const) {
+    if (file && !statSync(file, { throwIfNoEntry: false })?.isFile()) throw new Error(`${setting} names ${file}, which is not a file this hub can read.`);
+  }
   const base = config.hubPublicUrl.replace(/^ws/, "http"); // wss:// → https://, ws:// (tests) → http://
   const fileTtl = opts.fileTtlMs ?? FILE_TTL_MS;
   const idle = opts.sessionIdleMs ?? SESSION_IDLE_MS;
@@ -136,6 +149,13 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
   const agents = new Map<string, PersonAgent>();
   const startingAgents = new Map<string, Promise<PersonAgent | null>>();
   const links = new Map<string, Link>();
+  // BRIDGE_HUB_WEB_CALLS_PER_MIN: a person's tool calls and new sessions, all their sessions together.
+  const calls = new Budget(config.hubWebCallsPerMin, 60_000);
+  // BRIDGE_HUB_WEB_FOLDER_MB: a full folder takes no new file, from a tool or an upload, until its oldest expires.
+  const quota: FolderQuota | null = config.hubWebFolderMb > 0 ? { bytes: config.hubWebFolderMb * 1024 * 1024, ttlMs: fileTtl } : null;
+  const uploadLimit = config.hubWebUploadMb * 1024 * 1024;
+  /** Sessions closed to make room for a newer one, by id, with whose they were: a while, so the 404 can say why. */
+  const closedForRoom = new Map<string, { source: string; at: number }>();
   // Each session's own logger: its Bridge and tools say little; the hub's log names the person.
   const sessionLogger: Logger = { ...logger, debug: () => {}, info: () => {} };
 
@@ -198,6 +218,7 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
     allowEval: false,
     hubWeb: false,
     webMode: true,
+    folderQuota: quota,
   });
 
   /**
@@ -261,6 +282,10 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
     const s = sessions.get(id);
     if (!s) return;
     sessions.delete(id);
+    if (why === TOO_MANY) {
+      closedForRoom.set(id, { source: s.source, at: Date.now() });
+      if (closedForRoom.size > 1000) closedForRoom.delete(closedForRoom.keys().next().value!);
+    }
     await s.transport.close().catch(() => {});
     await s.app.close().catch(() => {});
     const agent = agents.get(s.source);
@@ -273,9 +298,39 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
     logger.info(`web: ${s.person}'s session ended (${why}), ${sessions.size} open`);
   }
 
+  /**
+   * BRIDGE_HUB_WEB_SESSIONS: past it, a new session closes the person's least
+   * recently used rather than being refused, since a client such as ChatGPT
+   * opens a session for nearly every call and leaves the old ones open.
+   */
   function trimSessions(person: string): void {
     const mine = [...sessions.values()].filter((s) => s.person === person).sort((a, b) => a.lastUsed - b.lastUsed);
-    for (const s of mine.slice(0, Math.max(0, mine.length - SESSIONS_PER_PERSON))) void closeSession(s.id, "too many open sessions");
+    for (const s of mine.slice(0, Math.max(0, mine.length - config.hubWebSessions))) void closeSession(s.id, TOO_MANY);
+  }
+
+  /**
+   * BRIDGE_HUB_WEB_CALLS_PER_MIN: past a person's tool calls and new sessions
+   * a minute, each is answered here, as BUSY with when to try again, and
+   * nothing runs. A tool call gets it as the tool's own error, which the agent
+   * reads; a new session gets 429. True when the answer was sent.
+   */
+  function overCalls(person: string, body: unknown, res: ServerResponse): boolean {
+    const messages = (Array.isArray(body) ? body : [body]) as Array<{ method?: unknown; id?: unknown } | null>;
+    const counted = messages.filter((m) => m?.method === "tools/call" || m?.method === "initialize").length;
+    if (counted === 0 || calls.take(person, counted)) return false;
+    const error = overLimit("tool calls and new sessions on this hub's web endpoint", config.hubWebCallsPerMin, calls.waitMs(person), "BRIDGE_HUB_WEB_CALLS_PER_MIN");
+    const answers = messages
+      .filter((m): m is { method: unknown; id: string | number } => !!m && m.method !== undefined && m.id !== undefined)
+      .map((m) =>
+        m.method === "tools/call"
+          ? { jsonrpc: "2.0", id: m.id, result: errorResult(error, { unchanged: true }) }
+          : { jsonrpc: "2.0", id: m.id, error: { code: -32000, message: `${error.message} ${error.hint}` } },
+      );
+    const opening = messages.some((m) => m?.method === "initialize");
+    res
+      .writeHead(opening ? 429 : 200, { "content-type": "application/json", "retry-after": String(retryAfterOf(error)) })
+      .end(JSON.stringify(Array.isArray(body) ? answers : (answers[0] ?? null)));
+    return true;
   }
 
   /** Adds `downloads` (a link per file in the person's folder) to a tool's result. */
@@ -334,12 +389,18 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
       const s = sessions.get(sessionId);
       // Another person's session id, with this token, is a session that does not exist.
       if (!s || s.source !== who.source) {
-        res.writeHead(404, { "content-type": "application/json" }).end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32001, message: "Session not found" }, id: null }));
+        // Their own session, closed for a newer one: the 404 is the same, and its message says why.
+        const message =
+          closedForRoom.get(sessionId)?.source === who.source
+            ? `Session not found: it was closed because ${who.person} had more than ${config.hubWebSessions} sessions open on this hub, and it was the least recently used. Start a new session.`
+            : "Session not found";
+        res.writeHead(404, { "content-type": "application/json" }).end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32001, message }, id: null }));
         return;
       }
       s.lastUsed = Date.now();
       const body = req.method === "POST" ? await readJson(req, res) : undefined;
       if (body === null) return;
+      if (body !== undefined && overCalls(who.person, body, res)) return;
       await s.transport.handleRequest(req, res, body);
       return;
     }
@@ -353,6 +414,7 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
       res.writeHead(400, { "content-type": "application/json" }).end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Bad Request: no session; start with initialize" }, id: null }));
       return;
     }
+    if (overCalls(who.person, body, res)) return;
     const s = await openSession(who.person, who.source);
     if (!s) {
       res.writeHead(401, { "content-type": "application/json" }).end(JSON.stringify({ error: "This person is no longer in the hub's table." }));
@@ -387,13 +449,33 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
     createReadStream(file).pipe(res);
   }
 
-  /** POST /files?name=<file name>, signed in: the body is saved in the person's folder, for an import by `path`. */
+  /**
+   * POST /files?name=<file name>, signed in: the body is saved in the person's
+   * folder, for an import by `path`. At most BRIDGE_HUB_WEB_UPLOAD_MB, and only
+   * while the folder has room (BRIDGE_HUB_WEB_FOLDER_MB). A full folder is
+   * refused before the body is read, and so is a body too large when the
+   * client said its size; otherwise as soon as it passes the size.
+   */
   async function upload(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const who = signIn(req, res);
     if (!who) return;
     const raw = new URL(req.url ?? "/", "http://hub").searchParams.get("name") ?? "upload";
     const name = basename(raw).replace(/[^\w.-]+/g, "_").slice(-80) || "upload";
-    const bytes = await readBody(req, res, MAX_UPLOAD_BYTES);
+    const tooLarge = (r: ServerResponse) =>
+      refuseUpload(r, 413, {
+        error: `Too large: an upload to this hub is at most ${config.hubWebUploadMb} MB.`,
+        hint: "Import a smaller file, or give the import a URL the plugin fetches instead. Whoever runs the hub sets the limit (BRIDGE_HUB_WEB_UPLOAD_MB).",
+      });
+    if (Number(req.headers["content-length"]) > uploadLimit) return tooLarge(res);
+    if (quota) {
+      try {
+        await ensureRoom(folderOf(who.person), quota);
+      } catch (e) {
+        if (!(e instanceof BridgeError)) throw e;
+        return refuseUpload(res, 507, { error: e.message, hint: e.hint ?? "", retryAfterS: retryAfterOf(e) }, retryAfterOf(e));
+      }
+    }
+    const bytes = await readBody(req, res, uploadLimit, tooLarge);
     if (bytes === null) return;
     const relative = `uploads/${randomBytes(4).toString("hex")}-${name}`;
     const file = join(folderOf(who.person), relative);
@@ -419,6 +501,7 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
       else if (a.sessions === 0 && now - a.lastUsed > idle) await closeAgent(a, "idle");
     }
     for (const [id, l] of links) if (l.expiresAt < now) links.delete(id);
+    for (const [id, c] of closedForRoom) if (now - c.at > idle) closedForRoom.delete(id);
     await removeOlderThan(webRoot, now - fileTtl).catch(() => {});
   }
 
@@ -433,6 +516,13 @@ export function createWebEndpoint(opts: WebOptions): WebEndpoint {
       if (req.method === "GET" && ICONS[path]) {
         const [type, body] = ICONS[path];
         res.writeHead(200, { "content-type": type, "content-length": String(body.length), "cache-control": "public, max-age=86400" }).end(body);
+        return true;
+      }
+      // The operator's privacy notice and terms (BRIDGE_HUB_PRIVACY_FILE, BRIDGE_HUB_TERMS_FILE), or the built-in ones; the sign-in page links to both.
+      if (req.method === "GET" && (path === "/privacy" || path === "/terms")) {
+        const which = path === "/privacy" ? "privacy" : "terms";
+        const page = await operatorPage(which, which === "privacy" ? config.hubPrivacyFile : config.hubTermsFile, (m) => logger.warn(m));
+        res.writeHead(page.status, page.headers).end(page.body);
         return true;
       }
       if (await oauth.handle(req, res, path)) return true;
@@ -466,21 +556,45 @@ async function readJson(req: IncomingMessage, res: ServerResponse): Promise<unkn
   }
 }
 
-function readBody(req: IncomingMessage, res: ServerResponse, limit: number): Promise<Buffer | null> {
+/** The seconds a limit's BUSY says to wait (limits.ts puts them in `partial.retryAfterS`). */
+const retryAfterOf = (e: BridgeError): number => (e.partial as { retryAfterS?: number } | undefined)?.retryAfterS ?? 60;
+
+/**
+ * An upload refused: JSON with the reason and what to do. A body not read yet
+ * is read and dropped by Node once the answer is sent; cutting the connection
+ * instead can reset it before the client reads the answer.
+ */
+function refuseUpload(res: ServerResponse, status: number, body: Record<string, unknown>, retryAfterS?: number): void {
+  res.writeHead(status, { "content-type": "application/json", ...(retryAfterS !== undefined ? { "retry-after": String(retryAfterS) } : {}) }).end(JSON.stringify(body));
+}
+
+/**
+ * A body of at most `limit` bytes; null when an answer was already sent
+ * (`tooLarge`'s, by default a plain 413). Past the limit the rest is read and
+ * dropped, not kept, so the answer reaches the client; Node's request timeout
+ * ends a body that never does.
+ */
+function readBody(req: IncomingMessage, res: ServerResponse, limit: number, tooLarge?: (res: ServerResponse) => void): Promise<Buffer | null> {
   return new Promise((done) => {
-    const chunks: Buffer[] = [];
+    let chunks: Buffer[] = [];
     let size = 0;
+    let refused = false;
     req.on("data", (c: Buffer) => {
+      if (refused) return;
       size += c.length;
       if (size > limit) {
-        res.writeHead(413, { "content-type": "text/plain" }).end(`Too large: at most ${Math.round(limit / 1024 / 1024)} MB.\n`);
-        req.destroy();
+        refused = true;
+        chunks = [];
+        if (tooLarge) tooLarge(res);
+        else res.writeHead(413, { "content-type": "text/plain" }).end(`Too large: at most ${Math.round(limit / 1024 / 1024)} MB.\n`);
         done(null);
         return;
       }
       chunks.push(c);
     });
-    req.on("end", () => done(Buffer.concat(chunks)));
+    req.on("end", () => {
+      if (!refused) done(Buffer.concat(chunks));
+    });
     req.on("error", () => done(null));
   });
 }

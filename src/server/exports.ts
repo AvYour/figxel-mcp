@@ -17,10 +17,18 @@
 import { mkdir, realpath, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { BridgeError, ErrorCode } from "../shared/errors.js";
+import { ensureRoom, type FolderQuota } from "./limits.js";
 
 export interface ExportRoots {
   exportDir: string;
   exportRoots: string[];
+  /** A web session on a team's hub: the person's folder (exportDir) takes no new file once full (BRIDGE_HUB_WEB_FOLDER_MB). */
+  quota?: FolderQuota;
+}
+
+/** Throws BUSY when the export directory is a person's folder on a hub and it is full; else nothing (limits.ts). */
+export async function checkRoom(roots: ExportRoots): Promise<void> {
+  if (roots.quota) await ensureRoom(roots.exportDir, roots.quota);
 }
 
 /** File extension per export format. */
@@ -135,9 +143,10 @@ export function sniffExt(bytes: Uint8Array): string {
   return ".bin";
 }
 
-/** Validate, create the directory, write. Returns the absolute path written. */
+/** Validate, check for room, create the directory, write. Returns the absolute path written. */
 export async function writeExport(saveTo: string, bytes: Buffer, roots: ExportRoots): Promise<string> {
   const target = await resolveSavePath(saveTo, roots);
+  await checkRoom(roots);
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, bytes);
   return target;

@@ -88,8 +88,8 @@ With `BRIDGE_HUB_WEB=1` the hub also answers MCP over Streamable HTTP at `https:
 
 - **Sign-in** is the person's own token, `Authorization: Bearer <token>`, on every request, or OAuth. A wrong token gets `401` and counts toward the same per-address limit as a refused plugin.
 - **OAuth** is for clients that accept nothing else, such as ChatGPT `[C-407]`: the hub is its own authorization server `[C-414]`. The client registers itself (or is known by its metadata document, fetched only from a public address), opens the hub's sign-in page, where the person sees which app is asking and where it returns, and pastes their invite. The app then holds an access token for an hour and a refresh token for 30 days, never the invite. A grant stands for the person's entry in the table: removing them, or giving them a new invite, ends it at once. Registered apps and refresh tokens, as hashes, are kept in `<home>/hub-oauth.json`. Registration is open, as OAuth clients expect, so it is limited: 20 per address an hour, and a full table makes room only from apps nobody is signed in with. `BRIDGE_HUB_REDIRECT_HOSTS` (for example `claude.ai,chatgpt.com,localhost`) narrows the hosts an app may return to; the sign-in page shows that host in large type either way.
-- **Each web session** runs the same tools a person's own process runs, joined to the hub as that person with a credential of its own (never the person's token): it sees only that person's Figma, as a laptop does. A session id works only with the token that opened it. An idle session closes after 30 minutes; a person has at most 8 open.
-- **Files** a tool writes go to that person's folder on the server, `<home>/web/<name>`, the only folder its tools may read or write. Each result lists them under `downloads`, with a link that lasts an hour; the files are deleted after an hour. A link is made only for a file that, with `..` and symbolic links resolved, is in the person's folder, and that is checked again when it is served: a path the person wrote into a layer's name never reaches another folder.
+- **Each web session** runs the same tools a person's own process runs, joined to the hub as that person with a credential of its own (never the person's token): it sees only that person's Figma, as a laptop does. A session id works only with the token that opened it. An idle session closes after 30 minutes; a person has at most 8 open, and a new one closes their least recently used ([Limits per person](#limits-per-person)).
+- **Files** a tool writes go to that person's folder on the server, `<home>/web/<name>`, the only folder its tools may read or write. Each result lists them under `downloads`, with a link that lasts an hour; the files are deleted after an hour, and the folder holds at most 500 MB at a time. A link is made only for a file that, with `..` and symbolic links resolved, is in the person's folder, and that is checked again when it is served: a path the person wrote into a layer's name never reaches another folder.
 - **Imports** take a URL (the plugin fetches it), or a file uploaded first: `POST /files?name=logo.png` with the bearer header and the bytes as the body (at most 25 MB) answers the `path` to give the import.
 - `figma_eval` is never registered for a web session.
 - **The connector's icon** in claude.ai comes from Google's favicon service for the hub's domain reduced to its last two labels, not from the hub `[C-419]`: for `mcp.figxel.example`, the favicon of `example`'s site. The hub serves the Figxel mark at `/favicon.ico` and names it in its server info for clients that use either.
@@ -98,8 +98,9 @@ With `BRIDGE_HUB_WEB=1` the hub also answers MCP over Streamable HTTP at `https:
 
 The plugin's first screen signs in to Figxel Cloud, the Moire Labs hub at `mcp.figxel.moirelabs.dev`; a team running its own hub gives its people an invite, which carries the hub's address, or the address alone. Either goes in under **Have an invite for another hub?** on that first screen, or under **Change** once the window shows a hub. With the web endpoint on, people sign in the way they do with any remote MCP server: an app opens the hub's sign-in page, they press **Continue with Figma** or **Continue with Google**, and they are in. The Figma plugin does the same through the browser: **Sign in** on its first screen, or **Sign in with the browser** once the window shows a hub, shows a short code, the page that opens shows the same code, and after the sign-in there the plugin connects with a credential of its own. The invite stays as the other way in.
 
-- **Figma** `[C-415]` `[C-416]`: create an OAuth app under Figma's *My Apps* for **your team**, with the callback `https://mcp.figxel.example/login/figma/callback`, and keep it **private**. A private app works for the members of that team and needs no review by Figma; anyone in the team who signs in becomes a person in the table on their first sign-in. A public app would let in any Figma user, and Figma reviews it first.
-- **Google** `[C-418]`: create an OAuth client of type *Web application* with the redirect URI `https://mcp.figxel.example/login/google/callback`. A Google account comes in only with a verified email that is a person's in the table (`hub email`), or that `BRIDGE_HUB_GOOGLE_ALLOW` lists (`dina@example.com`, or a whole `@example.com`); with `BRIDGE_HUB_SIGNUP=open`, any Google account comes in.
+- **Figma** `[C-415]` `[C-416]`: create an OAuth app under Figma's *My Apps* for **your team**, with the callback `https://mcp.figxel.example/login/figma/callback`, and keep it **private**. A private app works for the members of that team and needs no review by Figma; anyone in the team who signs in becomes a person in the table on their first sign-in. A public app would let in any Figma user, and Figma reviews it first. The hub cannot see the app's team, so it takes whoever the app lets sign in, under either `BRIDGE_HUB_SIGNUP`: make the app public only for a hub open to everyone ([Opening a hub to everyone](#opening-a-hub-to-everyone)).
+- **Google** `[C-418]`: create an OAuth client of type *Web application* with the redirect URI `https://mcp.figxel.example/login/google/callback`. A Google account comes in only with a verified email that is a person's in the table (`hub email`), or that `BRIDGE_HUB_GOOGLE_ALLOW` lists (`dina@example.com`, or a whole `@example.com`); with `BRIDGE_HUB_SIGNUP=open`, any Google account with a verified email comes in.
+- **A cap.** With `BRIDGE_HUB_MAX_PEOPLE`, a sign-in that would add a person past that many is told the hub is full, and nobody is added ([Open sign-up and a cap](#open-sign-up-and-a-cap)).
 - **The credentials** go in the container's environment (`BRIDGE_HUB_FIGMA_CLIENT_ID` and `_SECRET`, `BRIDGE_HUB_GOOGLE_CLIENT_ID` and `_SECRET`), best from a file readable by root only (`env_file` in compose.yml), never in the compose file itself.
 - **One person, one account.** A sign-in is the person whose verified email it carries (`hub email <name> <address>`), so someone who already has an invite stays the same person when they sign in with Figma or Google; the account is linked to them from then on. Without a match, Figma's team member becomes a new person named after their email.
 - **One sign-in per browser.** The hub remembers a browser that signed in, for 30 days (an HttpOnly, Secure, SameSite=Lax cookie): the next sign-in there, such as the plugin's after Claude's, is one **Continue as <name>** click. The click stays, because approving a code on sight would let a link with someone else's code take the person's access; **Use another account** forgets the browser.
@@ -129,6 +130,62 @@ Send each invite to its person privately: it holds their token. On the plugin wi
 - **Refused tokens are limited per address.** After 20 refused tokens from one address within 10 minutes, the hub turns that address away for 15 minutes, a correct token included, and logs the address once. The address is the one Caddy puts in `X-Forwarded-For` `[C-408]`, believed only when the connection comes from a private address, as the proxy's does.
 - **Versions.** The hub and the processes speak the same peer protocol (version 1) across releases: a new ability is announced as a feature or an optional field, which an older side ignores. A tool newer than the hub reaches the plugin all the same, and a newer write tool keeps its retry key and its guard against overwriting someone's edit. Update the hub and the team's apps within a release of each other.
 - **The server's address is public** with a DNS-only record `[C-410]`; the hub listens only on the proxy's network.
+- **Limits per person** keep one person from taking the server's time, memory or disk from the others ([Limits per person](#limits-per-person)).
+
+## Opening a hub to everyone
+
+A hub admits its own team by default. Opening it to anyone is a change of settings, not of code: the limits, a privacy page, a cap on the number of people, then open sign-up, in that order. Figma's review of a public app comes last, because a public Figma app lets in any Figma user whatever the hub's settings say `[C-415]`.
+
+1. **Check the limits per person** against the server ([Limits per person](#limits-per-person)). They are on by default.
+2. **Publish a privacy page** at `/privacy` ([A privacy page](#a-privacy-page)).
+3. **Set a cap**, `BRIDGE_HUB_MAX_PEOPLE`, so an open hub fills up instead of running out of memory or disk ([Open sign-up and a cap](#open-sign-up-and-a-cap)).
+4. **Open sign-up**, `BRIDGE_HUB_SIGNUP=open`: any Google account with a verified email comes in, as a new person on its first sign-in.
+5. **Ask Figma to review the Figma app as a public app** `[C-415]`. Until Figma approves it, the private app keeps admitting its own team only, and Google is the way in for everyone else.
+
+What no setting does: the privacy text itself (start from the [template](hub-privacy-template.md), and have it checked by someone qualified), sizing the server ([Capacity](#capacity)), and a first run with a second real person, two people on one hub who must not see each other's files.
+
+The hub's log says, when it starts, who may sign up and every limit in force, so a setting that did not take shows at once.
+
+### Limits per person
+
+| What | Setting | Default | Past it |
+|---|---|---|---|
+| Calls to Figma through the hub, from all of a person's processes (a laptop's and the web endpoint's sessions) | `BRIDGE_HUB_REQUESTS_PER_MIN` | `600` a minute | The call answers `BUSY` and is not sent |
+| Tool calls and new sessions on the web endpoint, all of a person's sessions together | `BRIDGE_HUB_WEB_CALLS_PER_MIN` | `120` a minute | A tool call answers `BUSY` as the tool's own error; a new session gets `429` |
+| Open web sessions | `BRIDGE_HUB_WEB_SESSIONS` | `8` | A new session closes the person's least recently used, whose next request gets `404` saying why |
+| A person's folder, `<home>/web/<name>` | `BRIDGE_HUB_WEB_FOLDER_MB` | `500` MB | A new file, from a tool or an upload, is refused (`BUSY`, or `507` for an upload) until the oldest file expires |
+| One upload to `POST /files` | `BRIDGE_HUB_WEB_UPLOAD_MB` | `25` MB | `413` |
+
+- **Every refusal says when to try again.** A `BUSY` from a limit changed nothing (`safeToRetry: true`), its hint gives the seconds to wait, and `partial.retryAfterS` carries them; an HTTP refusal has a `Retry-After` header where waiting helps. An agent that reads the hint waits and calls again; a person never has to.
+- **A minute starts at a person's first call** and counts every call in it, refused ones included, until it ends; then the count starts again from nothing. `0` turns a rate, or the folder's size, off.
+- **Sessions close instead of being refused**, because some clients open a new session for nearly every call and leave the old ones open: refusing the newest would stop them. The closed session's next request gets a `404` whose message says why.
+- **The folder's size** is checked before a file is written, never after: once the folder holds the size or more, no new file is written, but the file that crosses it is kept, so a render Figma spent minutes on is not lost. A video render or a PDF is refused before Figma starts on it. Files older than an hour go first, before anything is refused.
+- **An upload past its size** is refused before its body is read when the client says the size, and as soon as it passes the size otherwise. It is held in memory while it arrives, which is why its ceiling is 256 MB.
+- **On one computer nothing is limited.** The limits apply only to a team's hub, where several people share one server.
+
+### Open sign-up and a cap
+
+- **`BRIDGE_HUB_SIGNUP`** decides who becomes a new person on a first sign-in. `team`, the default: whoever the Figma app lets sign in (a private app keeps that to its team `[C-415]`), and the Google emails the table or `BRIDGE_HUB_GOOGLE_ALLOW` names. `open`: any Google account with a verified email, and whoever the Figma app lets sign in, which is anyone once the app is public. Someone already in the table always comes in, by an account linked to them or by their email.
+- **`BRIDGE_HUB_MAX_PEOPLE`** caps the table for sign-ups: a sign-in that would add a person past that many gets a page that says the hub is full, nobody is added, and a plugin waiting on that sign-in hears it at once. It counts everyone in the table, invited or signed up. `hub add` is not limited by it, so you can always add someone yourself. To close sign-up for a while without touching the Figma app, set it to the number of people the table holds now.
+
+### A privacy page
+
+The hub serves `/privacy`, and every sign-in page links to it.
+
+- **Your own text**: `BRIDGE_HUB_PRIVACY_FILE`, the path of a file inside the container, for example a read-only mount `./privacy.md:/config/privacy.md:ro` with `BRIDGE_HUB_PRIVACY_FILE: /config/privacy.md`. The hub refuses to start when the file is not there, and reads it again on each request, so an edit shows without a restart. At most 256 KB.
+- **Markdown** (any name but `.html`) is rendered with every character escaped: headings, paragraphs, lists, quotes, rules, bold, italic, code and links to `https://`, `http://`, `mailto:` or a path on the hub. Raw HTML shows as text, and any other link as its words.
+- **An `.html` file** is served whole, under a policy that runs no script, sends no form and loads only its inline styles and its images.
+- **Without a file**, the page is a short notice of what the hub software keeps, which says that whoever runs the hub has not published one.
+- **The template**, [docs/hub-privacy-template.md](hub-privacy-template.md), is a long form to start from: what the hub keeps and for how long, from its code, with placeholders for your name, contact and servers. It is not legal advice.
+- **Terms of service** work the same way at `/terms`, from `BRIDGE_HUB_TERMS_FILE`, and every sign-in page links to them beside Privacy. Without a file the page says that whoever runs the hub has published no terms; the software cannot say on what terms you offer your hub, so there is no template for them.
+
+### Capacity
+
+What a server needs grows with the people who are active at once, not with the table.
+
+- **Memory.** The hub uses about 35 MB as a relay. Each person with an app connected by URL adds an agent, and each of their open sessions a set of tools, up to `BRIDGE_HUB_WEB_SESSIONS`; uploads are held in memory while they arrive. How much a session takes is not measured yet: measure it under load before you open the hub, and set the cap from it.
+- **Disk.** At most `BRIDGE_HUB_WEB_FOLDER_MB` per person who wrote a file in the last hour, plus one file each past it; and the two small tables, `hub-people.json` and `hub-oauth.json`.
+- **CPU.** The tools of the web endpoint run on the server: a video's frames and a PDF are made there. The calls a minute bound how much one person can ask for.
 
 ## Updating
 

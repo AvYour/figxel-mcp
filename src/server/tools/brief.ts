@@ -6,12 +6,15 @@
 //     (role-process.ts briefSkillGate), the structure (INVALID_PARAM in every
 //     mode), the gear's lines and the lint (INVALID_PARAM in strict, `lint` in
 //     guided), the size. The result adds what sign-off will ask for, so it is
-//     never a surprise, and the brief comes into force for its file.
+//     never a surprise, and the brief comes into force for its file. At the
+//     stopping gears a new brief records a checkpoint (C-422, BRIDGE_CHECKPOINT),
+//     and `approvedBy` records the person's choice of the chosen direction.
 //   figma_get_brief  reads one; reading an open brief adopts it, so a second
 //     agent can continue the work, and its `next` says the base workflow's
 //     stage the record shows and what moves it on (nextStep).
 //   figma_sign_off   ends the work: the server's checks first (the brief
-//     complete for its gear, the lenses at the bar or the round budget, at
+//     complete for its gear, at a checkpoint the person's choice in strict,
+//     the lenses at the bar or the round budget, at
 //     the top gear the cold lenses from a reviewer other than the builder, the
 //     motion audit at the delivery fps), then the plugin's sign_off op runs the
 //     role's figma_check_layout audits, records the result with a fingerprint
@@ -30,6 +33,7 @@ import { AVOID_MAX, avoidRefusal } from "../../shared/avoid.js";
 import { BridgeError, ErrorCode } from "../../shared/errors.js";
 import type { MotionSnapshot } from "../../shared/motion-curves.js";
 import {
+  awaitsChoice,
   BRIEF_LIMITS as L,
   GEARS,
   gearFits,
@@ -44,9 +48,12 @@ import {
   ROUND_BUDGET,
   SELF_REVIEW_GEAR,
   signOffSet,
+  stopsByDefault,
   TONE_BANNED,
+  type Approval,
   type AuditName,
   type BriefRecord,
+  type Checkpoint,
   type CheckSummary,
   type Gear,
   type LensScore,
@@ -55,13 +62,13 @@ import {
   type RoleId,
   type SignOffRecord,
 } from "../../shared/roles.js";
-import { VERSION } from "../../shared/version.js";
+import { PLUGIN_MENU_PATH, PLUGIN_NAME, VERSION } from "../../shared/version.js";
 import type { Bridge } from "../bridge.js";
 import { toNodeId } from "../figma-url.js";
 import { auditMotion } from "../motion-audit.js";
 import { checkCall, lookUpPlan, planCall, planKey, sessionIdOf, withProcessWarnings, type MotionProcess } from "../motion-process.js";
 import { errorResult, okResult } from "../results.js";
-import { briefReadOf, briefSkillGate, fileOf, noBriefAnswer, readBrief, type FileRef, type RoleProcess } from "../role-process.js";
+import { briefReadOf, briefSkillGate, checkpointWayOut, fileOf, noBriefAnswer, readBrief, type FileRef, type RoleProcess } from "../role-process.js";
 import { SKILLS_VERSION } from "../skills.js";
 import { readAnnotations, writeAnnotations } from "./annotations.js";
 import { missingLayerHint, planAsListed, rootHandles, withPlan } from "./check-motion.js";
@@ -204,6 +211,13 @@ const BRIEF_FIELDS = {
     .describe("Two or more directions, each with the score it got."),
   chosen: text(L.title).optional().describe("The direction built."),
   styleframes: z.array(z.string()).max(L.list).optional().describe("Node ids of the styleframes."),
+  checkpoint: z
+    .enum(["directions", "storyboard", "none"])
+    .optional()
+    .describe(
+      '"directions": after the directions and styleframes, stop for the person\'s choice (default at page, top and piece; "storyboard" is the same stop). "none": run to the end, only on the person\'s word.',
+    ),
+  approvedBy: z.enum(["owner"]).optional().describe("The person chose `chosen` at the checkpoint: pass it with chosen, on their word."),
   system: SYSTEM.optional().describe("The system as numbers."),
   deliverables: z.array(z.string()).max(L.deliverables).optional().describe("Node ids of the work the brief covers; added to the list."),
 };
@@ -223,7 +237,7 @@ const LINE_KEYS = [
   "goal", "message", "success", "audience", "proof", "constraints", "givens", "tone", "format",
   "minTextSize", "safeArea", "assumptions", "references", "defaultToAvoid",
 ] as const;
-const TOP_KEYS = ["role", "gear", "title", "details", "avoid", "direction0", "directions", "chosen", "styleframes", "system", "deliverables"] as const;
+const TOP_KEYS = ["role", "gear", "title", "details", "avoid", "direction0", "directions", "chosen", "styleframes", "checkpoint", "system", "deliverables"] as const;
 
 /** The design skill's lines a brief needs at a page or more (spec §2.4): a new brief in strict, and sign-off. */
 const FULL_LINES = ["audience", "proof", "constraints", "givens", "tone", "format"] as const;
@@ -419,9 +433,34 @@ export function briefGaps(b: BriefRecord): Blocker[] {
   return gapsOf(b).map(({ what, call }) => ({ what, call }));
 }
 
+/** How missingForSignOff names the person's choice while the work waits at its checkpoint (C-422). */
+export const APPROVAL_FIELD = "approvedBy (the person's choice)";
+
+/**
+ * The checkpoint's blocker (C-422): the brief stops after the directions,
+ * and the person's choice of the direction it builds is not recorded. A
+ * blocker under BRIDGE_PROCESS=strict, a process warning under guided.
+ */
+export function checkpointBlocker(b: BriefRecord): Blocker | null {
+  if (!awaitsChoice(b)) return null;
+  const a = b.approval;
+  const why = a ? `the person chose "${a.direction}", and the brief now builds "${b.chosen ?? "no chosen direction"}"` : "their choice is not recorded";
+  return { what: `the brief stops after the directions for the person's choice (checkpoint "directions"), and ${why}`, call: checkpointWayOut(b.id, b.role) };
+}
+
 /** What sign-off will ask for, as figma_set_brief's result names it (§3.4): never a surprise at the end. */
 export function missingForSignOff(b: BriefRecord): string[] {
-  return gapsOf(b).flatMap((g) => g.fields);
+  return [...gapsOf(b).flatMap((g) => g.fields), ...(awaitsChoice(b) ? [APPROVAL_FIELD] : [])];
+}
+
+/**
+ * figma_set_brief's `stop` (C-422): once the decision line names the chosen
+ * direction and the person's choice is not recorded, the work stops here.
+ * Motion's stop comes later, after the board, the styleframes and the probe.
+ */
+export function stopLine(b: BriefRecord): string | undefined {
+  if (!awaitsChoice(b) || !present(b.chosen)) return undefined;
+  return `The brief stops after the directions for the person's choice (checkpoint "directions"): ${checkpointWayOut(b.id, b.role)}. Until then, build nothing past what the person is shown.`;
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -569,7 +608,7 @@ const STAGE_SECTION: Partial<Record<Stage, string>> = { directions: "directions"
 /** The stage a missingForSignOff field belongs to; a field that list gains later counts as the brief's. */
 function stageOfField(field: string): Stage {
   if (field.startsWith("system.")) return "system";
-  if (field === "chosen") return "choice";
+  if (field === "chosen" || field === APPROVAL_FIELD) return "choice";
   return /^(direction0|directions|styleframes)\b/.test(field) ? "directions" : "brief";
 }
 
@@ -612,6 +651,11 @@ export function nextStep(b: BriefRecord, signOff?: SignOffRecord): NextStep {
     const missing = fields.filter((f) => stageOfField(f) === stage);
     const section = STAGE_SECTION[stage];
     const guide = section ? `figma_get_guide { topic: "design", section: "${section}" }, then ` : "";
+    // At a checkpoint the choice is the person's (C-422): the decision line first, if it is not written, then the stop.
+    if (missing.indexOf(APPROVAL_FIELD) >= 0) {
+      const decide = missing.indexOf("chosen") >= 0 ? `${guide}${setBriefCall(id, ["chosen"])} with the decision line; then ` : "";
+      return { stage, missing, call: `${decide}${checkpointWayOut(id, b.role)}`, forSignOff };
+    }
     return { stage, missing, call: `${guide}${setBriefCall(id, missing)}`, forSignOff };
   }
 
@@ -664,7 +708,8 @@ const SET_DESCRIPTION =
   "skill slides), design-system (tokens, components), board (FigJam; skill figjam), motion (skill storyboard). Stored in " +
   "the file on a brief block drawn at an empty spot, or on `nodeId`; `briefId` updates one with directions, the choice, " +
   "styleframes and the system. Under BRIDGE_PROCESS=strict a new top-level frame, a spec into an empty frame, a new deck " +
-  "or a new board waits for a brief, and figma_sign_off ends it.";
+  "or a new board waits for a brief, and figma_sign_off ends it. At page, top and piece the work stops for the " +
+  "person's choice (`checkpoint`, `approvedBy`).";
 
 const GET_DESCRIPTION =
   "Read the brief a frame was made from — role, gear, lines, directions, system, status — with its last sign-off (and " +
@@ -674,13 +719,13 @@ const GET_DESCRIPTION =
   "session, so a second agent can continue the work. Reads only.";
 
 const SIGN_OFF_DESCRIPTION =
-  "End a piece of new work the way a studio signs it off. Runs the role's checks on the deliverables (figma_check_layout " +
-  "with the role's audits and the brief's floors; for motion the frame-by-frame check at the delivery fps), checks the " +
-  "brief is complete for its gear (directions, the choice, styleframes, the system), takes your critique lens scores, " +
-  "rounds and a reason for every info you keep, then records the result and a fingerprint on each deliverable and on the " +
-  "brief block, closes the brief, and selects and zooms to the work on a pass. At top and piece, message and originality " +
-  "need a `reviewer` other than you (the critique_cold prompt in a fresh context, or the owner); at page a self-review " +
-  "is recorded as one. `ok: false` lists each blocker with the " +
+  "End new work as a studio signs it off. Runs the role's checks on the deliverables (figma_check_layout with the " +
+  "role's audits and the brief's floors; for motion the frame-by-frame check at the delivery fps), checks the brief is " +
+  "complete for its gear (directions, the choice, styleframes, the system; at a checkpoint, the person's choice), takes " +
+  "your lens scores, rounds and a reason for every info you keep, then records the result and a fingerprint on each " +
+  "deliverable and the brief block, closes the brief, and selects and zooms to the work on a pass. At top and piece, " +
+  "message and originality need a `reviewer` other than you (the critique_cold prompt in a fresh context, or the " +
+  "owner); at page a self-review is recorded as one. `ok: false` lists each blocker with the " +
   "call that clears it. A final export (figma_export_node, figma_export_frames_to_pdf or figma_export_video with " +
   "`final: true`) needs a passing sign-off newer than the last change. Writes plugin data only.";
 
@@ -697,11 +742,14 @@ const modeOf = (roles: RoleProcess | undefined, file: FileRef): "strict" | "guid
 export interface BriefTools {
   roles?: RoleProcess;
   motion?: MotionProcess;
+  /** BRIDGE_CHECKPOINT: what a new brief at a stopping gear records when the call does not say. Default "directions". */
+  checkpoint?: Checkpoint;
 }
 
 /** Register figma_get_brief (read), figma_set_brief and figma_sign_off (style). Before registerBatch, which refuses them as steps. */
 export function registerBrief(server: McpServer, bridge: Bridge, wanted: (op: string) => boolean, opts: BriefTools = {}): void {
   const { roles, motion } = opts;
+  const checkpoint = opts.checkpoint ?? "directions";
 
   if (wanted("set_brief")) {
     server.registerTool(
@@ -712,7 +760,7 @@ export function registerBrief(server: McpServer, bridge: Bridge, wanted: (op: st
         inputSchema: { ...SET_BRIEF_SHAPE, ...WRITE_PARAMS },
         annotations: writeAnnotations("set_brief"),
       },
-      async (args: Record<string, unknown>, extra: Extra) => setBrief(bridge, roles, args, extra),
+      async (args: Record<string, unknown>, extra: Extra) => setBrief(bridge, roles, checkpoint, args, extra),
     );
   }
 
@@ -790,7 +838,7 @@ export function registerBrief(server: McpServer, bridge: Bridge, wanted: (op: st
 
 // ── figma_set_brief ─────────────────────────────────────────────────────────
 
-async function setBrief(bridge: Bridge, roles: RoleProcess | undefined, args: Record<string, unknown>, extra: Extra): Promise<CallToolResult> {
+async function setBrief(bridge: Bridge, roles: RoleProcess | undefined, checkpointDefault: Checkpoint, args: Record<string, unknown>, extra: Extra): Promise<CallToolResult> {
   const key = args.idempotencyKey as string | undefined;
   const refuse = (err: unknown) => errorResult(err instanceof BridgeError ? err.withKey(key) : err, { unchanged: true });
   let briefId: string | undefined;
@@ -855,6 +903,36 @@ async function setBrief(bridge: Bridge, roles: RoleProcess | undefined, args: Re
     if (bad) return refuse(invalid(bad.message, bad.hint));
     fields.avoid = [...new Set(fields.avoid as string[])];
   }
+  // The checkpoint (C-422): "storyboard" is motion's word for the same stop. A new brief at a stopping gear
+  // takes the install's default (BRIDGE_CHECKPOINT) unless the call says, and so does a brief moved there
+  // from a gear that does not stop; a brief at a stopping gear without one (a record from before
+  // checkpoints, or the person's "none") keeps running to the end, as it was begun.
+  if (fields.checkpoint === "storyboard") fields.checkpoint = "directions";
+  const gearIsNew =
+    stored === undefined ||
+    (fields.gear !== undefined && fields.gear !== stored.gear && stored.checkpoint === undefined && !stopsByDefault(stored.role, stored.gear));
+  if (fields.checkpoint === undefined && gearIsNew && stopsByDefault(role, gear)) fields.checkpoint = checkpointDefault;
+  // Only a stop travels to the plugin: "none" is a record without a checkpoint, as every record from before
+  // checkpoints is, so an older plugin keeps storing every brief that does not stop. A stored stop turned
+  // off is removed (null), which only a plugin that stored it receives.
+  if (fields.checkpoint === "none") {
+    if (stored?.checkpoint === "directions") fields.checkpoint = null;
+    else delete fields.checkpoint;
+  }
+  // The person's choice, with the direction it names: a later `chosen` is not approved by it.
+  let approval: Approval | undefined;
+  if (args.approvedBy !== undefined) {
+    const direction = (fields.chosen ?? stored?.chosen) as string | undefined;
+    if (!present(direction)) {
+      return refuse(
+        invalid(
+          "`approvedBy` records the person's choice of a direction, and the brief names none: pass `chosen`, the direction they chose, with it.",
+          `figma_set_brief { ${briefId !== undefined ? `briefId: "${briefId}", ` : ""}chosen: "<their direction>", approvedBy: "owner" }`,
+        ),
+      );
+    }
+    approval = { by: "owner", direction: direction!, at: new Date().toISOString() };
+  }
   if (stored === undefined) {
     const needs = gear === "replica" ? ["title", "details.source"] : ["title", "goal", "message", "success"];
     const lacking = needs.filter((k) => (k === "details.source" ? !present(details.source) : !present(fields[k])));
@@ -882,13 +960,14 @@ async function setBrief(bridge: Bridge, roles: RoleProcess | undefined, args: Re
   lint.push(...linted.hard, ...linted.soft);
 
   // 5. The size, as the merged record will be (lines and details merge key by key).
-  const merged = { ...stored, ...pick(fields, TOP_KEYS), lines: { ...stored?.lines, ...lines }, details: { ...stored?.details, ...details } };
+  const top = { ...pick(fields, TOP_KEYS), ...(approval ? { approval } : {}) };
+  const merged = { ...stored, ...top, lines: { ...stored?.lines, ...lines }, details: { ...stored?.details, ...details } };
   const bytes = Buffer.byteLength(JSON.stringify(merged), "utf8");
   if (bytes > L.bytes) return refuse(invalid(`The brief would be ${bytes} bytes; a brief holds at most ${L.bytes} (shared plugin data caps one entry at 100 kB).`, "Shorten the longest lines."));
 
   // A replica's brief is the code (§2.4): its goal and message may be left out, and the record keeps them as empty lines.
   const sent = stored === undefined && gear === "replica" ? { goal: "", message: "", ...lines } : lines;
-  const brief: Record<string, unknown> = { ...pick(fields, TOP_KEYS), ...(Object.keys(sent).length ? { lines: sent } : {}) };
+  const brief: Record<string, unknown> = { ...top, ...(Object.keys(sent).length ? { lines: sent } : {}) };
   const params: Record<string, unknown> = {
     brief,
     ...(briefId !== undefined ? { briefId } : {}),
@@ -907,10 +986,32 @@ async function setBrief(bridge: Bridge, roles: RoleProcess | undefined, args: Re
       // The lint of the record as stored: an earlier guided write may have left a line the rules refuse.
       const own = record ? lintBrief(record.role, record.gear, record.lines as unknown as Record<string, unknown>, record.details ?? {}) : { hard: [], soft: [] };
       const all = [...new Set([...lint, ...own.hard, ...own.soft])];
-      return okResult({ ...d, missingForSignOff: record ? missingForSignOff(record) : [], lint: all });
+      const stop = record ? stopLine(record) : undefined;
+      return okResult({ ...d, missingForSignOff: record ? missingForSignOff(record) : [], lint: all, ...(stop ? { stop } : {}) });
     },
   });
-  return withProcessWarnings(result, warnings);
+  return withProcessWarnings(oldPluginSaid(result, key), warnings);
+}
+
+/** What a plugin that predates checkpoints answers for their fields, as the plugin words a field it does not take. */
+const NO_CHECKPOINT_FIELD = /`brief\.(checkpoint|approval)` is not a field a brief takes/;
+
+/**
+ * A plugin built before checkpoints refuses the fields (C-422) by name. Only
+ * a brief that stops, or the person's choice, sends one, so only that work
+ * needs the newer plugin: said as a plugin to run again, as a plugin that
+ * predates briefs is (role-process.ts readBrief).
+ */
+function oldPluginSaid(result: CallToolResult, key: string | undefined): CallToolResult {
+  const s = result.structuredContent as { code?: unknown; message?: unknown } | undefined;
+  if (!result.isError || s?.code !== ErrorCode.INVALID_PARAM || typeof s.message !== "string" || !NO_CHECKPOINT_FIELD.test(s.message)) return result;
+  return errorResult(
+    new BridgeError(ErrorCode.UNSUPPORTED, "The connected plugin predates checkpoints, so it cannot store this brief's checkpoint or the person's choice.", {
+      hint: `Ask the user to close the ${PLUGIN_NAME} plugin window and run it again (${PLUGIN_MENU_PATH}), then send this call again.`,
+      partial: { created: [] },
+    }).withKey(key),
+    { unchanged: true },
+  );
 }
 
 // ── figma_get_brief ─────────────────────────────────────────────────────────
@@ -1070,6 +1171,14 @@ async function signOff(bridge: Bridge, roles: RoleProcess | undefined, motion: M
 
   // The server's checks first (§3.6): each failure is a blocker, recorded with the attempt.
   const blockers: Blocker[] = [...briefGaps(record)];
+  // At a checkpoint the person chooses before the work is signed (C-422): a blocker in strict, advice in guided.
+  const warnings: string[] = [];
+  const stop = checkpointBlocker(record);
+  if (stop) {
+    const mode = modeOf(roles, file);
+    if (mode === "strict") blockers.push(stop);
+    else if (mode === "guided") warnings.push(`${stop.what}: ${stop.call}.`);
+  }
   // Styleframes that no longer resolve are not a record of anything.
   if (isFullGear(record.gear) && record.styleframes?.length) {
     try {
@@ -1176,7 +1285,8 @@ async function signOff(bridge: Bridge, roles: RoleProcess | undefined, motion: M
             ...(record.lines.format ? { format: record.lines.format } : {}),
             details: record.details ?? {},
           },
-          direction: { ...pick(record as unknown as Record<string, unknown>, ["direction0", "chosen", "directions"]) },
+          // Who chose the direction: the person's approval at the checkpoint, when the brief stopped for it.
+          direction: { ...pick(record as unknown as Record<string, unknown>, ["direction0", "chosen", "directions", "checkpoint", "approval"]) },
           scores: { lenses, rounds, budget: ROUND_BUDGET[record.gear] },
           kept: answers,
           placeholders,
@@ -1185,5 +1295,5 @@ async function signOff(bridge: Bridge, roles: RoleProcess | undefined, motion: M
       });
     },
   });
-  return result;
+  return withProcessWarnings(result, warnings);
 }

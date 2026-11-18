@@ -449,6 +449,46 @@ describe("set_brief: the avoid list (role quality W1)", () => {
 
 // ── get_brief ───────────────────────────────────────────────────────────────
 
+describe("set_brief: the checkpoint and the person's choice (C-422)", () => {
+  it("stores both, shows the stop on the block before the status, and whom the direction was chosen by once it is", async () => {
+    file();
+    const r = await newBrief({}, { ...BRIEF, checkpoint: "directions" });
+    const id = r.briefId as string;
+    expect(recordOn(node(id)).checkpoint).toBe("directions");
+    expect(textsOf(id).map((t) => t.name)).toEqual(["Role · gear", "Message", "Goal", "Audience", "Success", "Tone", "Default to avoid", "Checkpoint", "Status"]);
+    expect(textsOf(id).find((t) => t.name === "Checkpoint")!.characters).toBe("Checkpoint: the directions wait for the owner's choice");
+    const approval = { by: "owner", direction: "Slot board", at: "2026-11-06T10:00:00.000Z" };
+    await run("set_brief", { briefId: id, brief: { chosen: "Slot board", approval } });
+    expect(recordOn(node(id))).toMatchObject({ chosen: "Slot board", approval });
+    expect(textsOf(id).filter((t) => t.name === "Checkpoint").map((t) => t.characters)).toEqual(["Checkpoint: the owner chose Slot board"]);
+    // Another direction chosen later is not the one approved: the block waits again.
+    await run("set_brief", { briefId: id, brief: { chosen: "Night ride" } });
+    expect(textsOf(id).find((t) => t.name === "Checkpoint")!.characters).toBe("Checkpoint: the directions wait for the owner's choice");
+    // "none" is stored as no checkpoint, as on a record from before checkpoints; null removes it too.
+    await run("set_brief", { briefId: id, brief: { checkpoint: "none" } });
+    expect(recordOn(node(id))).not.toHaveProperty("checkpoint");
+    expect(textsOf(id).map((t) => t.name)).not.toContain("Checkpoint");
+    await run("set_brief", { briefId: id, brief: { checkpoint: "directions" } });
+    await run("set_brief", { briefId: id, brief: { checkpoint: null } });
+    expect(recordOn(node(id))).not.toHaveProperty("checkpoint");
+  });
+
+  it("refuses a checkpoint or an approval of another shape, drawing nothing", async () => {
+    file();
+    for (const [brief, message] of [
+      [{ ...BRIEF, checkpoint: "storyboard" }, '`brief.checkpoint` must be "directions" or "none".'],
+      [{ ...BRIEF, approval: { by: "agent", direction: "A", at: "x" } }, '`brief.approval` must be { by: "owner", direction, at }.'],
+      [{ ...BRIEF, approval: { by: "owner", direction: " ", at: "x" } }, '`brief.approval` must be { by: "owner", direction, at }.'],
+    ] as const) {
+      const e = await refusal(newBrief({}, brief));
+      expect(e.code).toBe("INVALID_PARAM");
+      expect(e.message).toBe(message);
+      expect(e.partial).toEqual({ created: [] });
+    }
+    expect(fake.currentPage.children).toHaveLength(0);
+  });
+});
+
 describe("get_brief", () => {
   it("briefId reads the record on that node", async () => {
     file();

@@ -7,6 +7,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { OPS, selectOps, toolName } from "../../shared/ops.js";
 import type { Bridge } from "../bridge.js";
 import type { Config, Logger } from "../config.js";
+import type { ExportRoots } from "../exports.js";
 import { checkMediaTools, nodeExecFile } from "../ffmpeg.js";
 import { MotionProcess } from "../motion-process.js";
 import { RoleProcess } from "../role-process.js";
@@ -153,6 +154,8 @@ export function registerTools(
   };
 
   const wanted = (op: string) => registered.includes(toolName(op));
+  // Where files may be written; a web session on a team's hub also has its folder's size limit.
+  const roots: ExportRoots = { exportDir: config.exportDir, exportRoots: config.exportRoots, ...(config.folderQuota ? { quota: config.folderQuota } : {}) };
   // figma_batch validates each step against the shape its own tool registered,
   // so the shapes are recorded from the first register call on.
   const shapeOf = createShapeRecorder(server);
@@ -162,24 +165,24 @@ export function registerTools(
   // BRIDGE_TOOLSET=core registers only the core tier within each group.
   registerRead(server, bridge, wanted, roles);
   registerCreate(server, bridge, wanted, roles);
-  registerModify(server, bridge, wanted, logger);
+  registerModify(server, bridge, wanted, logger, roles);
   registerStyle(server, bridge, wanted);
   registerNavigate(server, bridge, wanted);
-  registerTypography(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted);
-  registerExport(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, roles);
+  registerTypography(server, bridge, roots, wanted);
+  registerExport(server, bridge, roots, wanted, roles);
   registerTokens(server, bridge, wanted);
   registerComponents(server, bridge, wanted);
-  registerMotion(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media, maxWaitS: config.videoMaxWaitS, process: motion, roles, ...(videoJobs ? { jobs: videoJobs } : {}) });
+  registerMotion(server, bridge, roots, wanted, { media, maxWaitS: config.videoMaxWaitS, process: motion, roles, ...(videoJobs ? { jobs: videoJobs } : {}) });
   registerMotionPlan(server, bridge, wanted, motion, roles);
   registerCheckMotion(server, bridge, wanted, motion);
-  registerReview(server, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
+  registerReview(server, roots, wanted, { media });
   // Held back: registers nothing unless BRIDGE_ENABLE_AUDIO=1 selected the audio group.
-  registerAudio(server, bridge, { exportDir: config.exportDir, exportRoots: config.exportRoots }, wanted, { media });
+  registerAudio(server, bridge, roots, wanted, { media });
   registerFigjam(server, bridge, wanted);
   registerSlides(server, bridge, wanted, roles);
   registerStoryboard(server, bridge, wanted, roles);
-  // The role process's own tools; a batch refuses them as steps.
-  registerBrief(server, bridge, wanted, { roles, motion });
+  // The role process's own tools; a batch refuses them as steps. BRIDGE_CHECKPOINT: what a new brief stops at by default.
+  registerBrief(server, bridge, wanted, { roles, motion, checkpoint: config.checkpoint });
   // Trust (trust spec §2.4–§3): the journal, savepoints and rollback, the stress test. A batch refuses them as steps.
   registerTrust(server, bridge, wanted);
   // The two-key rule (ADR #9) is enforced here: without BRIDGE_ALLOW_EVAL the op

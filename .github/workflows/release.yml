@@ -4,8 +4,12 @@ name: release
 # plugin as a zip, when a tag v<version> is pushed. The tag must equal "v" plus
 # package.json's version.
 #
-# One repository secret: NPM_TOKEN, an npm access token that may publish
-# figxel-mcp (Settings → Secrets and variables → Actions).
+# npm publishes through trusted publishing (OIDC): on npmjs.com, figxel-mcp's
+# Settings → Trusted publishing names user AvYour, repository figxel-mcp and
+# workflow release.yml, with direct `npm publish` allowed [C-420]. The npm CLI
+# tries OIDC first and falls back to a token [C-421], so the repository secret
+# NPM_TOKEN stays as that fallback until a release has gone out through OIDC;
+# then delete the secret and disallow tokens for the package (CONTRIBUTING.md).
 
 on:
   push:
@@ -13,7 +17,7 @@ on:
 
 permissions:
   contents: write # gh release create
-  id-token: write # npm publish --provenance
+  id-token: write # trusted publishing (OIDC) and provenance
 
 concurrency:
   group: release-${{ github.ref }}
@@ -36,11 +40,14 @@ jobs:
             echo "::error::tag $GITHUB_REF_NAME does not match package.json's version ($expected)"
             exit 1
           fi
+      # Trusted publishing needs npm 11.5.1 or later [C-420].
+      - run: npm install -g npm@11
       - run: npm ci
       # Typecheck, tests (which build dist/) and the documentation gates.
       - run: npm run check
       - run: node scripts/check-language.mjs
       # prepack builds dist/ again from this checkout, so the tarball holds only the "files" in package.json.
+      # OIDC when the trusted publisher is set up, else the token; --provenance for the token path.
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

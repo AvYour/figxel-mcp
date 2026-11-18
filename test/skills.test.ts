@@ -803,20 +803,28 @@ describe("the prompt table", () => {
     await client.close();
   });
 
-  it('"storyboard" asks for a stop before building; "none" and no value run to the end', async () => {
+  it('"directions" or "storyboard" asks for the stop before building; "none" runs to the end; no value leaves the brief\'s default [C-422]', async () => {
     const client = await serve([row()]);
     const text = async (args: Record<string, string>) => ((await client.getPrompt({ name: "design_probe", arguments: args })).messages[0]!.content as { text: string }).text;
-    expect(await text({ brief: "a poster", checkpoint: "storyboard" })).toMatch(/^Design this: a poster\.\n\nCheckpoint: [^\n]*wait for my approval before building\./);
-    expect(await text({ brief: "a poster", checkpoint: " Storyboard " })).toMatch(/Checkpoint:/);
-    expect(await text({ brief: "a poster", checkpoint: "none" })).not.toMatch(/Checkpoint|checkpoint/);
+    expect(await text({ brief: "a poster", checkpoint: "directions" })).toMatch(/^Design this: a poster\.\n\nCheckpoint: stop once the plan can be shown \(`checkpoint: "directions"` on the brief\)[^\n]*wait for my choice before building\./);
+    expect(await text({ brief: "a poster", checkpoint: " Storyboard " })).toMatch(/Checkpoint: stop once the plan can be shown/);
+    const none = await text({ brief: "a poster", checkpoint: "none" });
+    expect(none).toMatch(/^Design this: a poster\.\n\nNo checkpoint: build it all without stopping for my choice of direction \(`checkpoint: "none"` on the brief\), and report at the end\./);
+    expect(none).not.toMatch(/Checkpoint:/);
+    // No value: no line, so the skill's default holds — a stop at page, top and a motion piece.
     expect(await text({})).toMatch(/^Design this: the user's request in this conversation\.\n\n# Working in Figma/);
+    expect(readCheckpoint(undefined)).toEqual({});
+    expect(readCheckpoint(" NONE ")).toEqual({ checkpoint: "none" });
+    expect(readCheckpoint("storyboard")).toEqual({ checkpoint: "directions" });
     await client.close();
   });
 
   it("a stray word in checkpoint is handed to the agent, not dropped and not refused [C-176]", async () => {
     // Claude Code splits a typed line on whitespace, so a word of the brief can land here.
-    expect(readCheckpoint("pricing")).toEqual({ checkpoint: "none", stray: "pricing" });
-    expect(promptText(row(), { brief: "a", checkpoint: "pricing" })).toMatch(/The checkpoint argument read "pricing", which is neither "storyboard" nor "none"/);
+    expect(readCheckpoint("pricing")).toEqual({ stray: "pricing" });
+    expect(promptText(row(), { brief: "a", checkpoint: "pricing" })).toMatch(
+      /The checkpoint argument read "pricing", which is none of "directions", "storyboard" and "none", so the gear's default holds/,
+    );
   });
 
   it("composes preamble, SKILL.md body, one section and the calls for the rest", () => {

@@ -26,7 +26,10 @@ import {
   BRIEF_NAMESPACE,
   ROLES,
   SIGN_OFF_KEY,
+  approvalHolds,
+  checkpointOf,
   gearFits,
+  isCheckpoint,
   isGear,
   isReviewer,
   isRole,
@@ -186,7 +189,7 @@ const BLOCK_WIDTH = 720;
 const BLOCK_PADDING = 32;
 const BLOCK_GAP = 12;
 /** The names the block's texts carry: a redraw replaces these and leaves anything else a person put in the block. */
-const LINE_NAMES = new Set(["Role · gear", "Message", "Goal", "Audience", "Success", "Tone", "Default to avoid", "Avoid", "Status", "Brief"]);
+const LINE_NAMES = new Set(["Role · gear", "Message", "Goal", "Audience", "Success", "Tone", "Default to avoid", "Avoid", "Checkpoint", "Status", "Brief"]);
 
 export interface BlockLine {
   name: string;
@@ -200,7 +203,13 @@ export function statusLine(b: BriefRecord): string {
   return b.lastSignOff?.ok ? `Status: signed off ${b.lastSignOff.at.slice(0, 10)}` : "Status: signed off";
 }
 
-/** What the block says (spec §3.4): Role · gear, Message, Goal, Audience, Success, Tone, Default to avoid, Avoid (its tells kinds), and the status. */
+/** The checkpoint line (C-422): whether the work waits for the person's choice, or whom it was chosen by. */
+export function checkpointLine(b: BriefRecord): string | undefined {
+  if (checkpointOf(b) !== "directions") return undefined;
+  return approvalHolds(b) && b.approval ? `Checkpoint: the owner chose ${b.approval.direction}` : "Checkpoint: the directions wait for the owner's choice";
+}
+
+/** What the block says (spec §3.4): Role · gear, Message, Goal, Audience, Success, Tone, Default to avoid, Avoid (its tells kinds), the checkpoint, and the status. */
 export function blockLines(b: BriefRecord): BlockLine[] {
   const l = b.lines;
   const out: BlockLine[] = [{ name: "Role · gear", text: `${b.role} · ${b.gear} — ${ROLES[b.role].professional}`, size: 14 }];
@@ -215,6 +224,8 @@ export function blockLines(b: BriefRecord): BlockLine[] {
   add("Default to avoid", l.defaultToAvoid);
   const avoid = avoidOf(b);
   if (avoid.length) add("Avoid", avoid.join(", "));
+  const checkpoint = checkpointLine(b);
+  if (checkpoint) out.push({ name: "Checkpoint", text: checkpoint, size: 14 });
   out.push({ name: "Status", text: statusLine(b), size: 14 });
   return out;
 }
@@ -328,7 +339,7 @@ const LINE_LISTS = ["success", "proof", "constraints", "assumptions", "reference
 /** Lines a brief always has: an update may change them, never remove them. */
 const LINE_KEPT = ["goal", "message", "success"];
 /** Fields an update replaces whole, or removes with null. */
-const OPTIONAL_FIELDS = ["avoid", "direction0", "directions", "chosen", "styleframes", "system"] as const;
+const OPTIONAL_FIELDS = ["avoid", "direction0", "directions", "chosen", "styleframes", "checkpoint", "approval", "system"] as const;
 const BRIEF_FIELDS = new Set(["role", "gear", "title", "lines", "details", "deliverables", ...OPTIONAL_FIELDS]);
 
 /** `brief.lines` as sent: each line its type; `null` removes an optional line. */
@@ -378,6 +389,12 @@ function checkBriefParam(raw: unknown, creating: boolean): Any {
     const ok = Array.isArray(raw.directions) && raw.directions.every((d) => isObject(d) && typeof d.name === "string" && typeof d.idea === "string" && (d.total === undefined || typeof d.total === "number"));
     if (!ok) throw invalid("`brief.directions` must be a list of { name, idea, total? }.");
   }
+  if (raw.checkpoint !== undefined && raw.checkpoint !== null && !isCheckpoint(raw.checkpoint)) throw invalid('`brief.checkpoint` must be "directions" or "none".');
+  if (raw.approval !== undefined && raw.approval !== null) {
+    const a = raw.approval;
+    const ok = isObject(a) && a.by === "owner" && typeof a.direction === "string" && a.direction.trim() !== "" && typeof a.at === "string";
+    if (!ok) throw invalid('`brief.approval` must be { by: "owner", direction, at }.');
+  }
   if (raw.system !== undefined && raw.system !== null && (!isObject(raw.system) || typeof raw.system.bodySize !== "number")) {
     throw invalid("`brief.system` must be an object with a bodySize.");
   }
@@ -423,6 +440,8 @@ function mergeBrief(old: BriefRecord | undefined, p: Any, now: string, reopen: b
     if (p[k] === null) delete rec[k];
     else if (p[k] !== undefined) rec[k] = p[k];
   }
+  // Only a stop is stored: "none" is a record without a checkpoint (shared/roles.ts CHECKPOINTS).
+  if (rec.checkpoint === "none") delete rec.checkpoint;
   return next;
 }
 

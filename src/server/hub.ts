@@ -8,7 +8,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, unwatchFile
 import { join } from "node:path";
 import { Bridge, tokenHashHex } from "./bridge.js";
 import type { Config, Logger } from "./config.js";
-import { figmaProvider, googleAdmits, googleProvider, type Identity, type ProviderId } from "./login.js";
+import { admitsNew, figmaProvider, googleProvider, type Identity, type ProviderId } from "./login.js";
 import { createWebEndpoint, type WebEndpoint, type WebOptions } from "./web.js";
 
 export const PEOPLE_FILE = "hub-people.json";
@@ -77,12 +77,19 @@ export function setEmail(path: string, person: string, email: string): void {
 /**
  * The person an account signs in as: the one it signed in as before; else the
  * one whose email it verifiably has (and the account is linked to them); else,
- * when `admitNew`, a new person named after the account, with a token nobody
- * sees. Null when the account is not admitted. The source is their table
- * entry's hash, what every grant stands for (oauth.ts); `changed` when the
- * table was written (a person added, or an account linked).
+ * when `rule.admitNew`, a new person named after the account, with a token
+ * nobody sees. Null when the account is not admitted; "full" when it would be,
+ * but the table already holds `rule.maxPeople` (BRIDGE_HUB_MAX_PEOPLE, 0 is no
+ * cap), and nobody is added. The source is their table entry's hash, what
+ * every grant stands for (oauth.ts); `changed` when the table was written (a
+ * person added, or an account linked).
  */
-export function personForLogin(path: string, identity: Identity, admitNew: boolean, now = new Date()): { person: string; source: string; changed: boolean } | null {
+export function personForLogin(
+  path: string,
+  identity: Identity,
+  rule: { admitNew: boolean; maxPeople: number },
+  now = new Date(),
+): { person: string; source: string; changed: boolean } | "full" | null {
   const people = readPeople(path);
   const login = { provider: identity.provider, subject: identity.subject };
   const linked = people.find((p) => p.logins?.some((l) => l.provider === login.provider && l.subject === login.subject));
@@ -93,7 +100,9 @@ export function personForLogin(path: string, identity: Identity, admitNew: boole
     writePeople(path, people.map((p) => (p === byEmail ? { ...p, logins: [...(p.logins ?? []), login] } : p)));
     return { person: byEmail.person, source: byEmail.hash, changed: true };
   }
-  if (!admitNew) return null;
+  if (!rule.admitNew) return null;
+  // The people already in the table always come in; the cap stops only a new one.
+  if (rule.maxPeople > 0 && people.length >= rule.maxPeople) return "full";
   const base = nameFor(identity);
   let person = base;
   for (let i = 2; people.some((p) => p.person === person); i++) person = `${base.slice(0, 36)}-${i}`;
@@ -157,9 +166,10 @@ export async function runHub(
     ? {
         providers,
         personFor: (identity: Identity) => {
-          const admitNew = identity.provider === "figma" || config.hubSignup === "open" || googleAdmits(identity, config.hubGoogleAllow, false);
-          const found = personForLogin(path, identity, admitNew);
-          if (found?.changed) bridge!.setPeople(readPeople(path)); // at once, not when the file watcher next looks
+          const admitNew = admitsNew(identity, config.hubSignup, config.hubGoogleAllow);
+          const found = personForLogin(path, identity, { admitNew, maxPeople: config.hubMaxPeople });
+          if (found === "full" || found === null) return found;
+          if (found.changed) bridge!.setPeople(readPeople(path)); // at once, not when the file watcher next looks
           return found;
         },
       }
@@ -184,6 +194,8 @@ export async function runHub(
     conflicts: config.conflicts,
     people,
     bindHost: config.hubBind,
+    // BRIDGE_HUB_REQUESTS_PER_MIN: each person's calls to their Figma, from a laptop's process or a web session alike.
+    ...(config.hubRequestsPerMin > 0 ? { requestLimit: { max: config.hubRequestsPerMin, windowMs: 60_000 } } : {}),
     ...(web ? { httpHandler: (req, res) => web.handle(req, res), credentialSource: (hashHex: string) => web.credentialSource(hashHex) } : {}),
   });
   const hub = bridge;
@@ -194,7 +206,23 @@ export async function runHub(
     throw new Error(`port ${config.port} is taken: stop what holds it, or set BRIDGE_PORT.`);
   }
   logger.info(`hub: ${people.length} person(s) in ${path}, listening on ${config.hubBind}:${hub.port}${web ? `; web clients at ${config.hubPublicUrl?.replace(/^ws/, "http")}/mcp` : ""}`);
-  if (web) logger.info(`hub: sign-in with ${[...providers.map((p) => p.label), "an invite"].join(", ")}${config.hubSignup === "open" ? "; sign-up open to any Google account" : ""}`);
+  if (web) {
+    const newPeople = !providers.length
+      ? "none, invites only"
+      : config.hubSignup === "open"
+        ? `any ${providers.map((p) => p.label).join(" or ")} account`
+        : [...(config.hubFigma ? ["the Figma app's team"] : []), ...(config.hubGoogle ? ["the Google emails listed"] : [])].join(" and ");
+    logger.info(`hub: sign-in with ${[...providers.map((p) => p.label), "an invite"].join(", ")}; new people: ${newPeople}${config.hubMaxPeople > 0 ? `, up to ${config.hubMaxPeople} people in all` : ""}`);
+  }
+  // The limits per person (docs/hub.md § Limits per person), so the log says what a refusal is measured against.
+  const perMin = (n: number) => (n > 0 ? `${n} a minute` : "no limit");
+  logger.info(
+    `hub: limits per person: calls to Figma through the hub ${perMin(config.hubRequestsPerMin)}` +
+      (web
+        ? `; on the web endpoint, tool calls and new sessions ${perMin(config.hubWebCallsPerMin)}, ${config.hubWebSessions} open sessions, ` +
+          `a folder of ${config.hubWebFolderMb > 0 ? `${config.hubWebFolderMb} MB` : "any size"}, uploads up to ${config.hubWebUploadMb} MB`
+        : ""),
+  );
   const reload = (now: Stats, before: Stats) => {
     if (now.mtimeMs === 0 && before.mtimeMs === 0) return; // still no file: nothing changed
     try {

@@ -201,7 +201,11 @@ The [pull request template](.github/pull_request_template.md) carries the checkl
 
 ## Releasing
 
-For maintainers. One time: the public repository `AvYour/figxel-mcp` with the repository secret `NPM_TOKEN`, an npm access token allowed to publish `figxel-mcp` (see the header of `.github/workflows/release.yml`).
+For maintainers. One time: the public repository `AvYour/figxel-mcp`, and npm trusted publishing for it `[C-420]`:
+
+1. On npmjs.com, `figxel-mcp` → **Settings** → **Trusted publishing** → GitHub Actions: user `AvYour`, repository `figxel-mcp`, workflow `release.yml`, no environment, and tick direct `npm publish` (a new configuration allows only `npm stage publish` otherwise). It must publish once within 2 days, so set it up shortly before a release.
+2. Keep the repository secret `NPM_TOKEN` until a release has gone out through it: the npm CLI tries OIDC first and falls back to that token `[C-421]`.
+3. After that release, delete the `NPM_TOKEN` secret, and on npmjs.com set **Settings** → **Publishing access** to "Require two-factor authentication and disallow tokens" `[C-421]`.
 
 For each release:
 
@@ -214,7 +218,7 @@ For each release:
    git push origin main v0.3.0
    ```
 
-4. The tag starts `.github/workflows/release.yml`. It refuses a tag that is not `v` plus the `package.json` version, runs `npm ci`, `npm run check` and the language check, publishes with `npm publish --provenance --access public`, zips `dist/plugin/*` and `LICENSE` as `figxel-plugin-v<version>.zip`, and creates the GitHub Release with that zip and generated notes.
+4. The tag starts `.github/workflows/release.yml`. It refuses a tag that is not `v` plus the `package.json` version, runs `npm ci`, `npm run check` and the language check, publishes with `npm publish --provenance --access public` (through OIDC once trusted publishing is set up), zips `dist/plugin/*` and `LICENSE` as `figxel-plugin-v<version>.zip`, and creates the GitHub Release with that zip and generated notes.
 5. Check the result: `npx -y figxel-mcp@latest --version`.
 
 The workflow publishes to npm before it creates the GitHub Release. If the release step fails after a successful publish, create the release by hand with the same `gh release create` command from the workflow, since re-running the whole job would repeat the publish step.

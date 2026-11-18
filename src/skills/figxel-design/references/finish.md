@@ -55,7 +55,7 @@ Tell the user, in this order, quoting the sign-off:
 - **Assumptions** — anything you decided for the user (the audience, the message, whose styles the file holds, unverified safe zones), first.
 - **The sign-off** — ok, when, the checks it ran, and each lens accepted below 8 with what remains, as figma_sign_off answered. Say plainly that work is unsigned if it did not pass.
 - **The brief as built** — the seven lines, updated with every decision made on the way.
-- **The direction and why** — the decision line: chosen, why, what was grafted, what was rejected, and how it differs from Direction 0.
+- **The direction and why** — the decision line: chosen (and by whom: the person, at a checkpoint), why, what was grafted, what was rejected, and how it differs from Direction 0.
 - **The scores** — each lens per round, and the findings left after the last round.
 - **Tells, infos and stress-test breaks kept on purpose** — each with its reason and evidence ("brand given: paint style Brand/Green", "a real sequence"), and any text the stress test skipped for a missing font.
 - **Placeholders to replace** — every invented fact: prices, names, numbers, photos, quotes.
@@ -64,4 +64,4 @@ Tell the user, in this order, quoting the sign-off:
 
 Keep it short: the design is the answer, and the report says what it decided and what the user still owns.
 
-Evidence (claim ids, for maintainers): [C-092] [C-212] [C-207] [C-248] [C-075] [C-221] [C-386] [C-385] [C-396]
+Evidence (claim ids, for maintainers): [C-092] [C-212] [C-207] [C-248] [C-075] [C-221] [C-386] [C-385] [C-396] [C-422]

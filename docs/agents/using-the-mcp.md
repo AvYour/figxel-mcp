@@ -10,7 +10,7 @@ This is not a tool list — the tool list is [`docs/reference/tools.md`](../refe
 
 **Own the brief, and build one section per tool call — checked before the next.** `[C-085]`
 
-A short request ("a pricing page", "an about page for my portfolio") is enough. The agent decides structure, copy, imagery and decoration itself, uses realistic placeholder content where a fact belongs to the user (and lists it at the end), and asks only when a choice would change the whole result. The official Figma MCP's own skills ask for the same thing: batch related work into retry-safe calls, a complete section at a time, and validate once per composition `[C-082]`.
+A short request ("a pricing page", "an about page for my portfolio") is enough. The agent decides structure, copy, imagery and decoration itself, uses realistic placeholder content where a fact belongs to the user (and lists it at the end), and asks only when a choice would change the whole result. One stop is the default at the page and top gears and for a motion piece: the person chooses the direction on its styleframes before the build ([Checkpoint](#the-process-in-short)) `[C-422]`. The official Figma MCP's own skills ask for the same thing: batch related work into retry-safe calls, a complete section at a time, and validate once per composition `[C-082]`.
 
 Why a section, not an element and not a page:
 
@@ -68,7 +68,7 @@ Motion has its own gears in the `motion` skill (edit, UI micro-motion, sting, pi
 
 **Where the work goes.** From the page gear up, the brief, the directions and the styleframes go on an "Explorations" page, and every motion piece gets a "Storyboard" page; both are allowed by default. Smaller gears work beside the design on the current page. A Starter file holds three pages `[C-048]`, so when a page is refused the agent uses a section on the current page and says so.
 
-**Checkpoint.** By default the agent owns the brief and runs to the end `[C-085]`. When the brief asks to see the plan first — or the `checkpoint` argument of `design_in_figma`, `storyboard_motion` or `animate_in_figma` is `storyboard` — it stops once the decision line and the styleframes exist (for a motion piece, the storyboard and the technical probe too), shows them, and waits for approval.
+**Checkpoint.** At the page and top gears, and for a motion piece, the agent stops once by default `[C-422]`: once the decision line and the styleframes exist (for a motion piece, the storyboard and the technical probe too), it shows them, waits for the person's choice and records it with `figma_set_brief { briefId, chosen, approvedBy: "owner" }`; then it builds. A new brief at those gears records `checkpoint: "directions"`, which `figma_set_brief`'s result and `figma_get_brief`'s `next` follow (`stop`, `missingForSignOff`). Edit, section, replica, UI micro-motion and sting gears run to the end `[C-085]`, unless the brief asks to see the plan first. The person's word to just build, the `checkpoint` argument `none` of `design_in_figma`, `storyboard_motion` or `animate_in_figma`, or `BRIDGE_CHECKPOINT=none` for the installation ([Configuration](../configuration.md#every-setting)) runs to the end; the brief then stores no checkpoint, as a brief from before checkpoints. Under `BRIDGE_PROCESS=strict` a checkpoint's `figma_sign_off` waits for the recorded choice, and a styleframe of the decision line is not cloned into the build before it (`PROCESS_REQUIRED`); under `guided` both are warnings.
 
 ## Measuring
 
@@ -124,7 +124,7 @@ Two things this catches that a screenshot does not:
 | Property on many nodes | `figma_set_fills`, `figma_set_opacity`, `figma_set_strokes`, … | Per-item `items[]` results |
 | Geometry | `figma_move_nodes`, `figma_resize_nodes`, `figma_rotate_nodes` | Per-item results |
 | Check it | `figma_check_layout` | After every section; fix errors and warnings. On new design add `audit: ["craft", "tells"]`; a role adds its own audits (`a11y`, `states`, `copy`, `system`, `deck`, `mark`, `icons`, `library`), measured against the checked work's own brief, else the brief in force |
-| Record the brief | `figma_set_brief` | Before the first new frame: role, gear, title, goal, message, success and the role's details; `briefId` adds directions, the choice, styleframes and the system as the work goes |
+| Record the brief | `figma_set_brief` | Before the first new frame: role, gear, title, goal, message, success and the role's details; `briefId` adds directions, the choice, styleframes and the system as the work goes, and at a checkpoint the person's choice (`approvedBy: "owner"`) |
 | Read a brief | `figma_get_brief` | A frame's brief and its last sign-off; with no node, the file's open briefs. Reading an open brief adopts it |
 | Finish | `figma_sign_off` | The role's audits, the lens scores, rounds and answers; `ok: false` lists each blocker with its call. A final export waits for it |
 | Mark an instruction's start | `figma_savepoint` | At the start of each instruction, so it can be taken back whole |
@@ -229,7 +229,7 @@ A prompt is a starting message the user picks from the client's menu, not someth
 | `create_design_system_rules` | `clientLanguages`, `clientFrameworks`, `rulesPath` | `design-to-code` + `rules` |
 | `code_to_design` | `source` (required), `target` | `code-to-design` + `spec` |
 
-**`checkpoint`** is `storyboard` (stop for approval once the plan exists — see [The process in short](#the-process-in-short)) or `none`, the default. Claude Code splits a typed line on whitespace across the arguments `[C-176]`, so every preamble reads well with an argument missing or cut short, and a `checkpoint` that is neither word is handed to the agent as part of the brief rather than refused.
+**`checkpoint`** is `directions` or its motion word `storyboard` (stop for the person's choice once the plan exists — see [The process in short](#the-process-in-short)), or `none` (run to the end). Left empty, the brief's default holds: a stop at the page and top gears and for a motion piece `[C-422]`, unless `BRIDGE_CHECKPOINT=none`. Claude Code splits a typed line on whitespace across the arguments `[C-176]`, so every preamble reads well with an argument missing or cut short, and a `checkpoint` that is none of those words is handed to the agent as part of the brief rather than refused.
 
 ## Resources
 

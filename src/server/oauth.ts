@@ -23,6 +23,7 @@ import { isIP } from "node:net";
 import { join } from "node:path";
 import { clientAddress, type Bridge } from "./bridge.js";
 import type { Logger } from "./config.js";
+import { Budget } from "./limits.js";
 import { pkcePair, type Identity, type Provider, type ProviderId } from "./login.js";
 import { parseInvite } from "../shared/invite.js";
 import { PRODUCT_NAME } from "../shared/version.js";
@@ -51,29 +52,14 @@ export interface OAuthOptions {
   redirectHosts?: readonly string[];
   /**
    * Sign-in with an account (login.ts): the providers offered, and the person
-   * an account is, or null when it is not admitted (hub.ts personForLogin).
+   * an account is, null when it is not admitted, or "full" when it would be
+   * but the hub holds as many people as it takes (hub.ts personForLogin).
    * Without it, the sign-in page takes an invite alone.
    */
   accounts?: {
     providers: readonly Provider[];
-    personFor: (identity: Identity) => { person: string; source: string } | null;
+    personFor: (identity: Identity) => { person: string; source: string } | "full" | null;
   };
-}
-
-/** At most `max` uses per key within `windowMs`: a cheap guard for endpoints anyone may call. */
-class Budget {
-  private readonly uses = new Map<string, { n: number; since: number }>();
-  constructor(
-    private readonly max: number,
-    private readonly windowMs: number,
-  ) {}
-  take(key: string): boolean {
-    const now = Date.now();
-    if (this.uses.size > 10_000) for (const [k, u] of this.uses) if (now - u.since > this.windowMs) this.uses.delete(k);
-    let u = this.uses.get(key);
-    if (!u || now - u.since > this.windowMs) this.uses.set(key, (u = { n: 0, since: now }));
-    return ++u.n <= this.max;
-  }
 }
 
 interface Client {
@@ -410,20 +396,23 @@ export function createOAuth(opts: OAuthOptions): OAuth {
       return page(res, 502, errorPage(`${provider.label} did not confirm who signed in. Try again.`), security);
     }
     const who = opts.accounts!.personFor(identity);
-    if (!who) {
-      logger.info(`oauth: a ${provider.label} account was not admitted`);
+    if (!who || who === "full") {
+      logger.info(`oauth: a ${provider.label} account was not admitted${who === "full" ? ": the hub is full" : ""}`);
       // A plugin waiting on this code hears it at once, instead of when the code expires.
       if (p.kind === "device") {
         const device = devices.get(p.deviceKey);
         if (device) device.denied = true;
       }
+      const elsewhere = `use ${PRODUCT_NAME} on your own computer, free: in the plugin, press "Use ${PRODUCT_NAME} on this computer instead".`;
       return page(
         res,
         403,
-        errorPage(
-          `This ${provider.label} account${identity.email ? ` (${identity.email})` : ""} is not on this hub's list: it is by invitation. ` +
-            `Ask whoever runs it to add you, or use ${PRODUCT_NAME} on your own computer, free: in the plugin, press "Use ${PRODUCT_NAME} on this computer instead".`,
-        ),
+        who === "full"
+          ? errorPage(`It takes no new people for now, and nobody was added. Try again another day, ask whoever runs it, or ${elsewhere}`, "This hub is full", "")
+          : errorPage(
+              `This ${provider.label} account${identity.email ? ` (${identity.email})` : ""} is not on this hub's list: it is by invitation. ` +
+                `Ask whoever runs it to add you, or ${elsewhere}`,
+            ),
         security,
       );
     }
@@ -617,11 +606,16 @@ function sameResource(asked: string, resource: string, issuer: string): boolean 
   return n !== "" && (n === norm(resource) || n === norm(issuer));
 }
 
+/**
+ * What a hub kept before it restarted. The plugins' browser credentials and the
+ * remembered browsers come back too: leaving them out signed every plugin out
+ * at a restart, and the next save wiped them from the file.
+ */
 function load(path: string): Stored {
   if (!existsSync(path)) return { v: 1, clients: {}, refresh: {} };
   try {
     const s = JSON.parse(readFileSync(path, "utf8")) as Partial<Stored>;
-    return { v: 1, clients: s.clients ?? {}, refresh: s.refresh ?? {} };
+    return { v: 1, clients: s.clients ?? {}, refresh: s.refresh ?? {}, ...(s.devices ? { devices: s.devices } : {}), ...(s.browsers ? { browsers: s.browsers } : {}) };
   } catch {
     return { v: 1, clients: {}, refresh: {} };
   }
@@ -779,7 +773,7 @@ async function readJson(req: IncomingMessage, res: ServerResponse): Promise<unkn
   }
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const STYLE = `
   :root { color-scheme: light dark; --bg: #f6f6f4; --card: #fff; --text: #1d1d1b; --muted: #666; --line: #ddd; --brand: #0d63d6; --bad: #c62828; }
@@ -796,14 +790,31 @@ const STYLE = `
   button { margin-top: 16px; width: 100%; padding: 10px; font: inherit; font-weight: 600; border: 0; border-radius: 8px; background: var(--brand); color: #fff; cursor: pointer; }
   a.button { display: block; margin-top: 10px; padding: 11px; text-align: center; font-weight: 600; border-radius: 8px; text-decoration: none; border: 1px solid var(--line); color: var(--text); background: var(--card); }
   a.button.figma { background: var(--text); color: var(--card); border-color: var(--text); }
-  details { margin-top: 16px; } summary { cursor: pointer; color: var(--muted); font-size: 14px; }`;
+  details { margin-top: 16px; } summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  main.wide { max-width: 720px; } h2 { font-size: 16px; margin: 20px 0 6px; } h3, h4, h5, h6 { font-size: 15px; margin: 16px 0 6px; }
+  ul, ol { margin: 0 0 12px; padding-left: 22px; } li { margin: 0 0 6px; } a { color: var(--brand); }
+  blockquote { margin: 0 0 12px; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; } hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+  footer { margin-top: 20px; font-size: 13px; } footer a { color: var(--muted); }`;
 
-function shell(title: string, body: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><style>${STYLE}</style></head><body><main>${body}</main></body></html>`;
+/**
+ * A page of the hub: the sign-in pages here, and /privacy and /terms
+ * (privacy.ts). Each page links to the privacy and terms pages, except to
+ * itself (`current`).
+ */
+export function shell(title: string, body: string, o: { wide?: boolean; current?: "privacy" | "terms" } = {}): string {
+  const links = [
+    ["/privacy", "Privacy", "privacy"],
+    ["/terms", "Terms", "terms"],
+  ]
+    .filter(([, , page]) => page !== o.current)
+    .map(([href, label]) => `<a href="${href}">${label}</a>`);
+  const footer = `<footer>${links.join(" · ")}</footer>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><style>${STYLE}</style></head><body><main${o.wide ? ' class="wide"' : ""}>${body}${footer}</main></body></html>`;
 }
 
-function errorPage(message: string): string {
-  return shell(`${PRODUCT_NAME}: sign-in`, `<h1>Cannot sign in</h1><p class="bad">${esc(message)}</p><p class="muted">Close this page and connect the app again.</p>`);
+function errorPage(message: string, heading = "Cannot sign in", after = "Close this page and connect the app again."): string {
+  return shell(`${PRODUCT_NAME}: sign-in`, `<h1>${esc(heading)}</h1><p class="bad">${esc(message)}</p>${after ? `<p class="muted">${esc(after)}</p>` : ""}`);
 }
 
 function donePage(message: string): string {

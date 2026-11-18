@@ -73,8 +73,9 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
   if (st.role === "proxy" && st.hub) {
     const as = st.person ? ` as ${st.person}` : "";
     const leave = ctx.config.hubFrom === "joined" ? ` \`npx -y ${PACKAGE_NAME}@latest leave\` goes back to this computer's own ${PRODUCT_NAME}.` : "";
+    const room = ctx.config.folderQuota ? `, up to ${Math.round(ctx.config.folderQuota.bytes / 1024 / 1024)} MB at a time` : "";
     hint += ctx.config.webMode
-      ? ` This is the team's web endpoint${as}. Files the tools write stay on the server for an hour; each result lists them under \`downloads\`, with a link. To import a file, give a URL, or upload it first (POST /files).`
+      ? ` This is the team's web endpoint${as}. Files the tools write stay on the server for an hour${room}; each result lists them under \`downloads\`, with a link. To import a file, give a URL, or upload it first (POST /files).`
       : ` This process works through the team's hub at ${st.hub}${as}: the plugin connects there too, and files are read and written on this computer. To connect the plugin, ${pluginStepFor(ctx.config.hubUrl ?? "")}.${leave}`;
   } else if (st.role === "proxy") {
     hint += ` This process shares the Figma connection held by ${PRODUCT_NAME} process ${st.hubPid}, so several AI apps can use Figma at once.`;
@@ -177,6 +178,8 @@ export async function buildStatus(ctx: StatusContext): Promise<Record<string, un
       // BRIDGE_CONFLICTS: what a write to a node someone changed since the agent's read does (trust spec §2.3).
       // This process's, also for a proxy: it sends its own with each write.
       conflicts: ctx.config.conflicts,
+      // BRIDGE_CHECKPOINT: where a new brief at the page and top gears, and a motion piece, stops by default (C-422).
+      checkpoint: ctx.config.checkpoint,
       sessionWaitMs: ctx.config.sessionWaitMs,
     },
     // What figma_get_guide, the prompts and the skill:// resources serve here.
